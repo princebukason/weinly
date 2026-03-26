@@ -20,10 +20,6 @@ function show(v: any): string {
   return s.length ? s : "Not specified";
 }
 
-/**
- * Normalizes whatever the API returns into the 7 fields your UI expects.
- * Supports snake_case and common camelCase variants.
- */
 function normalizeSpec(raw: any): FabricSpec {
   const r = raw ?? {};
 
@@ -73,18 +69,12 @@ function normalizeSpec(raw: any): FabricSpec {
 export default function Home() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-
-  // Raw result from API (might be object OR string depending on your route)
   const [resultRaw, setResultRaw] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Always produce a clean FabricSpec object for display
   const spec: FabricSpec | null = useMemo(() => {
     if (!resultRaw) return null;
-
-    // If API ever returns a string, we still show Not specified fields
     if (typeof resultRaw === "string") return normalizeSpec({});
-
     return normalizeSpec(resultRaw);
   }, [resultRaw]);
 
@@ -119,12 +109,9 @@ export default function Home() {
         throw new Error(data?.error || "Analyze API failed");
       }
 
-      // Expecting { result: {...} } from /api/analyze
       const aiResult = data?.result ?? data;
-
       setResultRaw(aiResult);
 
-      // Save to Supabase (non-blocking: failure won't break UI)
       try {
         await supabase.from("fabric_requests").insert({
           user_input: input,
@@ -134,7 +121,6 @@ export default function Home() {
         console.warn("Supabase insert failed (non-blocking):", e);
       }
 
-      // Optional: keep input or clear it. We'll clear it.
       setInput("");
     } catch (e: any) {
       console.error(e);
@@ -162,63 +148,56 @@ export default function Home() {
       }}
     >
       <h1 style={{ fontSize: 32, marginBottom: 8 }}>Weinly</h1>
-      <p style={{ fontSize: 12, color: "#888" }}>
-  Suppliers loaded: {suppliers.length}
-</p>
-
 
       <p style={{ color: "#555", marginBottom: 18 }}>
-        Describe the fabric you’re sourcing. Weinly converts it into a
-        manufacturer-ready specification and matches trusted suppliers.
+        Describe your fabric. Get a professional specification instantly.
       </p>
 
       <p style={{ marginBottom: 10, color: "#555" }}>
-  Tip: Include fabric type, use, color, quality, and budget if possible.
-</p>
+        Tip: Include fabric type, use, color, quality, and budget if possible.
+      </p>
 
-<textarea
-  value={input}
-  onChange={(e) => setInput(e.target.value)}
-  rows={6}
-  placeholder="Describe the fabric you need. 
-Example: Lace for wedding gowns, premium quality, white, lightweight, for hot weather."
-  style={{
-    width: "100%",
-    padding: 14,
-    fontSize: 14,
-    borderRadius: 6,
-    border: "1px solid #ccc",
-  }}
-/>
+      <textarea
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        rows={6}
+        placeholder={`Describe the fabric you need.
+Example: Lace for wedding gowns, premium quality, white, lightweight, for hot weather.`}
+        style={{
+          width: "100%",
+          padding: 14,
+          fontSize: 14,
+          borderRadius: 6,
+          border: "1px solid #ccc",
+        }}
+      />
 
-{/* 👇 ADD THIS PART HERE */}
-<div style={{ marginTop: 10 }}>
-  <p style={{ fontWeight: "bold" }}>Examples:</p>
+      <div style={{ marginTop: 10 }}>
+        <p style={{ fontWeight: "bold", marginBottom: 8 }}>Examples:</p>
 
-  <p
-    style={{ cursor: "pointer", color: "#4CAF50" }}
-    onClick={() =>
-      setInput(
-        "Lace fabric for wedding gowns, premium quality, white, lightweight"
-      )
-    }
-  >
-    Lace for wedding gowns (premium, white, lightweight)
-  </p>
+        <p
+          style={{ cursor: "pointer", color: "#4CAF50", margin: "6px 0" }}
+          onClick={() =>
+            setInput(
+              "Lace fabric for wedding gowns, premium quality, white, lightweight"
+            )
+          }
+        >
+          Lace for wedding gowns (premium, white, lightweight)
+        </p>
 
-  <p
-    style={{ cursor: "pointer", color: "#4CAF50" }}
-    onClick={() =>
-      setInput(
-        "Cotton fabric for men’s shirts, breathable, affordable, for hot weather"
-      )
-    }
-  >
-    Cotton for shirts (breathable, budget-friendly)
-  </p>
-</div>
+        <p
+          style={{ cursor: "pointer", color: "#4CAF50", margin: "6px 0" }}
+          onClick={() =>
+            setInput(
+              "Cotton fabric for men’s shirts, breathable, affordable, for hot weather"
+            )
+          }
+        >
+          Cotton for shirts (breathable, budget-friendly)
+        </p>
+      </div>
 
-      {/* BUTTON */}
       <button
         onClick={submitRequest}
         disabled={loading}
@@ -238,7 +217,6 @@ Example: Lace for wedding gowns, premium quality, white, lightweight, for hot we
 
       {error && <p style={{ marginTop: 10, color: "crimson" }}>{error}</p>}
 
-      {/* RESULT BOX */}
       {spec && (
         <div
           style={{
@@ -255,7 +233,6 @@ Example: Lace for wedding gowns, premium quality, white, lightweight, for hot we
 
           <h3 style={{ marginTop: 0 }}>Fabric Specification</h3>
 
-          {/* Clean readable output (no JSON block) */}
           <div style={{ lineHeight: 1.9 }}>
             <div>
               <strong>Fabric Type:</strong> {spec.fabric_type}
@@ -281,14 +258,13 @@ Example: Lace for wedding gowns, premium quality, white, lightweight, for hot we
           </div>
 
           <p style={{ marginTop: 10, fontStyle: "italic" }}>
-  This specification is ready to be shared with verified suppliers.
-</p>
+            This specification is ready to be shared with verified suppliers.
+          </p>
 
-<p style={{ color: "#4CAF50", fontWeight: "bold", marginTop: 8 }}>
-  Confidence Level: High
-</p>
+          <p style={{ color: "#4CAF50", fontWeight: "bold", marginTop: 8 }}>
+            Confidence Level: High
+          </p>
 
-          {/* ACTIONS */}
           <div
             style={{
               marginTop: 12,
@@ -328,7 +304,6 @@ Example: Lace for wedding gowns, premium quality, white, lightweight, for hot we
             </button>
           </div>
 
-          {/* SUPPLIERS */}
           <h3 style={{ marginTop: 24 }}>Matched Suppliers</h3>
 
           {matchedSuppliers.length === 0 ? (
@@ -370,7 +345,6 @@ Example: Lace for wedding gowns, premium quality, white, lightweight, for hot we
             ))
           )}
 
-          {/* CONFIRMATION FEEDBACK */}
           <p style={{ marginTop: 20, fontWeight: "bold", color: "#4CAF50" }}>
             ✔ Your fabric specification is ready and matched with trusted
             suppliers! You can now request samples or save this specification
