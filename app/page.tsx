@@ -14,7 +14,7 @@ type FabricSpec = {
   budget: string;
 };
 
-function show(v: any): string {
+function show(v: unknown): string {
   if (v === null || v === undefined) return "Not specified";
   const s = String(v).trim();
   return s.length ? s : "Not specified";
@@ -24,7 +24,7 @@ function show(v: any): string {
  * Normalizes whatever the API returns into the 7 fields your UI expects.
  * Supports snake_case and common camelCase variants.
  */
-function normalizeSpec(raw: any): FabricSpec {
+function normalizeSpec(raw: Record<string, unknown> | null | undefined): FabricSpec {
   const r = raw ?? {};
 
   const fabric_type = show(
@@ -75,7 +75,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
 
   // Raw result from API (might be object OR string depending on your route)
-  const [resultRaw, setResultRaw] = useState<any>(null);
+  const [resultRaw, setResultRaw] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Always produce a clean FabricSpec object for display
@@ -167,59 +167,85 @@ export default function Home() {
 </p>
 
 
-      <h1 style={{ fontSize: 32, marginBottom: 8 }}>Weinly</h1>
-
-<p style={{ color: "#555", marginBottom: 18 }}>
-  Describe your fabric. Get a professional specification instantly.
-</p>
+      <p style={{ color: "#555", marginBottom: 18 }}>
+        Describe the fabric you’re sourcing. Weinly converts it into a
+        manufacturer-ready specification and matches trusted suppliers.
+      </p>
 
       <p style={{ marginBottom: 10, color: "#555" }}>
   Tip: Include fabric type, use, color, quality, and budget if possible.
 </p>
 
-<textarea
-  value={input}
-  onChange={(e) => setInput(e.target.value)}
-  rows={6}
-  placeholder="Describe the fabric you need. 
+      <label htmlFor="fabric-input" style={{ display: "block", marginBottom: 8, fontWeight: "bold", color: "#333" }}>
+        Describe your fabric needs
+      </label>
+      <textarea
+        id="fabric-input"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        rows={6}
+        placeholder="Describe the fabric you need. 
 Example: Lace for wedding gowns, premium quality, white, lightweight, for hot weather."
-  style={{
-    width: "100%",
-    padding: 14,
-    fontSize: 14,
-    borderRadius: 6,
-    border: "1px solid #ccc",
-  }}
-/>
+        style={{
+          width: "100%",
+          padding: 14,
+          fontSize: 14,
+          borderRadius: 6,
+          border: "1px solid #ccc",
+        }}
+      />
 
-{/* 👇 ADD THIS PART HERE */}
+{/* Quick Examples */}
 <div style={{ marginTop: 10 }}>
-  <p style={{ fontWeight: "bold" }}>Examples:</p>
+  <p style={{ fontWeight: "bold", marginBottom: 8 }}>Quick Examples:</p>
 
-  <p
-    style={{ cursor: "pointer", color: "#4CAF50" }}
+  <button
+    type="button"
     onClick={() =>
       setInput(
         "Lace fabric for wedding gowns, premium quality, white, lightweight"
       )
     }
+    style={{
+      display: "block",
+      marginBottom: 8,
+      padding: "8px 12px",
+      backgroundColor: "transparent",
+      color: "#4CAF50",
+      border: "1px solid #4CAF50",
+      borderRadius: 4,
+      cursor: "pointer",
+      fontSize: 14,
+      fontWeight: "bold",
+    }}
   >
     Lace for wedding gowns (premium, white, lightweight)
-  </p>
+  </button>
 
-  <p
-    style={{ cursor: "pointer", color: "#4CAF50" }}
+  <button
+    type="button"
     onClick={() =>
       setInput(
-        "Cotton fabric for men’s shirts, breathable, affordable, for hot weather"
+        "Cotton fabric for men's shirts, breathable, affordable, for hot weather"
       )
     }
+    style={{
+      display: "block",
+      marginBottom: 8,
+      padding: "8px 12px",
+      backgroundColor: "transparent",
+      color: "#4CAF50",
+      border: "1px solid #4CAF50",
+      borderRadius: 4,
+      cursor: "pointer",
+      fontSize: 14,
+      fontWeight: "bold",
+    }}
   >
     Cotton for shirts (breathable, budget-friendly)
-  </p>
+  </button>
 </div>
 
-      {/* BUTTON */}
       <button
         onClick={submitRequest}
         disabled={loading}
@@ -230,8 +256,9 @@ Example: Lace for wedding gowns, premium quality, white, lightweight, for hot we
           marginTop: 14,
           border: "none",
           borderRadius: 6,
-          cursor: "pointer",
+          cursor: loading ? "not-allowed" : "pointer",
           fontSize: 16,
+          opacity: loading ? 0.6 : 1,
         }}
       >
         {loading ? "Analyzing..." : "Analyze Fabric"}
