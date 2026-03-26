@@ -162,26 +162,62 @@ export default function Home() {
       }}
     >
       <h1 style={{ fontSize: 32, marginBottom: 8 }}>Weinly</h1>
+      <p style={{ fontSize: 12, color: "#888" }}>
+  Suppliers loaded: {suppliers.length}
+</p>
 
-      <p style={{ color: "#555", marginBottom: 18 }}>
-        Describe the fabric you’re sourcing. Weinly converts it into a
-        manufacturer-ready specification and matches trusted suppliers.
-      </p>
 
-      {/* INPUT */}
-      <textarea
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        rows={6}
-        placeholder="Example: Premium white lace for wedding gowns, not too heavy, starting with samples."
-        style={{
-          width: "100%",
-          padding: 14,
-          fontSize: 14,
-          borderRadius: 6,
-          border: "1px solid #ccc",
-        }}
-      />
+      <h1 style={{ fontSize: 32, marginBottom: 8 }}>Weinly</h1>
+
+<p style={{ color: "#555", marginBottom: 18 }}>
+  Describe your fabric. Get a professional specification instantly.
+</p>
+
+      <p style={{ marginBottom: 10, color: "#555" }}>
+  Tip: Include fabric type, use, color, quality, and budget if possible.
+</p>
+
+<textarea
+  value={input}
+  onChange={(e) => setInput(e.target.value)}
+  rows={6}
+  placeholder="Describe the fabric you need. 
+Example: Lace for wedding gowns, premium quality, white, lightweight, for hot weather."
+  style={{
+    width: "100%",
+    padding: 14,
+    fontSize: 14,
+    borderRadius: 6,
+    border: "1px solid #ccc",
+  }}
+/>
+
+{/* 👇 ADD THIS PART HERE */}
+<div style={{ marginTop: 10 }}>
+  <p style={{ fontWeight: "bold" }}>Examples:</p>
+
+  <p
+    style={{ cursor: "pointer", color: "#4CAF50" }}
+    onClick={() =>
+      setInput(
+        "Lace fabric for wedding gowns, premium quality, white, lightweight"
+      )
+    }
+  >
+    Lace for wedding gowns (premium, white, lightweight)
+  </p>
+
+  <p
+    style={{ cursor: "pointer", color: "#4CAF50" }}
+    onClick={() =>
+      setInput(
+        "Cotton fabric for men’s shirts, breathable, affordable, for hot weather"
+      )
+    }
+  >
+    Cotton for shirts (breathable, budget-friendly)
+  </p>
+</div>
 
       {/* BUTTON */}
       <button
@@ -246,8 +282,12 @@ export default function Home() {
           </div>
 
           <p style={{ marginTop: 10, fontStyle: "italic" }}>
-            This specification is ready to be shared with verified suppliers.
-          </p>
+  This specification is ready to be shared with verified suppliers.
+</p>
+
+<p style={{ color: "#4CAF50", fontWeight: "bold", marginTop: 8 }}>
+  Confidence Level: High
+</p>
 
           {/* ACTIONS */}
           <div
