@@ -23,48 +23,34 @@ function show(v: any): string {
 function normalizeSpec(raw: any): FabricSpec {
   const r = raw ?? {};
 
-  const fabric_type = show(
-    r.fabric_type ?? r.fabricType ?? r.fabric ?? r.type ?? r.material
-  );
-
-  const intended_use = show(
-    r.intended_use ?? r.intendedUse ?? r.use ?? r.application ?? r.purpose
-  );
-
-  const quality_level = show(
-    r.quality_level ?? r.qualityLevel ?? r.quality ?? r.grade
-  );
-
-  const color_or_pattern = show(
-    r.color_or_pattern ??
-      r.colorOrPattern ??
-      r.color ??
-      r.pattern ??
-      r.design
-  );
-
-  const weight_or_thickness = show(
-    r.weight_or_thickness ??
-      r.weightOrThickness ??
-      r.weight ??
-      r.thickness ??
-      r.gsm
-  );
-
-  const quantity = show(r.quantity ?? r.qty ?? r.amount);
-
-  const budget = show(
-    r.budget ?? r.price ?? r.target_budget ?? r.targetBudget
-  );
-
   return {
-    fabric_type,
-    intended_use,
-    quality_level,
-    color_or_pattern,
-    weight_or_thickness,
-    quantity,
-    budget,
+    fabric_type: show(
+      r.fabric_type ?? r.fabricType ?? r.fabric ?? r.type ?? r.material
+    ),
+    intended_use: show(
+      r.intended_use ?? r.intendedUse ?? r.use ?? r.application ?? r.purpose
+    ),
+    quality_level: show(
+      r.quality_level ?? r.qualityLevel ?? r.quality ?? r.grade
+    ),
+    color_or_pattern: show(
+      r.color_or_pattern ??
+        r.colorOrPattern ??
+        r.color ??
+        r.pattern ??
+        r.design
+    ),
+    weight_or_thickness: show(
+      r.weight_or_thickness ??
+        r.weightOrThickness ??
+        r.weight ??
+        r.thickness ??
+        r.gsm
+    ),
+    quantity: show(r.quantity ?? r.qty ?? r.amount),
+    budget: show(
+      r.budget ?? r.price ?? r.target_budget ?? r.targetBudget
+    ),
   };
 }
 
@@ -96,40 +82,55 @@ export default function Home() {
 
   async function submitRequest() {
     if (!input.trim() || !name.trim()) {
-  alert("Please enter your name and fabric request");
-  return;
-}
+      alert("Please enter your name and fabric request");
+      return;
+    }
 
-const aiResult = data?.result ?? data;
-setResultRaw(aiResult);
-setSubmittedName(name.trim());
+    setLoading(true);
+    setError(null);
 
-console.log("Submitting name:", name.trim());
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input }),
+      });
 
-try {
-  const payload = {
-    user_input: input.trim(),
-    ai_output: aiResult,
-    client_name: name.trim(),
-    status: "new",
-  };
+      const data = await res.json().catch(() => ({}));
 
-  console.log("PAYLOAD BEING SENT:", payload);
+      if (!res.ok) {
+        throw new Error(data?.error || "Analyze API failed");
+      }
 
-  const { data: insertedRow, error: insertError } = await supabase
-    .from("fabric_requests")
-    .insert(payload)
-    .select();
+      const aiResult = data?.result ?? data;
 
-  console.log("INSERTED ROW:", insertedRow);
-  console.log("INSERT ERROR:", insertError);
+      setResultRaw(aiResult);
+      setSubmittedName(name.trim());
 
-  if (insertError) {
-    console.warn("Supabase insert failed:", insertError);
-  }
-} catch (e) {
-  console.warn("Supabase insert failed (non-blocking):", e);
-}
+      const payload = {
+        user_input: input.trim(),
+        ai_output: aiResult,
+        client_name: name.trim(),
+        status: "new",
+      };
+
+      console.log("PAYLOAD BEING SENT:", payload);
+
+      try {
+        const { data: insertedRow, error: insertError } = await supabase
+          .from("fabric_requests")
+          .insert(payload)
+          .select();
+
+        console.log("INSERTED ROW:", insertedRow);
+        console.log("INSERT ERROR:", insertError);
+
+        if (insertError) {
+          console.warn("Supabase insert failed:", insertError);
+        }
+      } catch (dbError) {
+        console.warn("Supabase insert failed (non-blocking):", dbError);
+      }
 
       setInput("");
       setName("");
@@ -240,7 +241,9 @@ Example: Lace for wedding gowns, premium quality, white, lightweight, for hot we
         {loading ? "Analyzing..." : "Analyze Fabric"}
       </button>
 
-      {error && <p style={{ marginTop: 10, color: "crimson" }}>{error}</p>}
+      {error && (
+        <p style={{ marginTop: 10, color: "crimson" }}>{error}</p>
+      )}
 
       {spec && (
         <div
@@ -257,8 +260,8 @@ Example: Lace for wedding gowns, premium quality, white, lightweight, for hot we
           </p>
 
           <p style={{ color: "purple", fontWeight: "bold", marginBottom: 10 }}>
-  Debug Name: {submittedName || "EMPTY"}
-</p>
+            Debug Name: {submittedName || "EMPTY"}
+          </p>
 
           <p style={{ marginBottom: 10 }}>
             Request by: <strong>{submittedName || "Anonymous"}</strong>
