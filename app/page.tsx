@@ -68,6 +68,7 @@ function normalizeSpec(raw: any): FabricSpec {
 
 export default function Home() {
   const [input, setInput] = useState("");
+  const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [resultRaw, setResultRaw] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -156,6 +157,19 @@ export default function Home() {
       <p style={{ marginBottom: 10, color: "#555" }}>
         Tip: Include fabric type, use, color, quality, and budget if possible.
       </p>
+      <input
+  placeholder="Your name"
+  value={name}
+  onChange={(e) => setName(e.target.value)}
+  style={{
+    width: "100%",
+    padding: 12,
+    fontSize: 14,
+    borderRadius: 6,
+    border: "1px solid #ccc",
+    marginBottom: 12,
+  }}
+/>
 
       <textarea
         value={input}
