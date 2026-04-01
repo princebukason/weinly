@@ -256,6 +256,10 @@ Example: Lace for wedding gowns, premium quality, white, lightweight, for hot we
             ✔ Fabric identified successfully
           </p>
 
+          <p style={{ color: "purple", fontWeight: "bold", marginBottom: 10 }}>
+  Debug Name: {submittedName || "EMPTY"}
+</p>
+
           <p style={{ marginBottom: 10 }}>
             Request by: <strong>{submittedName || "Anonymous"}</strong>
           </p>
