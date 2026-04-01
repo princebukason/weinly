@@ -53,7 +53,9 @@ function normalizeSpec(raw: any): FabricSpec {
 
   const quantity = show(r.quantity ?? r.qty ?? r.amount);
 
-  const budget = show(r.budget ?? r.price ?? r.target_budget ?? r.targetBudget);
+  const budget = show(
+    r.budget ?? r.price ?? r.target_budget ?? r.targetBudget
+  );
 
   return {
     fabric_type,
@@ -69,6 +71,7 @@ function normalizeSpec(raw: any): FabricSpec {
 export default function Home() {
   const [input, setInput] = useState("");
   const [name, setName] = useState("");
+  const [submittedName, setSubmittedName] = useState("");
   const [loading, setLoading] = useState(false);
   const [resultRaw, setResultRaw] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -92,37 +95,44 @@ export default function Home() {
   }, [spec]);
 
   async function submitRequest() {
-    if (!input.trim()) return;
+    if (!input.trim() || !name.trim()) {
+  alert("Please enter your name and fabric request");
+  return;
+}
 
-    setLoading(true);
-    setError(null);
+const aiResult = data?.result ?? data;
+setResultRaw(aiResult);
+setSubmittedName(name.trim());
 
-    try {
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input }),
-      });
+console.log("Submitting name:", name.trim());
 
-      const data = await res.json().catch(() => ({}));
+try {
+  const payload = {
+    user_input: input.trim(),
+    ai_output: aiResult,
+    client_name: name.trim(),
+    status: "new",
+  };
 
-      if (!res.ok) {
-        throw new Error(data?.error || "Analyze API failed");
-      }
+  console.log("PAYLOAD BEING SENT:", payload);
 
-      const aiResult = data?.result ?? data;
-      setResultRaw(aiResult);
+  const { data: insertedRow, error: insertError } = await supabase
+    .from("fabric_requests")
+    .insert(payload)
+    .select();
 
-      try {
-        await supabase.from("fabric_requests").insert({
-          user_input: input,
-          ai_output: aiResult,
-        });
-      } catch (e) {
-        console.warn("Supabase insert failed (non-blocking):", e);
-      }
+  console.log("INSERTED ROW:", insertedRow);
+  console.log("INSERT ERROR:", insertError);
+
+  if (insertError) {
+    console.warn("Supabase insert failed:", insertError);
+  }
+} catch (e) {
+  console.warn("Supabase insert failed (non-blocking):", e);
+}
 
       setInput("");
+      setName("");
     } catch (e: any) {
       console.error(e);
       setError(e?.message || "Something went wrong");
@@ -157,19 +167,20 @@ export default function Home() {
       <p style={{ marginBottom: 10, color: "#555" }}>
         Tip: Include fabric type, use, color, quality, and budget if possible.
       </p>
+
       <input
-  placeholder="Your name"
-  value={name}
-  onChange={(e) => setName(e.target.value)}
-  style={{
-    width: "100%",
-    padding: 12,
-    fontSize: 14,
-    borderRadius: 6,
-    border: "1px solid #ccc",
-    marginBottom: 12,
-  }}
-/>
+        placeholder="Your name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        style={{
+          width: "100%",
+          padding: 12,
+          fontSize: 14,
+          borderRadius: 6,
+          border: "1px solid #ccc",
+          marginBottom: 12,
+        }}
+      />
 
       <textarea
         value={input}
@@ -243,6 +254,10 @@ Example: Lace for wedding gowns, premium quality, white, lightweight, for hot we
         >
           <p style={{ color: "green", fontWeight: "bold", marginBottom: 8 }}>
             ✔ Fabric identified successfully
+          </p>
+
+          <p style={{ marginBottom: 10 }}>
+            Request by: <strong>{submittedName || "Anonymous"}</strong>
           </p>
 
           <h3 style={{ marginTop: 0 }}>Fabric Specification</h3>
@@ -341,23 +356,23 @@ Example: Lace for wedding gowns, premium quality, white, lightweight, for hot we
 
                 <div style={{ marginTop: 10 }}>
                   <button
-  onClick={() =>
-    alert(
-      `We can help you connect with ${s.name} and handle your order from China. Message us to proceed.`
-    )
-  }
-  style={{
-    backgroundColor: "#FF9800",
-    color: "white",
-    padding: "6px 12px",
-    border: "none",
-    borderRadius: 6,
-    cursor: "pointer",
-    fontWeight: "bold",
-  }}
->
-  Contact Supplier
-</button>
+                    onClick={() =>
+                      alert(
+                        `We can help you connect with ${s.name} and handle your order from China. Message us to proceed.`
+                      )
+                    }
+                    style={{
+                      backgroundColor: "#FF9800",
+                      color: "white",
+                      padding: "6px 12px",
+                      border: "none",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    Contact Supplier
+                  </button>
                 </div>
               </div>
             ))
