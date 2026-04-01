@@ -327,19 +327,23 @@ Example: Lace for wedding gowns, premium quality, white, lightweight, for hot we
 
                 <div style={{ marginTop: 10 }}>
                   <button
-                    onClick={() => alert(`Sample requested from ${s.name}`)}
-                    style={{
-                      backgroundColor: "#FF9800",
-                      color: "white",
-                      padding: "6px 12px",
-                      border: "none",
-                      borderRadius: 6,
-                      cursor: "pointer",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    Request Sample
-                  </button>
+  onClick={() =>
+    alert(
+      `We can help you connect with ${s.name} and handle your order from China. Message us to proceed.`
+    )
+  }
+  style={{
+    backgroundColor: "#FF9800",
+    color: "white",
+    padding: "6px 12px",
+    border: "none",
+    borderRadius: 6,
+    cursor: "pointer",
+    fontWeight: "bold",
+  }}
+>
+  Contact Supplier
+</button>
                 </div>
               </div>
             ))
