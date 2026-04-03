@@ -48,19 +48,30 @@ function normalizeSpec(raw: any): FabricSpec {
         r.gsm
     ),
     quantity: show(r.quantity ?? r.qty ?? r.amount),
-    budget: show(
-      r.budget ?? r.price ?? r.target_budget ?? r.targetBudget
-    ),
+    budget: show(r.budget ?? r.price ?? r.target_budget ?? r.targetBudget),
   };
+}
+
+function formatStatus(status: string) {
+  if (status === "in_progress") return "In Progress";
+  if (status === "quoted") return "Quoted";
+  if (status === "completed") return "Completed";
+  return "New";
 }
 
 export default function Home() {
   const [input, setInput] = useState("");
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [submittedName, setSubmittedName] = useState("");
   const [loading, setLoading] = useState(false);
   const [resultRaw, setResultRaw] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [requestId, setRequestId] = useState<string | null>(null);
+  const [buyerQuotes, setBuyerQuotes] = useState<any[]>([]);
+  const [lookupId, setLookupId] = useState("");
+  const [loadedRequest, setLoadedRequest] = useState<any>(null);
 
   const spec: FabricSpec | null = useMemo(() => {
     if (!resultRaw) return null;
@@ -79,6 +90,60 @@ export default function Home() {
     if (!spec) return [];
     return matchSupplier(spec.fabric_type);
   }, [spec]);
+
+  async function fetchQuotesForRequest(id: string) {
+    const { data, error } = await supabase
+      .from("quotes")
+      .select("*")
+      .eq("request_id", id);
+
+    if (error) {
+      console.warn("Failed to fetch quotes:", error);
+      return;
+    }
+
+    setBuyerQuotes(data || []);
+  }
+
+  async function loadRequestById() {
+    if (!lookupId.trim()) return;
+
+    setLoading(true);
+    setError(null);
+
+    const { data: request, error } = await supabase
+      .from("fabric_requests")
+      .select("*")
+      .eq("id", lookupId.trim())
+      .single();
+
+    if (error || !request) {
+      setLoading(false);
+      alert("Request not found");
+      return;
+    }
+
+    setLoadedRequest(request);
+    setResultRaw(request.ai_output);
+    setRequestId(request.id);
+    setSubmittedName(request.client_name || "");
+    setEmail(request.client_email || "");
+    setPhone(request.client_phone || "");
+
+    const { data: quotesData, error: quotesError } = await supabase
+      .from("quotes")
+      .select("*")
+      .eq("request_id", request.id);
+
+    if (quotesError) {
+      console.warn("Failed to load quotes:", quotesError);
+      setBuyerQuotes([]);
+    } else {
+      setBuyerQuotes(quotesData || []);
+    }
+
+    setLoading(false);
+  }
 
   async function submitRequest() {
     if (!input.trim() || !name.trim()) {
@@ -106,34 +171,43 @@ export default function Home() {
 
       setResultRaw(aiResult);
       setSubmittedName(name.trim());
+      setLoadedRequest(null);
+      setBuyerQuotes([]);
 
       const payload = {
         user_input: input.trim(),
         ai_output: aiResult,
         client_name: name.trim(),
+        client_email: email.trim(),
+        client_phone: phone.trim(),
         status: "new",
       };
 
       console.log("PAYLOAD BEING SENT:", payload);
 
-      try {
-        const { data: insertedRow, error: insertError } = await supabase
-          .from("fabric_requests")
-          .insert(payload)
-          .select();
+      const { data: insertedRequest, error: insertError } = await supabase
+        .from("fabric_requests")
+        .insert(payload)
+        .select()
+        .single();
 
-        console.log("INSERTED ROW:", insertedRow);
-        console.log("INSERT ERROR:", insertError);
+      console.log("INSERTED REQUEST:", insertedRequest);
+      console.log("INSERT ERROR:", insertError);
 
-        if (insertError) {
-          console.warn("Supabase insert failed:", insertError);
-        }
-      } catch (dbError) {
-        console.warn("Supabase insert failed (non-blocking):", dbError);
+      if (insertError || !insertedRequest) {
+        alert("Failed to save request");
+        return;
       }
+
+      setRequestId(insertedRequest.id);
+      setLoadedRequest(insertedRequest);
+      await fetchQuotesForRequest(insertedRequest.id);
 
       setInput("");
       setName("");
+      setEmail("");
+      setPhone("");
+      setLookupId("");
     } catch (e: any) {
       console.error(e);
       setError(e?.message || "Something went wrong");
@@ -165,6 +239,52 @@ export default function Home() {
         Describe your fabric. Get a professional specification instantly.
       </p>
 
+      <p style={{ marginTop: 10 }}>
+  <a href="/history" style={{ color: "#1a73e8", fontWeight: "bold" }}>
+    View your previous requests
+  </a>
+</p>
+
+      <div
+        style={{
+          marginBottom: 30,
+          padding: 16,
+          border: "1px solid #ddd",
+          borderRadius: 8,
+          backgroundColor: "#fafafa",
+        }}
+      >
+        <h3 style={{ marginTop: 0 }}>Check Existing Request</h3>
+        <input
+          value={lookupId}
+          onChange={(e) => setLookupId(e.target.value)}
+          placeholder="Enter your request ID"
+          style={{
+            width: "100%",
+            marginBottom: 10,
+            padding: 12,
+            fontSize: 14,
+            borderRadius: 6,
+            border: "1px solid #ccc",
+          }}
+        />
+        <button
+          onClick={loadRequestById}
+          disabled={loading}
+          style={{
+            backgroundColor: "#222",
+            color: "white",
+            padding: "10px 16px",
+            border: "none",
+            borderRadius: 6,
+            cursor: "pointer",
+            fontSize: 14,
+          }}
+        >
+          {loading ? "Loading..." : "Load Request"}
+        </button>
+      </div>
+
       <p style={{ marginBottom: 10, color: "#555" }}>
         Tip: Include fabric type, use, color, quality, and budget if possible.
       </p>
@@ -180,6 +300,34 @@ export default function Home() {
           borderRadius: 6,
           border: "1px solid #ccc",
           marginBottom: 12,
+        }}
+      />
+
+      <input
+        type="email"
+        placeholder="Your email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        style={{
+          width: "100%",
+          padding: 10,
+          marginBottom: 10,
+          borderRadius: 6,
+          border: "1px solid #ccc",
+        }}
+      />
+
+      <input
+        type="text"
+        placeholder="Your WhatsApp or phone number"
+        value={phone}
+        onChange={(e) => setPhone(e.target.value)}
+        style={{
+          width: "100%",
+          padding: 10,
+          marginBottom: 10,
+          borderRadius: 6,
+          border: "1px solid #ccc",
         }}
       />
 
@@ -241,9 +389,7 @@ Example: Lace for wedding gowns, premium quality, white, lightweight, for hot we
         {loading ? "Analyzing..." : "Analyze Fabric"}
       </button>
 
-      {error && (
-        <p style={{ marginTop: 10, color: "crimson" }}>{error}</p>
-      )}
+      {error && <p style={{ marginTop: 10, color: "crimson" }}>{error}</p>}
 
       {spec && (
         <div
@@ -258,10 +404,16 @@ Example: Lace for wedding gowns, premium quality, white, lightweight, for hot we
           <p style={{ color: "green", fontWeight: "bold", marginBottom: 8 }}>
             ✔ Fabric identified successfully
           </p>
-          
+
           <p style={{ marginBottom: 10 }}>
             Request by: <strong>{submittedName || "Anonymous"}</strong>
           </p>
+
+          {loadedRequest && (
+            <p style={{ marginBottom: 10, color: "#555", fontSize: 14 }}>
+              Loaded from existing request
+            </p>
+          )}
 
           <h3 style={{ marginTop: 0 }}>Fabric Specification</h3>
 
@@ -386,6 +538,81 @@ Example: Lace for wedding gowns, premium quality, white, lightweight, for hot we
             suppliers! You can now request samples or save this specification
             for later.
           </p>
+
+          {buyerQuotes.length > 0 && (
+            <div style={{ marginTop: 30 }}>
+              <h3>Supplier Quotes</h3>
+
+              {buyerQuotes.map((quote) => (
+                <div
+                  key={quote.id}
+                  style={{
+                    border: "1px solid #ddd",
+                    padding: 16,
+                    marginTop: 12,
+                    borderRadius: 10,
+                    backgroundColor: "#ffffff",
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.06)",
+                  }}
+                >
+                  <p style={{ margin: 0, fontWeight: "bold", fontSize: 16 }}>
+                    {quote.supplier_name}
+                  </p>
+                  <p style={{ margin: "8px 0" }}>
+                    <strong>Price:</strong> {quote.price}
+                  </p>
+                  <p style={{ margin: "8px 0" }}>
+                    <strong>MOQ:</strong> {quote.moq}
+                  </p>
+                  <p style={{ margin: "8px 0" }}>
+                    <strong>Note:</strong> {quote.note}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {requestId && (
+            <div
+              style={{
+                marginTop: 20,
+                padding: 12,
+                border: "1px solid #ddd",
+                borderRadius: 8,
+              }}
+            >
+              <p>
+                <strong>Your Request ID:</strong> {requestId}
+              </p>
+              <p style={{ fontSize: 14, color: "#555" }}>
+                Save this ID so you can check your request and quotes later.
+              </p>
+            </div>
+          )}
+
+          {loadedRequest?.status && (
+            <div
+              style={{
+                marginTop: 20,
+                padding: 12,
+                border: "1px solid #ddd",
+                borderRadius: 8,
+                backgroundColor:
+                  loadedRequest.status === "completed"
+                    ? "#e8f5e9"
+                    : loadedRequest.status === "quoted"
+                    ? "#fff8e1"
+                    : loadedRequest.status === "in_progress"
+                    ? "#e3f2fd"
+                    : "#f5f5f5",
+              }}
+            >
+              <p>
+                <strong>Request Status:</strong>{" "}
+                {formatStatus(loadedRequest.status)}
+              </p>
+            </div>
+          )}
         </div>
       )}
     </main>
