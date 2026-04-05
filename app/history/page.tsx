@@ -75,6 +75,42 @@ export default function HistoryPage() {
         fontFamily: "Arial, sans-serif",
       }}
     >
+      <nav
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 30,
+          paddingBottom: 12,
+          borderBottom: "1px solid #eee",
+        }}
+      >
+        <h2 style={{ margin: 0 }}>Weinly</h2>
+
+        <div style={{ display: "flex", gap: 16 }}>
+          <a
+            href="/"
+            style={{
+              textDecoration: "none",
+              color: "#1a73e8",
+              fontWeight: "bold",
+            }}
+          >
+            Home
+          </a>
+          <a
+            href="/history"
+            style={{
+              textDecoration: "none",
+              color: "#111",
+              fontWeight: "bold",
+            }}
+          >
+            History
+          </a>
+        </div>
+      </nav>
+
       <h1>Request History</h1>
       <p>Enter your email to view your previous fabric requests.</p>
 
@@ -138,9 +174,28 @@ export default function HistoryPage() {
               </p>
 
               <button
+                onClick={() => {
+                  navigator.clipboard.writeText(item.id);
+                  alert("Request ID copied!");
+                }}
+                style={{
+                  marginTop: 10,
+                  padding: "8px 12px",
+                  borderRadius: 6,
+                  border: "none",
+                  backgroundColor: "#111",
+                  color: "white",
+                  cursor: "pointer",
+                }}
+              >
+                Copy Request ID
+              </button>
+
+              <button
                 onClick={() => viewRequestDetails(item)}
                 style={{
                   marginTop: 10,
+                  marginLeft: 10,
                   padding: "8px 12px",
                   borderRadius: 6,
                   border: "none",
@@ -234,6 +289,20 @@ export default function HistoryPage() {
       {!loading && requests.length === 0 && (
         <p style={{ color: "#666" }}>No requests loaded yet.</p>
       )}
+
+      <footer
+        style={{
+          marginTop: 40,
+          paddingTop: 20,
+          paddingBottom: 20,
+          borderTop: "1px solid #eee",
+          textAlign: "center",
+          color: "#777",
+          fontSize: 14,
+        }}
+      >
+        © {new Date().getFullYear()} Weinly. AI-powered fabric sourcing.
+      </footer>
     </main>
   );
 }

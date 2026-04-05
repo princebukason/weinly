@@ -106,7 +106,10 @@ export default function Home() {
   }
 
   async function loadRequestById() {
-    if (!lookupId.trim()) return;
+    if (!lookupId.trim()) {
+      alert("Please enter your request ID");
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -183,16 +186,11 @@ export default function Home() {
         status: "new",
       };
 
-      console.log("PAYLOAD BEING SENT:", payload);
-
       const { data: insertedRequest, error: insertError } = await supabase
         .from("fabric_requests")
         .insert(payload)
         .select()
         .single();
-
-      console.log("INSERTED REQUEST:", insertedRequest);
-      console.log("INSERT ERROR:", insertError);
 
       if (insertError || !insertedRequest) {
         alert("Failed to save request");
@@ -228,33 +226,200 @@ export default function Home() {
     <main
       style={{
         padding: 40,
-        maxWidth: 720,
+        maxWidth: 800,
         margin: "0 auto",
         fontFamily: "Arial, sans-serif",
       }}
     >
-      <h1 style={{ fontSize: 32, marginBottom: 8 }}>Weinly</h1>
+      <nav
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 30,
+          paddingBottom: 12,
+          borderBottom: "1px solid #eee",
+        }}
+      >
+        <h2 style={{ margin: 0 }}>Weinly</h2>
 
-      <p style={{ color: "#555", marginBottom: 18 }}>
-        Describe your fabric. Get a professional specification instantly.
-      </p>
+        <div style={{ display: "flex", gap: 16 }}>
+          <a
+            href="/"
+            style={{
+              textDecoration: "none",
+              color: "#111",
+              fontWeight: "bold",
+            }}
+          >
+            Home
+          </a>
+          <a
+            href="/history"
+            style={{
+              textDecoration: "none",
+              color: "#1a73e8",
+              fontWeight: "bold",
+            }}
+          >
+            History
+          </a>
+        </div>
+      </nav>
 
-      <p style={{ marginTop: 10 }}>
-  <a href="/history" style={{ color: "#1a73e8", fontWeight: "bold" }}>
-    View your previous requests
-  </a>
-</p>
+      <div
+        style={{
+          marginBottom: 30,
+          padding: 24,
+          border: "1px solid #eee",
+          borderRadius: 12,
+          backgroundColor: "#fafafa",
+        }}
+      >
+        <h1 style={{ marginTop: 0, marginBottom: 10 }}>
+          Describe your fabric. Get supplier-ready specs.
+        </h1>
+        <p style={{ margin: 0, color: "#555", lineHeight: 1.6 }}>
+          Weinly helps buyers turn simple fabric ideas into clear professional
+          specifications and connect with trusted suppliers.
+        </p>
+      </div>
+
+      <div
+        style={{
+          marginBottom: 30,
+          padding: 20,
+          border: "1px solid #eee",
+          borderRadius: 12,
+          backgroundColor: "#ffffff",
+        }}
+      >
+        <h2 style={{ marginTop: 0 }}>New Fabric Request</h2>
+        <p style={{ color: "#555" }}>
+          Tell us what fabric you need and Weinly will turn it into a
+          professional sourcing specification.
+        </p>
+
+        <p style={{ marginBottom: 10, color: "#555" }}>
+          Tip: Include fabric type, use, color, quality, and budget if possible.
+        </p>
+
+        <input
+          placeholder="Your name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          style={{
+            width: "100%",
+            padding: 12,
+            fontSize: 14,
+            borderRadius: 6,
+            border: "1px solid #ccc",
+            marginBottom: 12,
+          }}
+        />
+
+        <input
+          type="email"
+          placeholder="Your email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          style={{
+            width: "100%",
+            padding: 10,
+            marginBottom: 10,
+            borderRadius: 6,
+            border: "1px solid #ccc",
+          }}
+        />
+
+        <input
+          type="text"
+          placeholder="Your WhatsApp or phone number"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          style={{
+            width: "100%",
+            padding: 10,
+            marginBottom: 10,
+            borderRadius: 6,
+            border: "1px solid #ccc",
+          }}
+        />
+
+        <textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          rows={6}
+          placeholder={`Describe the fabric you need.
+Example: Lace for wedding gowns, premium quality, white, lightweight, for hot weather.`}
+          style={{
+            width: "100%",
+            padding: 14,
+            fontSize: 14,
+            borderRadius: 6,
+            border: "1px solid #ccc",
+          }}
+        />
+
+        <div style={{ marginTop: 10 }}>
+          <p style={{ fontWeight: "bold", marginBottom: 8 }}>Examples:</p>
+
+          <p
+            style={{ cursor: "pointer", color: "#4CAF50", margin: "6px 0" }}
+            onClick={() =>
+              setInput(
+                "Lace fabric for wedding gowns, premium quality, white, lightweight"
+              )
+            }
+          >
+            Lace for wedding gowns (premium, white, lightweight)
+          </p>
+
+          <p
+            style={{ cursor: "pointer", color: "#4CAF50", margin: "6px 0" }}
+            onClick={() =>
+              setInput(
+                "Cotton fabric for men’s shirts, breathable, affordable, for hot weather"
+              )
+            }
+          >
+            Cotton for shirts (breathable, budget-friendly)
+          </p>
+        </div>
+
+        <button
+          onClick={submitRequest}
+          disabled={loading}
+          style={{
+            backgroundColor: "#4CAF50",
+            color: "white",
+            padding: "12px 25px",
+            marginTop: 14,
+            border: "none",
+            borderRadius: 6,
+            cursor: "pointer",
+            fontSize: 16,
+          }}
+        >
+          {loading ? "Analyzing..." : "Analyze Fabric"}
+        </button>
+      </div>
 
       <div
         style={{
           marginBottom: 30,
           padding: 16,
           border: "1px solid #ddd",
-          borderRadius: 8,
+          borderRadius: 10,
           backgroundColor: "#fafafa",
         }}
       >
         <h3 style={{ marginTop: 0 }}>Check Existing Request</h3>
+        <p style={{ color: "#555", marginBottom: 10 }}>
+          Enter your saved request ID to view your request, status, and supplier
+          quotes.
+        </p>
+
         <input
           value={lookupId}
           onChange={(e) => setLookupId(e.target.value)}
@@ -262,139 +427,39 @@ export default function Home() {
           style={{
             width: "100%",
             marginBottom: 10,
-            padding: 12,
-            fontSize: 14,
+            padding: 10,
             borderRadius: 6,
             border: "1px solid #ccc",
           }}
         />
+
         <button
           onClick={loadRequestById}
-          disabled={loading}
           style={{
-            backgroundColor: "#222",
-            color: "white",
-            padding: "10px 16px",
-            border: "none",
+            padding: "10px 14px",
             borderRadius: 6,
+            border: "none",
+            backgroundColor: "#111",
+            color: "white",
             cursor: "pointer",
-            fontSize: 14,
           }}
         >
-          {loading ? "Loading..." : "Load Request"}
+          Load Request
         </button>
       </div>
 
-      <p style={{ marginBottom: 10, color: "#555" }}>
-        Tip: Include fabric type, use, color, quality, and budget if possible.
-      </p>
-
-      <input
-        placeholder="Your name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        style={{
-          width: "100%",
-          padding: 12,
-          fontSize: 14,
-          borderRadius: 6,
-          border: "1px solid #ccc",
-          marginBottom: 12,
-        }}
-      />
-
-      <input
-        type="email"
-        placeholder="Your email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        style={{
-          width: "100%",
-          padding: 10,
-          marginBottom: 10,
-          borderRadius: 6,
-          border: "1px solid #ccc",
-        }}
-      />
-
-      <input
-        type="text"
-        placeholder="Your WhatsApp or phone number"
-        value={phone}
-        onChange={(e) => setPhone(e.target.value)}
-        style={{
-          width: "100%",
-          padding: 10,
-          marginBottom: 10,
-          borderRadius: 6,
-          border: "1px solid #ccc",
-        }}
-      />
-
-      <textarea
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        rows={6}
-        placeholder={`Describe the fabric you need.
-Example: Lace for wedding gowns, premium quality, white, lightweight, for hot weather.`}
-        style={{
-          width: "100%",
-          padding: 14,
-          fontSize: 14,
-          borderRadius: 6,
-          border: "1px solid #ccc",
-        }}
-      />
-
-      <div style={{ marginTop: 10 }}>
-        <p style={{ fontWeight: "bold", marginBottom: 8 }}>Examples:</p>
-
-        <p
-          style={{ cursor: "pointer", color: "#4CAF50", margin: "6px 0" }}
-          onClick={() =>
-            setInput(
-              "Lace fabric for wedding gowns, premium quality, white, lightweight"
-            )
-          }
-        >
-          Lace for wedding gowns (premium, white, lightweight)
-        </p>
-
-        <p
-          style={{ cursor: "pointer", color: "#4CAF50", margin: "6px 0" }}
-          onClick={() =>
-            setInput(
-              "Cotton fabric for men’s shirts, breathable, affordable, for hot weather"
-            )
-          }
-        >
-          Cotton for shirts (breathable, budget-friendly)
-        </p>
-      </div>
-
-      <button
-        onClick={submitRequest}
-        disabled={loading}
-        style={{
-          backgroundColor: "#4CAF50",
-          color: "white",
-          padding: "12px 25px",
-          marginTop: 14,
-          border: "none",
-          borderRadius: 6,
-          cursor: "pointer",
-          fontSize: 16,
-        }}
-      >
-        {loading ? "Analyzing..." : "Analyze Fabric"}
-      </button>
-
       {error && <p style={{ marginTop: 10, color: "crimson" }}>{error}</p>}
+
+      {(resultRaw || requestId || buyerQuotes.length > 0 || loadedRequest) && (
+        <div style={{ marginTop: 30 }}>
+          <h2>Your Request Result</h2>
+        </div>
+      )}
 
       {spec && (
         <div
           style={{
-            marginTop: 30,
+            marginTop: 20,
             padding: 22,
             border: "2px solid #4CAF50",
             borderRadius: 10,
@@ -572,6 +637,23 @@ Example: Lace for wedding gowns, premium quality, white, lightweight, for hot we
             </div>
           )}
 
+          {requestId && buyerQuotes.length === 0 && (
+            <div
+              style={{
+                marginTop: 20,
+                padding: 14,
+                border: "1px solid #eee",
+                borderRadius: 8,
+                backgroundColor: "#fff",
+              }}
+            >
+              <p style={{ margin: 0, color: "#666" }}>
+                No supplier quotes yet. Please check back later or contact
+                support.
+              </p>
+            </div>
+          )}
+
           {requestId && (
             <div
               style={{
@@ -579,6 +661,7 @@ Example: Lace for wedding gowns, premium quality, white, lightweight, for hot we
                 padding: 12,
                 border: "1px solid #ddd",
                 borderRadius: 8,
+                backgroundColor: "#fafafa",
               }}
             >
               <p>
@@ -587,6 +670,24 @@ Example: Lace for wedding gowns, premium quality, white, lightweight, for hot we
               <p style={{ fontSize: 14, color: "#555" }}>
                 Save this ID so you can check your request and quotes later.
               </p>
+
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(requestId);
+                  alert("Request ID copied!");
+                }}
+                style={{
+                  marginTop: 10,
+                  padding: "8px 12px",
+                  borderRadius: 6,
+                  border: "none",
+                  backgroundColor: "#111",
+                  color: "white",
+                  cursor: "pointer",
+                }}
+              >
+                Copy Request ID
+              </button>
             </div>
           )}
 
@@ -615,6 +716,57 @@ Example: Lace for wedding gowns, premium quality, white, lightweight, for hot we
           )}
         </div>
       )}
+
+      <div
+        style={{
+          marginTop: 40,
+          padding: 20,
+          border: "1px solid #eee",
+          borderRadius: 12,
+          backgroundColor: "#fafafa",
+        }}
+      >
+        <h2 style={{ marginTop: 0 }}>Why buyers use Weinly</h2>
+
+        <ul style={{ paddingLeft: 20, color: "#555", lineHeight: 1.8 }}>
+          <li>Get clear fabric specifications before contacting suppliers</li>
+          <li>Track requests, quotes, and status in one place</li>
+          <li>Reduce sourcing mistakes and communicate more professionally</li>
+        </ul>
+      </div>
+
+      <div
+        style={{
+          marginTop: 20,
+          padding: 20,
+          border: "1px solid #eee",
+          borderRadius: 12,
+          backgroundColor: "#ffffff",
+        }}
+      >
+        <h3 style={{ marginTop: 0 }}>Need help with sourcing?</h3>
+        <p style={{ color: "#555", lineHeight: 1.6 }}>
+          If you want support with supplier selection, quote review, or direct
+          sourcing assistance, contact the Weinly team.
+        </p>
+        <p style={{ marginBottom: 0 }}>
+          <strong>Email:</strong> support@weinly.com
+        </p>
+      </div>
+
+      <footer
+        style={{
+          marginTop: 40,
+          paddingTop: 20,
+          paddingBottom: 20,
+          borderTop: "1px solid #eee",
+          textAlign: "center",
+          color: "#777",
+          fontSize: 14,
+        }}
+      >
+        © {new Date().getFullYear()} Weinly. AI-powered fabric sourcing.
+      </footer>
     </main>
   );
 }
