@@ -277,11 +277,16 @@ export default function Home() {
         }}
       >
         <h1 style={{ marginTop: 0, marginBottom: 10 }}>
-          Describe your fabric. Get supplier-ready specs.
+          AI-powered fabric sourcing for serious buyers.
         </h1>
+
         <p style={{ margin: 0, color: "#555", lineHeight: 1.6 }}>
-          Weinly helps buyers turn simple fabric ideas into clear professional
-          specifications and connect with trusted suppliers.
+          Describe what you need → get a professional fabric specification →
+          connect with trusted suppliers in China.
+        </p>
+
+        <p style={{ marginTop: 10, fontWeight: "bold", color: "#111" }}>
+          Used by fabric buyers sourcing from China to Africa.
         </p>
       </div>
 
@@ -294,7 +299,43 @@ export default function Home() {
           backgroundColor: "#ffffff",
         }}
       >
-        <h2 style={{ marginTop: 0 }}>New Fabric Request</h2>
+        <p style={{ margin: 0, fontStyle: "italic", color: "#333" }}>
+          “Weinly helped me clearly describe the exact fabric I needed. Normally
+          I struggle explaining to suppliers, but this made it easier and more
+          direct.”
+        </p>
+
+        <p style={{ marginTop: 10, fontWeight: "bold" }}>— Ada</p>
+      </div>
+
+      <div
+        style={{
+          marginBottom: 30,
+          padding: 20,
+          border: "1px solid #eee",
+          borderRadius: 12,
+          backgroundColor: "#fafafa",
+        }}
+      >
+        <h2 style={{ marginTop: 0 }}>How Weinly works</h2>
+
+        <ul style={{ paddingLeft: 20, color: "#555", lineHeight: 1.8 }}>
+          <li>Describe the fabric you need</li>
+          <li>Weinly generates a clear, supplier-ready specification</li>
+          <li>Receive quotes and connect with verified suppliers</li>
+        </ul>
+      </div>
+
+      <div
+        style={{
+          marginBottom: 30,
+          padding: 20,
+          border: "1px solid #eee",
+          borderRadius: 12,
+          backgroundColor: "#ffffff",
+        }}
+      >
+        <h2 style={{ marginTop: 0 }}>Start a Fabric Request</h2>
         <p style={{ color: "#555" }}>
           Tell us what fabric you need and Weinly will turn it into a
           professional sourcing specification.
@@ -726,12 +767,13 @@ Example: Lace for wedding gowns, premium quality, white, lightweight, for hot we
           backgroundColor: "#fafafa",
         }}
       >
-        <h2 style={{ marginTop: 0 }}>Why buyers use Weinly</h2>
+        <h2 style={{ marginTop: 0 }}>Why Weinly</h2>
 
         <ul style={{ paddingLeft: 20, color: "#555", lineHeight: 1.8 }}>
-          <li>Get clear fabric specifications before contacting suppliers</li>
-          <li>Track requests, quotes, and status in one place</li>
-          <li>Reduce sourcing mistakes and communicate more professionally</li>
+          <li>Eliminate confusion when describing fabrics</li>
+          <li>Avoid costly sourcing mistakes</li>
+          <li>Communicate professionally with suppliers</li>
+          <li>Track requests, quotes, and progress in one place</li>
         </ul>
       </div>
 
@@ -751,6 +793,23 @@ Example: Lace for wedding gowns, premium quality, white, lightweight, for hot we
         </p>
         <p style={{ marginBottom: 0 }}>
           <strong>Email:</strong> support@weinly.com
+        </p>
+      </div>
+
+      <div
+        style={{
+          marginTop: 30,
+          padding: 20,
+          borderRadius: 12,
+          backgroundColor: "#111",
+          color: "white",
+          textAlign: "center",
+        }}
+      >
+        <h3 style={{ marginTop: 0 }}>Ready to source fabrics the right way?</h3>
+
+        <p style={{ marginBottom: 10 }}>
+          Start your request now and get a clear specification in seconds.
         </p>
       </div>
 
