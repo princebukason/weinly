@@ -1,95 +1,56 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { suppliers } from "@/lib/suppliers";
+import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 
-type FabricSpec = {
-  fabric_type: string;
-  intended_use: string;
-  quality_level: string;
-  color_or_pattern: string;
-  weight_or_thickness: string;
-  quantity: string;
-  budget: string;
+const COLORS = {
+  primary: "#0F766E",
+  primaryDark: "#0B5E58",
+  accent: "#D97706",
+  text: "#111827",
+  subtext: "#6B7280",
+  border: "#E5E7EB",
+  bg: "#FFFFFF",
+  softBg: "#F9FAFB",
+  heroBg: "linear-gradient(135deg, #F9FAFB, #ECFDF5)",
+  successBg: "#ECFDF5",
+  successBorder: "#A7F3D0",
+  warningBg: "#FFFBEB",
+  infoBg: "#EFF6FF",
+  completedBg: "#ECFDF5",
+  quotedBg: "#FFFBEB",
+  progressBg: "#EFF6FF",
+  newBg: "#F3F4F6",
+  shadow: "0 10px 30px rgba(17, 24, 39, 0.08)",
+  shadowSoft: "0 4px 14px rgba(17, 24, 39, 0.06)",
 };
 
-function show(v: any): string {
-  if (v === null || v === undefined) return "Not specified";
-  const s = String(v).trim();
-  return s.length ? s : "Not specified";
-}
-
-function normalizeSpec(raw: any): FabricSpec {
-  const r = raw ?? {};
-
-  return {
-    fabric_type: show(
-      r.fabric_type ?? r.fabricType ?? r.fabric ?? r.type ?? r.material
-    ),
-    intended_use: show(
-      r.intended_use ?? r.intendedUse ?? r.use ?? r.application ?? r.purpose
-    ),
-    quality_level: show(
-      r.quality_level ?? r.qualityLevel ?? r.quality ?? r.grade
-    ),
-    color_or_pattern: show(
-      r.color_or_pattern ??
-        r.colorOrPattern ??
-        r.color ??
-        r.pattern ??
-        r.design
-    ),
-    weight_or_thickness: show(
-      r.weight_or_thickness ??
-        r.weightOrThickness ??
-        r.weight ??
-        r.thickness ??
-        r.gsm
-    ),
-    quantity: show(r.quantity ?? r.qty ?? r.amount),
-    budget: show(r.budget ?? r.price ?? r.target_budget ?? r.targetBudget),
-  };
-}
-
-function formatStatus(status: string) {
-  if (status === "in_progress") return "In Progress";
-  if (status === "quoted") return "Quoted";
-  if (status === "completed") return "Completed";
-  return "New";
-}
-
 export default function Home() {
-  const [input, setInput] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [submittedName, setSubmittedName] = useState("");
+  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [resultRaw, setResultRaw] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
+
+  const [result, setResult] = useState<any>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
   const [buyerQuotes, setBuyerQuotes] = useState<any[]>([]);
   const [lookupId, setLookupId] = useState("");
   const [loadedRequest, setLoadedRequest] = useState<any>(null);
 
-  const spec: FabricSpec | null = useMemo(() => {
-    if (!resultRaw) return null;
-    if (typeof resultRaw === "string") return normalizeSpec({});
-    return normalizeSpec(resultRaw);
-  }, [resultRaw]);
-
-  function matchSupplier(fabricType: string) {
-    const ft = (fabricType || "").toLowerCase();
-    return suppliers.filter((s) =>
-      ft.includes(String(s.specialization).toLowerCase())
-    );
+  function formatStatus(status: string) {
+    if (status === "in_progress") return "In Progress";
+    if (status === "quoted") return "Quoted";
+    if (status === "completed") return "Completed";
+    return "New";
   }
 
-  const matchedSuppliers = useMemo(() => {
-    if (!spec) return [];
-    return matchSupplier(spec.fabric_type);
-  }, [spec]);
+  function getStatusBackground(status: string) {
+    if (status === "completed") return COLORS.completedBg;
+    if (status === "quoted") return COLORS.quotedBg;
+    if (status === "in_progress") return COLORS.progressBg;
+    return COLORS.newBg;
+  }
 
   async function fetchQuotesForRequest(id: string) {
     const { data, error } = await supabase
@@ -97,159 +58,237 @@ export default function Home() {
       .select("*")
       .eq("request_id", id);
 
-    if (error) {
-      console.warn("Failed to fetch quotes:", error);
-      return;
+    if (!error) {
+      setBuyerQuotes(data || []);
     }
-
-    setBuyerQuotes(data || []);
-  }
-
-  async function loadRequestById() {
-    if (!lookupId.trim()) {
-      alert("Please enter your request ID");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    const { data: request, error } = await supabase
-      .from("fabric_requests")
-      .select("*")
-      .eq("id", lookupId.trim())
-      .single();
-
-    if (error || !request) {
-      setLoading(false);
-      alert("Request not found");
-      return;
-    }
-
-    setLoadedRequest(request);
-    setResultRaw(request.ai_output);
-    setRequestId(request.id);
-    setSubmittedName(request.client_name || "");
-    setEmail(request.client_email || "");
-    setPhone(request.client_phone || "");
-
-    const { data: quotesData, error: quotesError } = await supabase
-      .from("quotes")
-      .select("*")
-      .eq("request_id", request.id);
-
-    if (quotesError) {
-      console.warn("Failed to load quotes:", quotesError);
-      setBuyerQuotes([]);
-    } else {
-      setBuyerQuotes(quotesData || []);
-    }
-
-    setLoading(false);
   }
 
   async function submitRequest() {
-    if (!input.trim() || !name.trim()) {
-      alert("Please enter your name and fabric request");
+    if (!name || !email || !phone || !input) {
+      alert("Please fill in your name, email, phone number, and fabric request.");
       return;
     }
 
     setLoading(true);
-    setError(null);
+    setBuyerQuotes([]);
+    setLoadedRequest(null);
+    setRequestId(null);
 
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ input }),
       });
 
-      const data = await res.json().catch(() => ({}));
+      const data = await res.json();
+      setResult(data.result);
 
-      if (!res.ok) {
-        throw new Error(data?.error || "Analyze API failed");
-      }
-
-      const aiResult = data?.result ?? data;
-
-      setResultRaw(aiResult);
-      setSubmittedName(name.trim());
-      setLoadedRequest(null);
-      setBuyerQuotes([]);
-
-      const payload = {
-        user_input: input.trim(),
-        ai_output: aiResult,
-        client_name: name.trim(),
-        client_email: email.trim(),
-        client_phone: phone.trim(),
-        status: "new",
-      };
-
-      const { data: insertedRequest, error: insertError } = await supabase
+      const { data: insertedRequest, error } = await supabase
         .from("fabric_requests")
-        .insert(payload)
+        .insert({
+          user_input: input,
+          ai_output: data.result,
+          client_name: name,
+          client_email: email,
+          client_phone: phone,
+        })
         .select()
         .single();
 
-      if (insertError || !insertedRequest) {
+      if (error) {
         alert("Failed to save request");
+        setLoading(false);
         return;
       }
 
       setRequestId(insertedRequest.id);
       setLoadedRequest(insertedRequest);
       await fetchQuotesForRequest(insertedRequest.id);
-
-      setInput("");
-      setName("");
-      setEmail("");
-      setPhone("");
-      setLookupId("");
-    } catch (e: any) {
-      console.error(e);
-      setError(e?.message || "Something went wrong");
+    } catch (error) {
+      alert("Something went wrong while submitting your request.");
     } finally {
       setLoading(false);
     }
   }
 
-  function saveSpecificationPlaceholder() {
-    alert("Saved for later (placeholder)");
+  async function loadRequestById() {
+    if (!lookupId) {
+      alert("Please enter your request ID");
+      return;
+    }
+
+    const { data: request, error } = await supabase
+      .from("fabric_requests")
+      .select("*")
+      .eq("id", lookupId)
+      .single();
+
+    if (error || !request) {
+      alert("Request not found");
+      return;
+    }
+
+    setLoadedRequest(request);
+    setResult(request.ai_output);
+    setRequestId(request.id);
+
+    const { data: quotesData } = await supabase
+      .from("quotes")
+      .select("*")
+      .eq("request_id", request.id);
+
+    setBuyerQuotes(quotesData || []);
   }
 
-  function downloadPDFPlaceholder() {
-    alert("Download PDF (placeholder). We'll connect real PDF next.");
+  function Card({
+    children,
+    style = {},
+  }: {
+    children: React.ReactNode;
+    style?: React.CSSProperties;
+  }) {
+    return (
+      <div
+        style={{
+          backgroundColor: COLORS.bg,
+          border: `1px solid ${COLORS.border}`,
+          borderRadius: 18,
+          padding: 24,
+          boxShadow: COLORS.shadowSoft,
+          ...style,
+        }}
+      >
+        {children}
+      </div>
+    );
+  }
+
+  function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
+    return (
+      <input
+        {...props}
+        style={{
+          width: "100%",
+          padding: "14px 16px",
+          marginBottom: 12,
+          borderRadius: 12,
+          border: `1px solid ${COLORS.border}`,
+          outline: "none",
+          fontSize: 15,
+          color: COLORS.text,
+          backgroundColor: "#fff",
+          ...props.style,
+        }}
+      />
+    );
+  }
+
+  function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+    return (
+      <textarea
+        {...props}
+        style={{
+          width: "100%",
+          padding: "14px 16px",
+          borderRadius: 12,
+          border: `1px solid ${COLORS.border}`,
+          outline: "none",
+          fontSize: 15,
+          color: COLORS.text,
+          backgroundColor: "#fff",
+          resize: "vertical",
+          ...props.style,
+        }}
+      />
+    );
+  }
+
+  function PrimaryButton({
+    children,
+    ...props
+  }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+    return (
+      <button
+        {...props}
+        style={{
+          backgroundColor: COLORS.primary,
+          color: "#fff",
+          padding: "12px 18px",
+          border: "none",
+          borderRadius: 12,
+          cursor: "pointer",
+          fontWeight: 700,
+          fontSize: 15,
+          boxShadow: "0 6px 18px rgba(15, 118, 110, 0.22)",
+          width: "100%",
+          ...props.style,
+        }}
+      >
+        {children}
+      </button>
+    );
   }
 
   return (
     <main
       style={{
-        padding: 40,
-        maxWidth: 800,
+        padding: 20,
+        maxWidth: 980,
         margin: "0 auto",
-        fontFamily: "Arial, sans-serif",
+        fontFamily:
+          'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        color: COLORS.text,
+        backgroundColor: COLORS.softBg,
+        minHeight: "100vh",
       }}
     >
       <nav
         style={{
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 30,
-          paddingBottom: 12,
-          borderBottom: "1px solid #eee",
+          alignItems: "flex-start",
+          gap: 12,
+          marginBottom: 24,
+          padding: "12px 0",
+          flexWrap: "wrap",
         }}
       >
-        <h2 style={{ margin: 0 }}>Weinly</h2>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 12,
+              background: COLORS.primary,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fff",
+              fontWeight: 800,
+              flexShrink: 0,
+            }}
+          >
+            W
+          </div>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 18 }}>Weinly</div>
+            <div style={{ fontSize: 12, color: COLORS.subtext }}>
+              AI-powered sourcing
+            </div>
+          </div>
+        </div>
 
-        <div style={{ display: "flex", gap: 16 }}>
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
           <a
             href="/"
             style={{
               textDecoration: "none",
-              color: "#111",
-              fontWeight: "bold",
+              color: COLORS.text,
+              fontWeight: 700,
+              fontSize: 14,
             }}
           >
             Home
@@ -258,8 +297,9 @@ export default function Home() {
             href="/history"
             style={{
               textDecoration: "none",
-              color: "#1a73e8",
-              fontWeight: "bold",
+              color: COLORS.primary,
+              fontWeight: 700,
+              fontSize: 14,
             }}
           >
             History
@@ -267,560 +307,660 @@ export default function Home() {
         </div>
       </nav>
 
-      <div
+      <Card
         style={{
-          marginBottom: 30,
-          padding: 24,
-          border: "1px solid #eee",
-          borderRadius: 12,
-          backgroundColor: "#fafafa",
+          marginBottom: 20,
+          background: COLORS.heroBg,
+          boxShadow: COLORS.shadow,
+          border: "none",
         }}
       >
-        <h1 style={{ marginTop: 0, marginBottom: 10 }}>
-          AI-powered fabric sourcing for serious buyers.
-        </h1>
-
-        <p style={{ margin: 0, color: "#555", lineHeight: 1.6 }}>
-          Describe what you need → get a professional fabric specification →
-          connect with trusted suppliers in China.
-        </p>
-
-        <p style={{ marginTop: 10, fontWeight: "bold", color: "#111" }}>
-          Used by fabric buyers sourcing from China to Africa.
-        </p>
-      </div>
-
-      <div
-        style={{
-          marginBottom: 30,
-          padding: 20,
-          border: "1px solid #eee",
-          borderRadius: 12,
-          backgroundColor: "#ffffff",
-        }}
-      >
-        <p style={{ margin: 0, fontStyle: "italic", color: "#333" }}>
-          “Weinly helped me clearly describe the exact fabric I needed. Normally
-          I struggle explaining to suppliers, but this made it easier and more
-          direct.”
-        </p>
-
-        <p style={{ marginTop: 10, fontWeight: "bold" }}>— Ada</p>
-      </div>
-
-      <div
-        style={{
-          marginBottom: 30,
-          padding: 20,
-          border: "1px solid #eee",
-          borderRadius: 12,
-          backgroundColor: "#fafafa",
-        }}
-      >
-        <h2 style={{ marginTop: 0 }}>How Weinly works</h2>
-
-        <ul style={{ paddingLeft: 20, color: "#555", lineHeight: 1.8 }}>
-          <li>Describe the fabric you need</li>
-          <li>Weinly generates a clear, supplier-ready specification</li>
-          <li>Receive quotes and connect with verified suppliers</li>
-        </ul>
-      </div>
-
-      <div
-        style={{
-          marginBottom: 30,
-          padding: 20,
-          border: "1px solid #eee",
-          borderRadius: 12,
-          backgroundColor: "#ffffff",
-        }}
-      >
-        <h2 style={{ marginTop: 0 }}>Start a Fabric Request</h2>
-        <p style={{ color: "#555" }}>
-          Tell us what fabric you need and Weinly will turn it into a
-          professional sourcing specification.
-        </p>
-
-        <p style={{ marginBottom: 10, color: "#555" }}>
-          Tip: Include fabric type, use, color, quality, and budget if possible.
-        </p>
-
-        <input
-          placeholder="Your name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          style={{
-            width: "100%",
-            padding: 12,
-            fontSize: 14,
-            borderRadius: 6,
-            border: "1px solid #ccc",
-            marginBottom: 12,
-          }}
-        />
-
-        <input
-          type="email"
-          placeholder="Your email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={{
-            width: "100%",
-            padding: 10,
-            marginBottom: 10,
-            borderRadius: 6,
-            border: "1px solid #ccc",
-          }}
-        />
-
-        <input
-          type="text"
-          placeholder="Your WhatsApp or phone number"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          style={{
-            width: "100%",
-            padding: 10,
-            marginBottom: 10,
-            borderRadius: 6,
-            border: "1px solid #ccc",
-          }}
-        />
-
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          rows={6}
-          placeholder={`Describe the fabric you need.
-Example: Lace for wedding gowns, premium quality, white, lightweight, for hot weather.`}
-          style={{
-            width: "100%",
-            padding: 14,
-            fontSize: 14,
-            borderRadius: 6,
-            border: "1px solid #ccc",
-          }}
-        />
-
-        <div style={{ marginTop: 10 }}>
-          <p style={{ fontWeight: "bold", marginBottom: 8 }}>Examples:</p>
-
-          <p
-            style={{ cursor: "pointer", color: "#4CAF50", margin: "6px 0" }}
-            onClick={() =>
-              setInput(
-                "Lace fabric for wedding gowns, premium quality, white, lightweight"
-              )
-            }
+        <div style={{ maxWidth: 760 }}>
+          <div
+            style={{
+              display: "inline-block",
+              backgroundColor: "#D1FAE5",
+              color: COLORS.primary,
+              fontWeight: 700,
+              fontSize: 13,
+              padding: "8px 12px",
+              borderRadius: 999,
+              marginBottom: 16,
+            }}
           >
-            Lace for wedding gowns (premium, white, lightweight)
-          </p>
-
-          <p
-            style={{ cursor: "pointer", color: "#4CAF50", margin: "6px 0" }}
-            onClick={() =>
-              setInput(
-                "Cotton fabric for men’s shirts, breathable, affordable, for hot weather"
-              )
-            }
-          >
-            Cotton for shirts (breathable, budget-friendly)
-          </p>
-        </div>
-
-        <button
-          onClick={submitRequest}
-          disabled={loading}
-          style={{
-            backgroundColor: "#4CAF50",
-            color: "white",
-            padding: "12px 25px",
-            marginTop: 14,
-            border: "none",
-            borderRadius: 6,
-            cursor: "pointer",
-            fontSize: 16,
-          }}
-        >
-          {loading ? "Analyzing..." : "Analyze Fabric"}
-        </button>
-      </div>
-
-      <div
-        style={{
-          marginBottom: 30,
-          padding: 16,
-          border: "1px solid #ddd",
-          borderRadius: 10,
-          backgroundColor: "#fafafa",
-        }}
-      >
-        <h3 style={{ marginTop: 0 }}>Check Existing Request</h3>
-        <p style={{ color: "#555", marginBottom: 10 }}>
-          Enter your saved request ID to view your request, status, and supplier
-          quotes.
-        </p>
-
-        <input
-          value={lookupId}
-          onChange={(e) => setLookupId(e.target.value)}
-          placeholder="Enter your request ID"
-          style={{
-            width: "100%",
-            marginBottom: 10,
-            padding: 10,
-            borderRadius: 6,
-            border: "1px solid #ccc",
-          }}
-        />
-
-        <button
-          onClick={loadRequestById}
-          style={{
-            padding: "10px 14px",
-            borderRadius: 6,
-            border: "none",
-            backgroundColor: "#111",
-            color: "white",
-            cursor: "pointer",
-          }}
-        >
-          Load Request
-        </button>
-      </div>
-
-      {error && <p style={{ marginTop: 10, color: "crimson" }}>{error}</p>}
-
-      {(resultRaw || requestId || buyerQuotes.length > 0 || loadedRequest) && (
-        <div style={{ marginTop: 30 }}>
-          <h2>Your Request Result</h2>
-        </div>
-      )}
-
-      {spec && (
-        <div
-          style={{
-            marginTop: 20,
-            padding: 22,
-            border: "2px solid #4CAF50",
-            borderRadius: 10,
-            backgroundColor: "#f9fff9",
-          }}
-        >
-          <p style={{ color: "green", fontWeight: "bold", marginBottom: 8 }}>
-            ✔ Fabric identified successfully
-          </p>
-
-          <p style={{ marginBottom: 10 }}>
-            Request by: <strong>{submittedName || "Anonymous"}</strong>
-          </p>
-
-          {loadedRequest && (
-            <p style={{ marginBottom: 10, color: "#555", fontSize: 14 }}>
-              Loaded from existing request
-            </p>
-          )}
-
-          <h3 style={{ marginTop: 0 }}>Fabric Specification</h3>
-
-          <div style={{ lineHeight: 1.9 }}>
-            <div>
-              <strong>Fabric Type:</strong> {spec.fabric_type}
-            </div>
-            <div>
-              <strong>Intended Use:</strong> {spec.intended_use}
-            </div>
-            <div>
-              <strong>Quality Level:</strong> {spec.quality_level}
-            </div>
-            <div>
-              <strong>Color / Pattern:</strong> {spec.color_or_pattern}
-            </div>
-            <div>
-              <strong>Weight / Thickness:</strong> {spec.weight_or_thickness}
-            </div>
-            <div>
-              <strong>Quantity:</strong> {spec.quantity}
-            </div>
-            <div>
-              <strong>Budget:</strong> {spec.budget}
-            </div>
+            Built for serious buyers sourcing from China to Africa
           </div>
 
-          <p style={{ marginTop: 10, fontStyle: "italic" }}>
-            This specification is ready to be shared with verified suppliers.
+          <h1
+            style={{
+              marginTop: 0,
+              marginBottom: 14,
+              fontSize: 34,
+              lineHeight: 1.1,
+              letterSpacing: "-0.02em",
+            }}
+          >
+            AI-powered fabric sourcing platform.
+          </h1>
+
+          <p
+            style={{
+              margin: 0,
+              color: COLORS.subtext,
+              lineHeight: 1.75,
+              fontSize: 16,
+              maxWidth: 720,
+            }}
+          >
+            Describe your fabric → get a professional specification → receive
+            quotes from verified suppliers in China.
           </p>
 
-          <p style={{ color: "#4CAF50", fontWeight: "bold", marginTop: 8 }}>
-            Confidence Level: High
+          <p
+            style={{
+              marginTop: 16,
+              fontWeight: 700,
+              color: COLORS.primary,
+              fontSize: 15,
+            }}
+          >
+            Trusted by fabric buyers and sourcing clients across Africa.
+          </p>
+
+          <p
+            style={{
+              marginTop: 12,
+              color: "#374151",
+              lineHeight: 1.75,
+              maxWidth: 720,
+            }}
+          >
+            Weinly combines AI technology with real sourcing expertise on the
+            ground in China to ensure accuracy, reliability, and quality.
+          </p>
+
+          <p
+            style={{
+              marginTop: 14,
+              color: COLORS.accent,
+              fontWeight: 700,
+            }}
+          >
+            We are currently onboarding a limited number of buyers to ensure
+            quality service.
           </p>
 
           <div
             style={{
-              marginTop: 12,
+              marginTop: 18,
               display: "flex",
-              gap: 10,
+              gap: 12,
               flexWrap: "wrap",
+              alignItems: "stretch",
             }}
           >
-            <button
-              onClick={saveSpecificationPlaceholder}
+            <a
+              href="#request-form"
               style={{
-                backgroundColor: "#2196F3",
-                color: "white",
-                padding: "8px 14px",
-                border: "none",
-                borderRadius: 6,
-                cursor: "pointer",
-                fontWeight: "bold",
+                backgroundColor: COLORS.primary,
+                color: "#fff",
+                textDecoration: "none",
+                padding: "12px 18px",
+                borderRadius: 12,
+                fontWeight: 700,
+                boxShadow: "0 6px 18px rgba(15, 118, 110, 0.22)",
+                flex: "1 1 220px",
+                textAlign: "center",
               }}
             >
-              Save Specification
-            </button>
+              Start a Request
+            </a>
 
-            <button
-              onClick={downloadPDFPlaceholder}
+            <a
+              href="/history"
               style={{
-                backgroundColor: "#555",
-                color: "white",
-                padding: "8px 14px",
-                border: "none",
-                borderRadius: 6,
-                cursor: "pointer",
-                fontWeight: "bold",
+                backgroundColor: "#fff",
+                color: COLORS.text,
+                textDecoration: "none",
+                padding: "12px 18px",
+                borderRadius: 12,
+                fontWeight: 700,
+                border: `1px solid ${COLORS.border}`,
+                flex: "1 1 220px",
+                textAlign: "center",
               }}
             >
-              Download PDF
-            </button>
+              View Previous Requests
+            </a>
           </div>
+        </div>
+      </Card>
 
-          <h3 style={{ marginTop: 24 }}>Matched Suppliers</h3>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: 16,
+          marginBottom: 20,
+        }}
+      >
+        <Card style={{ padding: 18 }}>
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>
+            Clear specifications
+          </div>
+          <div style={{ color: COLORS.subtext, lineHeight: 1.7, fontSize: 14 }}>
+            Turn vague ideas into supplier-ready fabric requests.
+          </div>
+        </Card>
 
-          {matchedSuppliers.length === 0 ? (
-            <p style={{ color: "#666" }}>No verified suppliers matched yet.</p>
-          ) : (
-            matchedSuppliers.map((s) => (
+        <Card style={{ padding: 18 }}>
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>
+            Verified suppliers
+          </div>
+          <div style={{ color: COLORS.subtext, lineHeight: 1.7, fontSize: 14 }}>
+            Receive quotes from trusted suppliers, not random guesses.
+          </div>
+        </Card>
+
+        <Card style={{ padding: 18 }}>
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>Track everything</div>
+          <div style={{ color: COLORS.subtext, lineHeight: 1.7, fontSize: 14 }}>
+            Keep request IDs, statuses, and quotes in one place.
+          </div>
+        </Card>
+      </div>
+
+      <Card style={{ marginBottom: 20 }}>
+        <p
+          style={{
+            margin: 0,
+            fontStyle: "italic",
+            color: "#374151",
+            lineHeight: 1.8,
+            fontSize: 16,
+          }}
+        >
+          “Weinly helped me clearly describe the exact fabric I needed.
+          Normally I struggle explaining to suppliers, but this made it easier
+          and more direct.”
+        </p>
+
+        <p style={{ marginTop: 14, fontWeight: 800, color: COLORS.text }}>— Ada</p>
+      </Card>
+
+      <Card style={{ marginBottom: 20, backgroundColor: COLORS.softBg }}>
+        <h2 style={{ marginTop: 0, marginBottom: 12 }}>How Weinly Works</h2>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: 14,
+          }}
+        >
+          {[
+            "Submit your fabric request",
+            "Weinly generates a supplier-ready specification",
+            "Our sourcing team reviews your request",
+            "Verified suppliers submit quotes",
+            "You receive the best options",
+          ].map((step, index) => (
+            <div
+              key={step}
+              style={{
+                backgroundColor: "#fff",
+                border: `1px solid ${COLORS.border}`,
+                borderRadius: 14,
+                padding: 16,
+              }}
+            >
               <div
-                key={s.id}
                 style={{
-                  marginTop: 12,
-                  padding: 14,
-                  border: "1px solid #ddd",
-                  borderRadius: 8,
-                  background: "white",
+                  width: 30,
+                  height: 30,
+                  borderRadius: 999,
+                  backgroundColor: COLORS.primary,
+                  color: "#fff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 700,
+                  marginBottom: 12,
                 }}
               >
-                <div style={{ fontWeight: "bold" }}>{s.name}</div>
-                <div style={{ color: "#555", marginTop: 4 }}>
-                  {s.specialization} • {s.location} • ⭐ {s.trust_score}
-                </div>
-
-                <div style={{ marginTop: 10 }}>
-                  <button
-                    onClick={() =>
-                      alert(
-                        `We can help you connect with ${s.name} and handle your order from China. Message us to proceed.`
-                      )
-                    }
-                    style={{
-                      backgroundColor: "#FF9800",
-                      color: "white",
-                      padding: "6px 12px",
-                      border: "none",
-                      borderRadius: 6,
-                      cursor: "pointer",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    Contact Supplier
-                  </button>
-                </div>
+                {index + 1}
               </div>
-            ))
-          )}
+              <div
+                style={{ color: COLORS.text, lineHeight: 1.7, fontSize: 14 }}
+              >
+                {step}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
 
-          <p style={{ marginTop: 20, fontWeight: "bold", color: "#4CAF50" }}>
-            ✔ Your fabric specification is ready and matched with trusted
-            suppliers! You can now request samples or save this specification
-            for later.
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gap: 20,
+          marginBottom: 20,
+        }}
+      >
+        <Card>
+          <div id="request-form" />
+          <h2 style={{ marginTop: 0 }}>Start a Fabric Request</h2>
+          <p style={{ color: COLORS.subtext, lineHeight: 1.7 }}>
+            Tell us what fabric you need and Weinly will turn it into a
+            professional sourcing specification.
           </p>
 
-          {buyerQuotes.length > 0 && (
-            <div style={{ marginTop: 30 }}>
-              <h3>Supplier Quotes</h3>
+          <Input
+            type="text"
+            placeholder="Your name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
 
-              {buyerQuotes.map((quote) => (
-                <div
-                  key={quote.id}
+          <Input
+            type="email"
+            placeholder="Your email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+
+          <Input
+            type="text"
+            placeholder="Your WhatsApp or phone number"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
+
+          <div
+            style={{
+              marginBottom: 10,
+              padding: 12,
+              borderRadius: 12,
+              backgroundColor: COLORS.softBg,
+              color: COLORS.subtext,
+              lineHeight: 1.7,
+              fontSize: 14,
+            }}
+          >
+            Tip: Include fabric type, use, color, quality, and budget if
+            possible.
+          </div>
+
+          <Textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            rows={7}
+            placeholder="Describe the fabric you need. Example: Lace for wedding gowns, premium quality, white, lightweight, for hot weather."
+            style={{ marginBottom: 12 }}
+          />
+
+          <div
+            style={{
+              marginBottom: 18,
+              backgroundColor: "#F8FAFC",
+              border: `1px dashed ${COLORS.border}`,
+              borderRadius: 14,
+              padding: 14,
+            }}
+          >
+            <p style={{ fontWeight: 700, marginTop: 0, marginBottom: 10 }}>
+              Example requests
+            </p>
+
+            <p
+              style={{
+                cursor: "pointer",
+                color: COLORS.primary,
+                margin: "8px 0",
+                lineHeight: 1.7,
+              }}
+              onClick={() =>
+                setInput(
+                  "Lace fabric for wedding gowns, premium quality, white, lightweight"
+                )
+              }
+            >
+              Lace for wedding gowns (premium, white, lightweight)
+            </p>
+
+            <p
+              style={{
+                cursor: "pointer",
+                color: COLORS.primary,
+                margin: "8px 0 0",
+                lineHeight: 1.7,
+              }}
+              onClick={() =>
+                setInput(
+                  "Cotton fabric for men’s shirts, breathable, affordable, for hot weather"
+                )
+              }
+            >
+              Cotton for shirts (breathable, budget-friendly)
+            </p>
+          </div>
+
+          <PrimaryButton onClick={submitRequest} disabled={loading}>
+            {loading ? "Analyzing..." : "Submit Request"}
+          </PrimaryButton>
+        </Card>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <Card style={{ backgroundColor: COLORS.softBg }}>
+            <h3 style={{ marginTop: 0 }}>Check Existing Request</h3>
+            <p
+              style={{
+                color: COLORS.subtext,
+                marginBottom: 12,
+                lineHeight: 1.7,
+              }}
+            >
+              Enter your saved request ID to view your request, status, and
+              supplier quotes.
+            </p>
+
+            <Input
+              value={lookupId}
+              onChange={(e) => setLookupId(e.target.value)}
+              placeholder="Enter your request ID"
+              style={{ marginBottom: 12 }}
+            />
+
+            <PrimaryButton onClick={loadRequestById}>Load Request</PrimaryButton>
+          </Card>
+
+          <Card>
+            <h3 style={{ marginTop: 0 }}>Why trust Weinly?</h3>
+            <ul
+              style={{
+                paddingLeft: 20,
+                color: COLORS.subtext,
+                lineHeight: 1.9,
+                marginBottom: 0,
+              }}
+            >
+              <li>Reduce costly sourcing mistakes</li>
+              <li>Work with verified suppliers</li>
+              <li>Clear communication before ordering</li>
+              <li>Real sourcing support from China</li>
+            </ul>
+          </Card>
+
+          <Card>
+            <h3 style={{ marginTop: 0 }}>Need direct sourcing support?</h3>
+            <p style={{ color: COLORS.subtext, lineHeight: 1.7 }}>
+              Our team can assist you with supplier selection, negotiation, and
+              order handling.
+            </p>
+            <p style={{ marginBottom: 12 }}>
+              <strong>Email:</strong> support@weinly.com
+            </p>
+            <a
+              href="https://wa.me/2348130630046"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "inline-block",
+                padding: "12px 16px",
+                borderRadius: 12,
+                backgroundColor: COLORS.primary,
+                color: "white",
+                textDecoration: "none",
+                fontWeight: 700,
+                textAlign: "center",
+                width: "100%",
+              }}
+            >
+              Chat with us on WhatsApp
+            </a>
+          </Card>
+        </div>
+      </div>
+
+      {(result || requestId || buyerQuotes.length > 0 || loadedRequest) && (
+        <div style={{ marginTop: 28, marginBottom: 16 }}>
+          <h2 style={{ marginBottom: 0 }}>Your Request Result</h2>
+        </div>
+      )}
+
+      {result && (
+        <Card
+          style={{
+            marginBottom: 20,
+            backgroundColor: COLORS.successBg,
+            border: `1px solid ${COLORS.successBorder}`,
+          }}
+        >
+          <p style={{ color: COLORS.primary, fontWeight: 800, marginTop: 0 }}>
+            ✔ Fabric identified successfully
+          </p>
+
+          <h3>Fabric Specification</h3>
+
+          <pre
+            style={{
+              whiteSpace: "pre-wrap",
+              backgroundColor: "#fff",
+              padding: 16,
+              borderRadius: 14,
+              border: `1px solid ${COLORS.border}`,
+              lineHeight: 1.7,
+              overflowX: "auto",
+            }}
+          >
+            {typeof result === "string"
+              ? result
+              : JSON.stringify(result, null, 2)}
+          </pre>
+
+          <p style={{ marginTop: 14, fontStyle: "italic", color: "#374151" }}>
+            This specification is ready to be shared with verified suppliers.
+          </p>
+
+          <p style={{ color: COLORS.primary, fontWeight: 800, marginBottom: 0 }}>
+            Confidence Level: High
+          </p>
+        </Card>
+      )}
+
+      {requestId && (
+        <Card style={{ marginBottom: 20 }}>
+          <p style={{ marginTop: 0 }}>
+            <strong>Your Request ID:</strong> {requestId}
+          </p>
+          <p style={{ fontSize: 14, color: COLORS.subtext, lineHeight: 1.7 }}>
+            Save this ID so you can check your request and quotes later.
+          </p>
+
+          <PrimaryButton
+            onClick={() => {
+              navigator.clipboard.writeText(requestId);
+              alert("Request ID copied!");
+            }}
+            style={{ marginTop: 6, maxWidth: 220 }}
+          >
+            Copy Request ID
+          </PrimaryButton>
+        </Card>
+      )}
+
+      {requestId && (
+        <Card style={{ marginBottom: 20, backgroundColor: COLORS.infoBg }}>
+          <p style={{ margin: 0, lineHeight: 1.7, fontWeight: 700 }}>
+            Your request has been received.
+          </p>
+          <p
+            style={{
+              marginTop: 8,
+              marginBottom: 0,
+              color: COLORS.subtext,
+              lineHeight: 1.8,
+            }}
+          >
+            Our sourcing team is reviewing your request and matching you with
+            verified suppliers. You will start receiving quotes shortly.
+          </p>
+        </Card>
+      )}
+
+      {loadedRequest?.status && (
+        <Card
+          style={{
+            marginBottom: 20,
+            backgroundColor: getStatusBackground(loadedRequest.status),
+          }}
+        >
+          <p style={{ marginTop: 0 }}>
+            <strong>Request Status:</strong>{" "}
+            {formatStatus(loadedRequest.status)}
+          </p>
+
+          <div
+            style={{ marginTop: 10, color: COLORS.subtext, lineHeight: 1.8 }}
+          >
+            <p style={{ margin: "4px 0", fontWeight: 700 }}>Status Guide</p>
+            <p style={{ margin: "4px 0" }}>New → Request received</p>
+            <p style={{ margin: "4px 0" }}>
+              In Progress → Being reviewed by sourcing team
+            </p>
+            <p style={{ margin: "4px 0" }}>
+              Quoted → Supplier quotes available
+            </p>
+            <p style={{ margin: "4px 0" }}>Completed → Order finalized</p>
+          </div>
+        </Card>
+      )}
+
+      {buyerQuotes.length > 0 && (
+        <div style={{ marginTop: 30 }}>
+          <h3>Quotes from Verified Suppliers</h3>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+              gap: 16,
+              marginTop: 12,
+            }}
+          >
+            {buyerQuotes.map((quote) => (
+              <Card key={quote.id} style={{ padding: 20 }}>
+                <p
                   style={{
-                    border: "1px solid #ddd",
-                    padding: 16,
-                    marginTop: 12,
-                    borderRadius: 10,
-                    backgroundColor: "#ffffff",
-                    boxShadow: "0 2px 6px rgba(0,0,0,0.06)",
+                    margin: 0,
+                    fontWeight: 800,
+                    fontSize: 17,
+                    color: COLORS.text,
                   }}
                 >
-                  <p style={{ margin: 0, fontWeight: "bold", fontSize: 16 }}>
-                    {quote.supplier_name}
+                  {quote.supplier_name}
+                </p>
+                <div
+                  style={{
+                    marginTop: 14,
+                    color: COLORS.subtext,
+                    lineHeight: 1.8,
+                  }}
+                >
+                  <p style={{ margin: "6px 0" }}>
+                    <strong style={{ color: COLORS.text }}>Price:</strong>{" "}
+                    {quote.price}
                   </p>
-                  <p style={{ margin: "8px 0" }}>
-                    <strong>Price:</strong> {quote.price}
+                  <p style={{ margin: "6px 0" }}>
+                    <strong style={{ color: COLORS.text }}>MOQ:</strong>{" "}
+                    {quote.moq}
                   </p>
-                  <p style={{ margin: "8px 0" }}>
-                    <strong>MOQ:</strong> {quote.moq}
-                  </p>
-                  <p style={{ margin: "8px 0" }}>
-                    <strong>Note:</strong> {quote.note}
+                  <p style={{ margin: "6px 0" }}>
+                    <strong style={{ color: COLORS.text }}>Note:</strong>{" "}
+                    {quote.note}
                   </p>
                 </div>
-              ))}
-            </div>
-          )}
-
-          {requestId && buyerQuotes.length === 0 && (
-            <div
-              style={{
-                marginTop: 20,
-                padding: 14,
-                border: "1px solid #eee",
-                borderRadius: 8,
-                backgroundColor: "#fff",
-              }}
-            >
-              <p style={{ margin: 0, color: "#666" }}>
-                No supplier quotes yet. Please check back later or contact
-                support.
-              </p>
-            </div>
-          )}
-
-          {requestId && (
-            <div
-              style={{
-                marginTop: 20,
-                padding: 12,
-                border: "1px solid #ddd",
-                borderRadius: 8,
-                backgroundColor: "#fafafa",
-              }}
-            >
-              <p>
-                <strong>Your Request ID:</strong> {requestId}
-              </p>
-              <p style={{ fontSize: 14, color: "#555" }}>
-                Save this ID so you can check your request and quotes later.
-              </p>
-
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(requestId);
-                  alert("Request ID copied!");
-                }}
-                style={{
-                  marginTop: 10,
-                  padding: "8px 12px",
-                  borderRadius: 6,
-                  border: "none",
-                  backgroundColor: "#111",
-                  color: "white",
-                  cursor: "pointer",
-                }}
-              >
-                Copy Request ID
-              </button>
-            </div>
-          )}
-
-          {loadedRequest?.status && (
-            <div
-              style={{
-                marginTop: 20,
-                padding: 12,
-                border: "1px solid #ddd",
-                borderRadius: 8,
-                backgroundColor:
-                  loadedRequest.status === "completed"
-                    ? "#e8f5e9"
-                    : loadedRequest.status === "quoted"
-                    ? "#fff8e1"
-                    : loadedRequest.status === "in_progress"
-                    ? "#e3f2fd"
-                    : "#f5f5f5",
-              }}
-            >
-              <p>
-                <strong>Request Status:</strong>{" "}
-                {formatStatus(loadedRequest.status)}
-              </p>
-            </div>
-          )}
+              </Card>
+            ))}
+          </div>
         </div>
+      )}
+
+      {requestId && buyerQuotes.length === 0 && (
+        <Card style={{ marginTop: 20 }}>
+          <p style={{ margin: 0, color: COLORS.subtext }}>
+            No supplier quotes yet. Please check back later or contact support.
+          </p>
+        </Card>
       )}
 
       <div
         style={{
-          marginTop: 40,
-          padding: 20,
-          border: "1px solid #eee",
-          borderRadius: 12,
-          backgroundColor: "#fafafa",
+          marginTop: 32,
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+          gap: 16,
         }}
       >
-        <h2 style={{ marginTop: 0 }}>Why Weinly</h2>
+        <Card style={{ backgroundColor: COLORS.softBg }}>
+          <h3 style={{ marginTop: 0 }}>Why buyers use Weinly</h3>
+          <ul
+            style={{
+              paddingLeft: 20,
+              color: COLORS.subtext,
+              lineHeight: 1.9,
+            }}
+          >
+            <li>Get clear fabric specifications before contacting suppliers</li>
+            <li>Track requests, quotes, and status in one place</li>
+            <li>Reduce sourcing mistakes and communicate more professionally</li>
+          </ul>
+        </Card>
 
-        <ul style={{ paddingLeft: 20, color: "#555", lineHeight: 1.8 }}>
-          <li>Eliminate confusion when describing fabrics</li>
-          <li>Avoid costly sourcing mistakes</li>
-          <li>Communicate professionally with suppliers</li>
-          <li>Track requests, quotes, and progress in one place</li>
-        </ul>
-      </div>
+        <Card
+          style={{
+            backgroundColor: COLORS.text,
+            color: "#fff",
+            border: "none",
+            boxShadow: COLORS.shadow,
+          }}
+        >
+          <h3 style={{ marginTop: 0, color: "#fff" }}>
+            Ready to source fabrics the right way?
+          </h3>
 
-      <div
-        style={{
-          marginTop: 20,
-          padding: 20,
-          border: "1px solid #eee",
-          borderRadius: 12,
-          backgroundColor: "#ffffff",
-        }}
-      >
-        <h3 style={{ marginTop: 0 }}>Need help with sourcing?</h3>
-        <p style={{ color: "#555", lineHeight: 1.6 }}>
-          If you want support with supplier selection, quote review, or direct
-          sourcing assistance, contact the Weinly team.
-        </p>
-        <p style={{ marginBottom: 0 }}>
-          <strong>Email:</strong> support@weinly.com
-        </p>
-      </div>
+          <p style={{ color: "#D1D5DB", lineHeight: 1.8 }}>
+            Start your request now and get a clear specification in seconds.
+          </p>
 
-      <div
-        style={{
-          marginTop: 30,
-          padding: 20,
-          borderRadius: 12,
-          backgroundColor: "#111",
-          color: "white",
-          textAlign: "center",
-        }}
-      >
-        <h3 style={{ marginTop: 0 }}>Ready to source fabrics the right way?</h3>
-
-        <p style={{ marginBottom: 10 }}>
-          Start your request now and get a clear specification in seconds.
-        </p>
+          <a
+            href="#request-form"
+            style={{
+              display: "inline-block",
+              marginTop: 8,
+              backgroundColor: COLORS.accent,
+              color: "#fff",
+              textDecoration: "none",
+              padding: "12px 16px",
+              borderRadius: 12,
+              fontWeight: 700,
+              textAlign: "center",
+            }}
+          >
+            Start Now
+          </a>
+        </Card>
       </div>
 
       <footer
         style={{
           marginTop: 40,
-          paddingTop: 20,
-          paddingBottom: 20,
-          borderTop: "1px solid #eee",
+          paddingTop: 24,
+          paddingBottom: 24,
+          borderTop: `1px solid ${COLORS.border}`,
           textAlign: "center",
-          color: "#777",
+          color: COLORS.subtext,
           fontSize: 14,
         }}
       >

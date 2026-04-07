@@ -3,12 +3,56 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 
+const COLORS = {
+  primary: "#0F766E",
+  primaryDark: "#0B5E58",
+  accent: "#D97706",
+  text: "#111827",
+  subtext: "#6B7280",
+  border: "#E5E7EB",
+  bg: "#FFFFFF",
+  softBg: "#F9FAFB",
+  heroBg: "linear-gradient(135deg, #F9FAFB, #ECFDF5)",
+  completedBg: "#ECFDF5",
+  quotedBg: "#FFFBEB",
+  progressBg: "#EFF6FF",
+  newBg: "#F3F4F6",
+  shadow: "0 10px 30px rgba(17, 24, 39, 0.08)",
+  shadowSoft: "0 4px 14px rgba(17, 24, 39, 0.06)",
+};
+
 export default function HistoryPage() {
   const [email, setEmail] = useState("");
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [selectedQuotes, setSelectedQuotes] = useState<any[]>([]);
+
+  async function loadHistory() {
+    if (!email) {
+      alert("Please enter your email");
+      return;
+    }
+
+    setLoading(true);
+
+    const { data, error } = await supabase
+      .from("fabric_requests")
+      .select("*")
+      .eq("client_email", email)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      alert("Failed to load request history");
+      setLoading(false);
+      return;
+    }
+
+    setRequests(data || []);
+    setSelectedRequest(null);
+    setSelectedQuotes([]);
+    setLoading(false);
+  }
 
   async function viewRequestDetails(request: any) {
     setSelectedRequest(request);
@@ -26,32 +70,6 @@ export default function HistoryPage() {
     setSelectedQuotes(quotesData || []);
   }
 
-  async function loadHistory() {
-    if (!email) {
-      alert("Please enter your email");
-      return;
-    }
-
-    setLoading(true);
-    setSelectedRequest(null);
-    setSelectedQuotes([]);
-
-    const { data, error } = await supabase
-      .from("fabric_requests")
-      .select("*")
-      .eq("client_email", email)
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      alert("Failed to load request history");
-      setLoading(false);
-      return;
-    }
-
-    setRequests(data || []);
-    setLoading(false);
-  }
-
   function formatStatus(status: string) {
     if (status === "in_progress") return "In Progress";
     if (status === "quoted") return "Quoted";
@@ -60,40 +78,136 @@ export default function HistoryPage() {
   }
 
   function getStatusColor(status: string) {
-    if (status === "completed") return "#e8f5e9";
-    if (status === "quoted") return "#fff8e1";
-    if (status === "in_progress") return "#e3f2fd";
-    return "#f5f5f5";
+    if (status === "completed") return COLORS.completedBg;
+    if (status === "quoted") return COLORS.quotedBg;
+    if (status === "in_progress") return COLORS.progressBg;
+    return COLORS.newBg;
+  }
+
+  function Card({
+    children,
+    style = {},
+  }: {
+    children: React.ReactNode;
+    style?: React.CSSProperties;
+  }) {
+    return (
+      <div
+        style={{
+          backgroundColor: COLORS.bg,
+          border: `1px solid ${COLORS.border}`,
+          borderRadius: 18,
+          padding: 24,
+          boxShadow: COLORS.shadowSoft,
+          ...style,
+        }}
+      >
+        {children}
+      </div>
+    );
+  }
+
+  function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
+    return (
+      <input
+        {...props}
+        style={{
+          width: "100%",
+          padding: "14px 16px",
+          borderRadius: 12,
+          border: `1px solid ${COLORS.border}`,
+          outline: "none",
+          fontSize: 15,
+          color: COLORS.text,
+          backgroundColor: "#fff",
+          ...props.style,
+        }}
+      />
+    );
+  }
+
+  function PrimaryButton({
+    children,
+    ...props
+  }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+    return (
+      <button
+        {...props}
+        style={{
+          backgroundColor: COLORS.primary,
+          color: "#fff",
+          padding: "12px 18px",
+          border: "none",
+          borderRadius: 12,
+          cursor: "pointer",
+          fontWeight: 700,
+          fontSize: 15,
+          boxShadow: "0 6px 18px rgba(15, 118, 110, 0.22)",
+          ...props.style,
+        }}
+      >
+        {children}
+      </button>
+    );
   }
 
   return (
     <main
       style={{
-        padding: 40,
-        maxWidth: 800,
+        padding: 20,
+        maxWidth: 980,
         margin: "0 auto",
-        fontFamily: "Arial, sans-serif",
+        fontFamily:
+          'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        color: COLORS.text,
+        backgroundColor: COLORS.softBg,
+        minHeight: "100vh",
       }}
     >
       <nav
         style={{
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 30,
-          paddingBottom: 12,
-          borderBottom: "1px solid #eee",
+          alignItems: "flex-start",
+          gap: 12,
+          marginBottom: 24,
+          padding: "12px 0",
+          flexWrap: "wrap",
         }}
       >
-        <h2 style={{ margin: 0 }}>Weinly</h2>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 12,
+              background: COLORS.primary,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fff",
+              fontWeight: 800,
+              flexShrink: 0,
+            }}
+          >
+            W
+          </div>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 18 }}>Weinly</div>
+            <div style={{ fontSize: 12, color: COLORS.subtext }}>
+              AI-powered sourcing
+            </div>
+          </div>
+        </div>
 
-        <div style={{ display: "flex", gap: 16 }}>
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
           <a
             href="/"
             style={{
               textDecoration: "none",
-              color: "#1a73e8",
-              fontWeight: "bold",
+              color: COLORS.primary,
+              fontWeight: 700,
+              fontSize: 14,
             }}
           >
             Home
@@ -102,8 +216,9 @@ export default function HistoryPage() {
             href="/history"
             style={{
               textDecoration: "none",
-              color: "#111",
-              fontWeight: "bold",
+              color: COLORS.text,
+              fontWeight: 700,
+              fontSize: 14,
             }}
           >
             History
@@ -111,137 +226,239 @@ export default function HistoryPage() {
         </div>
       </nav>
 
-      <h1>Request History</h1>
-      <p>Enter your email to view your previous fabric requests.</p>
+      <Card
+        style={{
+          marginBottom: 20,
+          background: COLORS.heroBg,
+          boxShadow: COLORS.shadow,
+          border: "none",
+        }}
+      >
+        <div style={{ maxWidth: 760 }}>
+          <div
+            style={{
+              display: "inline-block",
+              backgroundColor: "#D1FAE5",
+              color: COLORS.primary,
+              fontWeight: 700,
+              fontSize: 13,
+              padding: "8px 12px",
+              borderRadius: 999,
+              marginBottom: 16,
+            }}
+          >
+            Buyer workspace
+          </div>
 
-      <div style={{ marginBottom: 20 }}>
-        <input
-          type="email"
-          placeholder="Your email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={{
-            width: "100%",
-            padding: 10,
-            borderRadius: 6,
-            border: "1px solid #ccc",
-            marginBottom: 10,
-          }}
-        />
+          <h1
+            style={{
+              marginTop: 0,
+              marginBottom: 14,
+              fontSize: 34,
+              lineHeight: 1.1,
+              letterSpacing: "-0.02em",
+            }}
+          >
+            View your previous fabric requests.
+          </h1>
 
-        <button
-          onClick={loadHistory}
+          <p
+            style={{
+              margin: 0,
+              color: COLORS.subtext,
+              lineHeight: 1.75,
+              fontSize: 16,
+              maxWidth: 720,
+            }}
+          >
+            Enter your email to access your request history, review AI-generated
+            fabric specifications, and check quotes from verified suppliers.
+          </p>
+        </div>
+      </Card>
+
+      <Card style={{ marginBottom: 20 }}>
+        <h2 style={{ marginTop: 0 }}>Load your request history</h2>
+        <p style={{ color: COLORS.subtext, lineHeight: 1.7, marginBottom: 14 }}>
+          Use the same email you submitted with your fabric requests.
+        </p>
+
+        <div
           style={{
-            padding: "10px 14px",
-            borderRadius: 6,
-            border: "none",
-            backgroundColor: "#111",
-            color: "white",
-            cursor: "pointer",
+            display: "flex",
+            gap: 12,
+            flexWrap: "wrap",
+            alignItems: "stretch",
           }}
         >
-          {loading ? "Loading..." : "Load My Requests"}
-        </button>
-      </div>
+          <div style={{ flex: "1 1 260px" }}>
+            <Input
+              type="email"
+              placeholder="Your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+
+          <PrimaryButton
+            onClick={loadHistory}
+            style={{ width: "auto", minWidth: 180 }}
+          >
+            {loading ? "Loading..." : "Load My Requests"}
+          </PrimaryButton>
+        </div>
+      </Card>
+
+      {!loading && requests.length === 0 && (
+        <Card style={{ marginBottom: 20 }}>
+          <p style={{ margin: 0, color: COLORS.subtext }}>
+            No requests loaded yet.
+          </p>
+        </Card>
+      )}
 
       {requests.length > 0 && (
-        <div>
-          <h3>Your Requests</h3>
+        <div style={{ marginBottom: 20 }}>
+          <h2 style={{ marginBottom: 16 }}>Your Requests</h2>
 
-          {requests.map((item) => (
-            <div
-              key={item.id}
-              style={{
-                border: "1px solid #ddd",
-                borderRadius: 10,
-                padding: 16,
-                marginBottom: 12,
-                backgroundColor: getStatusColor(item.status),
-              }}
-            >
-              <p style={{ margin: "0 0 8px", fontWeight: "bold" }}>
-                Request ID: {item.id}
-              </p>
-              <p style={{ margin: "0 0 8px" }}>
-                <strong>Status:</strong> {formatStatus(item.status)}
-              </p>
-              <p style={{ margin: "0 0 8px" }}>
-                <strong>Fabric Request:</strong> {item.user_input}
-              </p>
-              <p style={{ margin: 0 }}>
-                <strong>Created:</strong>{" "}
-                {new Date(item.created_at).toLocaleString()}
-              </p>
-
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(item.id);
-                  alert("Request ID copied!");
-                }}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+              gap: 16,
+            }}
+          >
+            {requests.map((item) => (
+              <Card
+                key={item.id}
                 style={{
-                  marginTop: 10,
-                  padding: "8px 12px",
-                  borderRadius: 6,
-                  border: "none",
-                  backgroundColor: "#111",
-                  color: "white",
-                  cursor: "pointer",
+                  backgroundColor: getStatusColor(item.status),
                 }}
               >
-                Copy Request ID
-              </button>
+                <p style={{ margin: "0 0 8px", fontWeight: 800 }}>
+                  Request ID: {item.id}
+                </p>
 
-              <button
-                onClick={() => viewRequestDetails(item)}
-                style={{
-                  marginTop: 10,
-                  marginLeft: 10,
-                  padding: "8px 12px",
-                  borderRadius: 6,
-                  border: "none",
-                  backgroundColor: "#111",
-                  color: "white",
-                  cursor: "pointer",
-                }}
-              >
-                View Details
-              </button>
-            </div>
-          ))}
+                <p style={{ margin: "0 0 8px" }}>
+                  <strong>Status:</strong> {formatStatus(item.status)}
+                </p>
+
+                <p style={{ margin: "0 0 8px", color: COLORS.text, lineHeight: 1.7 }}>
+                  <strong>Fabric Request:</strong> {item.user_input}
+                </p>
+
+                <p style={{ margin: "0 0 12px", color: COLORS.subtext }}>
+                  <strong>Created:</strong>{" "}
+                  {new Date(item.created_at).toLocaleString()}
+                </p>
+
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <PrimaryButton
+                    onClick={() => viewRequestDetails(item)}
+                    style={{ width: "auto" }}
+                  >
+                    View Details
+                  </PrimaryButton>
+
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(item.id);
+                      alert("Request ID copied!");
+                    }}
+                    style={{
+                      padding: "12px 16px",
+                      borderRadius: 12,
+                      border: `1px solid ${COLORS.border}`,
+                      backgroundColor: "#fff",
+                      color: COLORS.text,
+                      cursor: "pointer",
+                      fontWeight: 700,
+                    }}
+                  >
+                    Copy Request ID
+                  </button>
+                </div>
+              </Card>
+            ))}
+          </div>
         </div>
       )}
 
       {selectedRequest && (
-        <div
+        <Card
           style={{
-            marginTop: 30,
-            padding: 20,
-            border: "1px solid #ddd",
-            borderRadius: 10,
-            backgroundColor: "#fafafa",
+            marginTop: 12,
+            backgroundColor: "#fff",
+            boxShadow: COLORS.shadow,
           }}
         >
-          <h3>Request Details</h3>
+          <h2 style={{ marginTop: 0, marginBottom: 16 }}>Request Details</h2>
 
-          <p>
-            <strong>Request ID:</strong> {selectedRequest.id}
-          </p>
-          <p>
-            <strong>Status:</strong> {formatStatus(selectedRequest.status)}
-          </p>
-          <p>
-            <strong>Fabric Request:</strong> {selectedRequest.user_input}
-          </p>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: 14,
+              marginBottom: 20,
+            }}
+          >
+            <div
+              style={{
+                backgroundColor: COLORS.softBg,
+                border: `1px solid ${COLORS.border}`,
+                borderRadius: 14,
+                padding: 16,
+              }}
+            >
+              <p style={{ margin: "0 0 8px", fontWeight: 800 }}>Request ID</p>
+              <p style={{ margin: 0, color: COLORS.subtext, wordBreak: "break-word" }}>
+                {selectedRequest.id}
+              </p>
+            </div>
 
-          <div style={{ marginTop: 20 }}>
-            <h4>AI Fabric Specification</h4>
+            <div
+              style={{
+                backgroundColor: getStatusColor(selectedRequest.status),
+                border: `1px solid ${COLORS.border}`,
+                borderRadius: 14,
+                padding: 16,
+              }}
+            >
+              <p style={{ margin: "0 0 8px", fontWeight: 800 }}>Status</p>
+              <p style={{ margin: 0, color: COLORS.text }}>
+                {formatStatus(selectedRequest.status)}
+              </p>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <h3 style={{ marginBottom: 10 }}>Original Fabric Request</h3>
+            <div
+              style={{
+                backgroundColor: COLORS.softBg,
+                padding: 16,
+                borderRadius: 14,
+                border: `1px solid ${COLORS.border}`,
+                lineHeight: 1.8,
+                color: COLORS.text,
+              }}
+            >
+              {selectedRequest.user_input}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <h3 style={{ marginBottom: 10 }}>AI Fabric Specification</h3>
             <pre
               style={{
                 whiteSpace: "pre-wrap",
                 backgroundColor: "#fff",
-                padding: 12,
-                borderRadius: 8,
-                border: "1px solid #eee",
+                padding: 16,
+                borderRadius: 14,
+                border: `1px solid ${COLORS.border}`,
+                lineHeight: 1.75,
+                overflowX: "auto",
+                boxShadow: COLORS.shadowSoft,
               }}
             >
               {typeof selectedRequest.ai_output === "string"
@@ -250,54 +467,81 @@ export default function HistoryPage() {
             </pre>
           </div>
 
-          <div style={{ marginTop: 20 }}>
-            <h4>Supplier Quotes</h4>
+          <div>
+            <h3 style={{ marginBottom: 10 }}>Quotes from Verified Suppliers</h3>
 
             {selectedQuotes.length > 0 ? (
-              selectedQuotes.map((quote) => (
-                <div
-                  key={quote.id}
-                  style={{
-                    border: "1px solid #ddd",
-                    padding: 14,
-                    marginTop: 10,
-                    borderRadius: 8,
-                    backgroundColor: "#fff",
-                  }}
-                >
-                  <p>
-                    <strong>{quote.supplier_name}</strong>
-                  </p>
-                  <p>
-                    <strong>Price:</strong> {quote.price}
-                  </p>
-                  <p>
-                    <strong>MOQ:</strong> {quote.moq}
-                  </p>
-                  <p>
-                    <strong>Note:</strong> {quote.note}
-                  </p>
-                </div>
-              ))
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                  gap: 16,
+                }}
+              >
+                {selectedQuotes.map((quote) => (
+                  <div
+                    key={quote.id}
+                    style={{
+                      border: `1px solid ${COLORS.border}`,
+                      padding: 18,
+                      borderRadius: 14,
+                      backgroundColor: "#fff",
+                      boxShadow: COLORS.shadowSoft,
+                    }}
+                  >
+                    <p
+                      style={{
+                        margin: 0,
+                        fontWeight: 800,
+                        fontSize: 16,
+                        color: COLORS.text,
+                      }}
+                    >
+                      {quote.supplier_name}
+                    </p>
+
+                    <div
+                      style={{
+                        marginTop: 12,
+                        lineHeight: 1.8,
+                        color: COLORS.subtext,
+                      }}
+                    >
+                      <p style={{ margin: "6px 0" }}>
+                        <strong style={{ color: COLORS.text }}>Price:</strong>{" "}
+                        {quote.price}
+                      </p>
+                      <p style={{ margin: "6px 0" }}>
+                        <strong style={{ color: COLORS.text }}>MOQ:</strong>{" "}
+                        {quote.moq}
+                      </p>
+                      <p style={{ margin: "6px 0" }}>
+                        <strong style={{ color: COLORS.text }}>Note:</strong>{" "}
+                        {quote.note}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : (
-              <p>No quotes available yet for this request.</p>
+              <Card style={{ padding: 18, backgroundColor: COLORS.softBg }}>
+                <p style={{ margin: 0, color: COLORS.subtext }}>
+                  No quotes available yet for this request.
+                </p>
+              </Card>
             )}
           </div>
-        </div>
-      )}
-
-      {!loading && requests.length === 0 && (
-        <p style={{ color: "#666" }}>No requests loaded yet.</p>
+        </Card>
       )}
 
       <footer
         style={{
           marginTop: 40,
-          paddingTop: 20,
-          paddingBottom: 20,
-          borderTop: "1px solid #eee",
+          paddingTop: 24,
+          paddingBottom: 24,
+          borderTop: `1px solid ${COLORS.border}`,
           textAlign: "center",
-          color: "#777",
+          color: COLORS.subtext,
           fontSize: 14,
         }}
       >
