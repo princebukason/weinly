@@ -24,6 +24,7 @@ const COLORS = {
 export default function Admin() {
   const [requests, setRequests] = useState<any[]>([]);
   const [quotes, setQuotes] = useState<any[]>([]);
+  const [buyerActions, setBuyerActions] = useState<any[]>([]);
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
@@ -42,9 +43,14 @@ export default function Admin() {
       .order("created_at", { ascending: false });
 
     const { data: qs } = await supabase.from("quotes").select("*");
+    const { data: actions } = await supabase
+      .from("buyer_actions")
+      .select("*")
+      .order("created_at", { ascending: false });
 
     setRequests(reqs || []);
     setQuotes(qs || []);
+    setBuyerActions(actions || []);
   }
 
   async function handleAddQuote(e: any, requestId: string) {
@@ -90,6 +96,13 @@ export default function Admin() {
     if (status === "quoted") return "Quoted";
     if (status === "completed") return "Completed";
     return "New";
+  }
+
+  function formatAction(action: string) {
+    if (action === "request_sample") return "Request Sample";
+    if (action === "request_contact") return "Request Contact";
+    if (action === "proceed_with_supplier") return "Proceed With Supplier";
+    return action;
   }
 
   const filteredRequests = requests
@@ -330,8 +343,8 @@ export default function Admin() {
       >
         <h1 style={{ marginTop: 0, marginBottom: 10 }}>Manage buyer requests</h1>
         <p style={{ color: COLORS.subtext, lineHeight: 1.8, margin: 0 }}>
-          Review requests, add quotes, update statuses, leave internal notes,
-          and follow up with buyers from one dashboard.
+          Review requests, add quotes, update statuses, see buyer intent, leave
+          internal notes, and follow up with buyers from one dashboard.
         </p>
       </Card>
 
@@ -674,6 +687,7 @@ export default function Admin() {
                   if (!confirmed) return;
 
                   await supabase.from("quotes").delete().eq("request_id", item.id);
+                  await supabase.from("buyer_actions").delete().eq("request_id", item.id);
                   await supabase.from("fabric_requests").delete().eq("id", item.id);
 
                   fetchData();
@@ -716,7 +730,7 @@ export default function Admin() {
               </form>
             </div>
 
-            <div>
+            <div style={{ marginBottom: 16 }}>
               <h3 style={{ marginBottom: 12 }}>Quotes</h3>
 
               {quotes.filter((q) => q.request_id === item.id).length > 0 ? (
@@ -763,6 +777,58 @@ export default function Admin() {
                   }}
                 >
                   No quotes added yet.
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginTop: 16 }}>
+              <h3 style={{ marginBottom: 12 }}>Buyer Actions</h3>
+
+              {buyerActions.filter((a) => a.request_id === item.id).length > 0 ? (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                    gap: 12,
+                  }}
+                >
+                  {buyerActions
+                    .filter((a) => a.request_id === item.id)
+                    .map((a) => (
+                      <div
+                        key={a.id}
+                        style={{
+                          border: `1px solid ${COLORS.border}`,
+                          padding: 14,
+                          borderRadius: 14,
+                          backgroundColor: "#fff",
+                        }}
+                      >
+                        <p style={{ margin: 0, fontWeight: 700 }}>
+                          Action: {formatAction(a.action_type)}
+                        </p>
+                        <p style={{ margin: "8px 0 0", color: COLORS.subtext }}>
+                          {new Date(a.created_at).toLocaleString()}
+                        </p>
+                        {a.quote_id && (
+                          <p style={{ margin: "8px 0 0", color: COLORS.subtext }}>
+                            Quote ID: {a.quote_id}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <div
+                  style={{
+                    backgroundColor: "#fff",
+                    border: `1px solid ${COLORS.border}`,
+                    borderRadius: 14,
+                    padding: 16,
+                    color: COLORS.subtext,
+                  }}
+                >
+                  No buyer actions yet.
                 </div>
               )}
             </div>

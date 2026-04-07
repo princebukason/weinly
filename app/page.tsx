@@ -37,6 +37,7 @@ export default function Home() {
   const [buyerQuotes, setBuyerQuotes] = useState<any[]>([]);
   const [lookupId, setLookupId] = useState("");
   const [loadedRequest, setLoadedRequest] = useState<any>(null);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   function formatStatus(status: string) {
     if (status === "in_progress") return "In Progress";
@@ -141,6 +142,30 @@ export default function Home() {
       .eq("request_id", request.id);
 
     setBuyerQuotes(quotesData || []);
+  }
+
+  async function handleBuyerAction(quoteId: string, actionType: string) {
+    if (!requestId) {
+      alert("No request found for this action.");
+      return;
+    }
+
+    setActionLoadingId(quoteId + actionType);
+
+    const { error } = await supabase.from("buyer_actions").insert({
+      request_id: requestId,
+      quote_id: quoteId,
+      action_type: actionType,
+    });
+
+    setActionLoadingId(null);
+
+    if (error) {
+      alert("Failed to save action.");
+      return;
+    }
+
+    alert(`Action submitted: ${actionType}`);
   }
 
   function Card({
@@ -880,6 +905,71 @@ export default function Home() {
                     <strong style={{ color: COLORS.text }}>Note:</strong>{" "}
                     {quote.note}
                   </p>
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    flexWrap: "wrap",
+                    marginTop: 14,
+                  }}
+                >
+                  <button
+                    onClick={() => handleBuyerAction(quote.id, "request_sample")}
+                    style={{
+                      padding: "10px 14px",
+                      borderRadius: 12,
+                      border: `1px solid ${COLORS.border}`,
+                      backgroundColor: "#fff",
+                      color: COLORS.text,
+                      cursor: "pointer",
+                      fontWeight: 700,
+                      flex: "1 1 160px",
+                    }}
+                  >
+                    {actionLoadingId === quote.id + "request_sample"
+                      ? "Submitting..."
+                      : "Request Sample"}
+                  </button>
+
+                  <button
+                    onClick={() => handleBuyerAction(quote.id, "request_contact")}
+                    style={{
+                      padding: "10px 14px",
+                      borderRadius: 12,
+                      border: `1px solid ${COLORS.border}`,
+                      backgroundColor: "#fff",
+                      color: COLORS.text,
+                      cursor: "pointer",
+                      fontWeight: 700,
+                      flex: "1 1 160px",
+                    }}
+                  >
+                    {actionLoadingId === quote.id + "request_contact"
+                      ? "Submitting..."
+                      : "Request Contact"}
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      handleBuyerAction(quote.id, "proceed_with_supplier")
+                    }
+                    style={{
+                      padding: "10px 14px",
+                      borderRadius: 12,
+                      border: "none",
+                      backgroundColor: COLORS.primary,
+                      color: "#fff",
+                      cursor: "pointer",
+                      fontWeight: 700,
+                      flex: "1 1 160px",
+                    }}
+                  >
+                    {actionLoadingId === quote.id + "proceed_with_supplier"
+                      ? "Submitting..."
+                      : "Proceed"}
+                  </button>
                 </div>
               </Card>
             ))}
