@@ -1,552 +1,397 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
 
-const COLORS = {
-  primary: "#0F766E",
-  primaryDark: "#0B5E58",
-  accent: "#D97706",
-  text: "#111827",
-  subtext: "#6B7280",
-  border: "#E5E7EB",
-  bg: "#FFFFFF",
-  softBg: "#F9FAFB",
-  heroBg: "linear-gradient(135deg, #F9FAFB, #ECFDF5)",
-  completedBg: "#ECFDF5",
-  quotedBg: "#FFFBEB",
-  progressBg: "#EFF6FF",
-  newBg: "#F3F4F6",
-  shadow: "0 10px 30px rgba(17, 24, 39, 0.08)",
-  shadowSoft: "0 4px 14px rgba(17, 24, 39, 0.06)",
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+type FabricRequest = {
+  id: string;
+  created_at: string;
+  client_name: string | null;
+  client_email: string | null;
+  client_phone: string | null;
+  user_input: string;
+  ai_output: string | null;
+  status: string | null;
+  buyer_requested_contact: boolean | null;
+  contact_request_status: string | null;
+  contact_access_fee: string | null;
+  payment_status: string | null;
+  payment_reference: string | null;
+  paid_at: string | null;
 };
 
 export default function HistoryPage() {
   const [email, setEmail] = useState("");
-  const [requests, setRequests] = useState<any[]>([]);
+  const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<any>(null);
-  const [selectedQuotes, setSelectedQuotes] = useState<any[]>([]);
+  const [requests, setRequests] = useState<FabricRequest[]>([]);
 
-  async function loadHistory() {
-    if (!email) {
-      alert("Please enter your email");
+  async function searchHistory(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (!email.trim() && !phone.trim()) {
+      alert("Enter your email or phone number.");
       return;
     }
 
     setLoading(true);
+    setRequests([]);
 
-    const { data, error } = await supabase
-      .from("fabric_requests")
-      .select("*")
-      .eq("client_email", email)
-      .order("created_at", { ascending: false });
+    try {
+      let query = supabase
+        .from("fabric_requests")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-    if (error) {
-      alert("Failed to load request history");
+      if (email.trim() && phone.trim()) {
+        query = query.or(
+          `client_email.eq.${email.trim()},client_phone.eq.${phone.trim()}`
+        );
+      } else if (email.trim()) {
+        query = query.eq("client_email", email.trim());
+      } else if (phone.trim()) {
+        query = query.eq("client_phone", phone.trim());
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      setRequests((data || []) as FabricRequest[]);
+    } catch (error) {
+      console.error(error);
+      alert("Failed to load request history.");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setRequests(data || []);
-    setSelectedRequest(null);
-    setSelectedQuotes([]);
-    setLoading(false);
-  }
-
-  async function viewRequestDetails(request: any) {
-    setSelectedRequest(request);
-
-    const { data: quotesData, error } = await supabase
-      .from("quotes")
-      .select("*")
-      .eq("request_id", request.id);
-
-    if (error) {
-      alert("Failed to load quotes");
-      return;
-    }
-
-    setSelectedQuotes(quotesData || []);
-  }
-
-  function formatStatus(status: string) {
-    if (status === "in_progress") return "In Progress";
-    if (status === "quoted") return "Quoted";
-    if (status === "completed") return "Completed";
-    return "New";
-  }
-
-  function getStatusColor(status: string) {
-    if (status === "completed") return COLORS.completedBg;
-    if (status === "quoted") return COLORS.quotedBg;
-    if (status === "in_progress") return COLORS.progressBg;
-    return COLORS.newBg;
-  }
-
-  function Card({
-    children,
-    style = {},
-  }: {
-    children: React.ReactNode;
-    style?: React.CSSProperties;
-  }) {
-    return (
-      <div
-        style={{
-          backgroundColor: COLORS.bg,
-          border: `1px solid ${COLORS.border}`,
-          borderRadius: 18,
-          padding: 24,
-          boxShadow: COLORS.shadowSoft,
-          ...style,
-        }}
-      >
-        {children}
-      </div>
-    );
-  }
-
-  function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
-    return (
-      <input
-        {...props}
-        style={{
-          width: "100%",
-          padding: "14px 16px",
-          borderRadius: 12,
-          border: `1px solid ${COLORS.border}`,
-          outline: "none",
-          fontSize: 15,
-          color: COLORS.text,
-          backgroundColor: "#fff",
-          ...props.style,
-        }}
-      />
-    );
-  }
-
-  function PrimaryButton({
-    children,
-    ...props
-  }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
-    return (
-      <button
-        {...props}
-        style={{
-          backgroundColor: COLORS.primary,
-          color: "#fff",
-          padding: "12px 18px",
-          border: "none",
-          borderRadius: 12,
-          cursor: "pointer",
-          fontWeight: 700,
-          fontSize: 15,
-          boxShadow: "0 6px 18px rgba(15, 118, 110, 0.22)",
-          ...props.style,
-        }}
-      >
-        {children}
-      </button>
-    );
   }
 
   return (
-    <main
-      style={{
-        padding: 20,
-        maxWidth: 980,
-        margin: "0 auto",
-        fontFamily:
-          'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-        color: COLORS.text,
-        backgroundColor: COLORS.softBg,
-        minHeight: "100vh",
-      }}
-    >
-      <nav
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: 12,
-          marginBottom: 24,
-          padding: "12px 0",
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: 12,
-              background: COLORS.primary,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              fontWeight: 800,
-              flexShrink: 0,
-            }}
-          >
-            W
-          </div>
-          <div>
-            <div style={{ fontWeight: 800, fontSize: 18 }}>Weinly</div>
-            <div style={{ fontSize: 12, color: COLORS.subtext }}>
-              AI-powered sourcing
+    <main style={pageStyle}>
+      <div style={containerStyle}>
+        <section style={cardStyle}>
+          <div style={badgeStyle}>WEINLY HISTORY</div>
+
+          <h1 style={titleStyle}>View your previous requests</h1>
+          <p style={subtitleStyle}>
+            Enter the same email or phone number you used when submitting your request.
+          </p>
+
+          <form onSubmit={searchHistory}>
+            <div style={formGridStyle}>
+              <input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Your email"
+                type="email"
+                style={inputStyle}
+              />
+              <input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Your phone / WhatsApp"
+                style={inputStyle}
+              />
             </div>
-          </div>
-        </div>
 
-        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-          <a
-            href="/"
-            style={{
-              textDecoration: "none",
-              color: COLORS.primary,
-              fontWeight: 700,
-              fontSize: 14,
-            }}
-          >
-            Home
-          </a>
-          <a
-            href="/history"
-            style={{
-              textDecoration: "none",
-              color: COLORS.text,
-              fontWeight: 700,
-              fontSize: 14,
-            }}
-          >
-            History
-          </a>
-        </div>
-      </nav>
-
-      <Card
-        style={{
-          marginBottom: 20,
-          background: COLORS.heroBg,
-          boxShadow: COLORS.shadow,
-          border: "none",
-        }}
-      >
-        <div style={{ maxWidth: 760 }}>
-          <div
-            style={{
-              display: "inline-block",
-              backgroundColor: "#D1FAE5",
-              color: COLORS.primary,
-              fontWeight: 700,
-              fontSize: 13,
-              padding: "8px 12px",
-              borderRadius: 999,
-              marginBottom: 16,
-            }}
-          >
-            Buyer workspace
-          </div>
-
-          <h1
-            style={{
-              marginTop: 0,
-              marginBottom: 14,
-              fontSize: 34,
-              lineHeight: 1.1,
-              letterSpacing: "-0.02em",
-            }}
-          >
-            View your previous fabric requests.
-          </h1>
-
-          <p
-            style={{
-              margin: 0,
-              color: COLORS.subtext,
-              lineHeight: 1.75,
-              fontSize: 16,
-              maxWidth: 720,
-            }}
-          >
-            Enter your email to access your request history, review AI-generated
-            fabric specifications, and check quotes from verified suppliers.
-          </p>
-        </div>
-      </Card>
-
-      <Card style={{ marginBottom: 20 }}>
-        <h2 style={{ marginTop: 0 }}>Load your request history</h2>
-        <p style={{ color: COLORS.subtext, lineHeight: 1.7, marginBottom: 14 }}>
-          Use the same email you submitted with your fabric requests.
-        </p>
-
-        <div
-          style={{
-            display: "flex",
-            gap: 12,
-            flexWrap: "wrap",
-            alignItems: "stretch",
-          }}
-        >
-          <div style={{ flex: "1 1 260px" }}>
-            <Input
-              type="email"
-              placeholder="Your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-
-          <PrimaryButton
-            onClick={loadHistory}
-            style={{ width: "auto", minWidth: 180 }}
-          >
-            {loading ? "Loading..." : "Load My Requests"}
-          </PrimaryButton>
-        </div>
-      </Card>
-
-      {!loading && requests.length === 0 && (
-        <Card style={{ marginBottom: 20 }}>
-          <p style={{ margin: 0, color: COLORS.subtext }}>
-            No requests loaded yet.
-          </p>
-        </Card>
-      )}
-
-      {requests.length > 0 && (
-        <div style={{ marginBottom: 20 }}>
-          <h2 style={{ marginBottom: 16 }}>Your Requests</h2>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-              gap: 16,
-            }}
-          >
-            {requests.map((item) => (
-              <Card
-                key={item.id}
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
+              <button
+                type="submit"
+                disabled={loading}
                 style={{
-                  backgroundColor: getStatusColor(item.status),
+                  ...darkButtonStyle,
+                  opacity: loading ? 0.7 : 1,
+                  cursor: loading ? "not-allowed" : "pointer",
                 }}
               >
-                <p style={{ margin: "0 0 8px", fontWeight: 800 }}>
-                  Request ID: {item.id}
-                </p>
+                {loading ? "Searching..." : "Search history"}
+              </button>
 
-                <p style={{ margin: "0 0 8px" }}>
-                  <strong>Status:</strong> {formatStatus(item.status)}
-                </p>
-
-                <p style={{ margin: "0 0 8px", color: COLORS.text, lineHeight: 1.7 }}>
-                  <strong>Fabric Request:</strong> {item.user_input}
-                </p>
-
-                <p style={{ margin: "0 0 12px", color: COLORS.subtext }}>
-                  <strong>Created:</strong>{" "}
-                  {new Date(item.created_at).toLocaleString()}
-                </p>
-
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <PrimaryButton
-                    onClick={() => viewRequestDetails(item)}
-                    style={{ width: "auto" }}
-                  >
-                    View Details
-                  </PrimaryButton>
-
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(item.id);
-                      alert("Request ID copied!");
-                    }}
-                    style={{
-                      padding: "12px 16px",
-                      borderRadius: 12,
-                      border: `1px solid ${COLORS.border}`,
-                      backgroundColor: "#fff",
-                      color: COLORS.text,
-                      cursor: "pointer",
-                      fontWeight: 700,
-                    }}
-                  >
-                    Copy Request ID
-                  </button>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {selectedRequest && (
-        <Card
-          style={{
-            marginTop: 12,
-            backgroundColor: "#fff",
-            boxShadow: COLORS.shadow,
-          }}
-        >
-          <h2 style={{ marginTop: 0, marginBottom: 16 }}>Request Details</h2>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: 14,
-              marginBottom: 20,
-            }}
-          >
-            <div
-              style={{
-                backgroundColor: COLORS.softBg,
-                border: `1px solid ${COLORS.border}`,
-                borderRadius: 14,
-                padding: 16,
-              }}
-            >
-              <p style={{ margin: "0 0 8px", fontWeight: 800 }}>Request ID</p>
-              <p style={{ margin: 0, color: COLORS.subtext, wordBreak: "break-word" }}>
-                {selectedRequest.id}
-              </p>
+              <a href="/" style={linkButtonStyle}>
+                Back to home
+              </a>
             </div>
+          </form>
+        </section>
 
-            <div
-              style={{
-                backgroundColor: getStatusColor(selectedRequest.status),
-                border: `1px solid ${COLORS.border}`,
-                borderRadius: 14,
-                padding: 16,
-              }}
-            >
-              <p style={{ margin: "0 0 8px", fontWeight: 800 }}>Status</p>
-              <p style={{ margin: 0, color: COLORS.text }}>
-                {formatStatus(selectedRequest.status)}
-              </p>
+        <section style={cardStyle}>
+          <h2 style={sectionTitle}>Your requests</h2>
+
+          {requests.length === 0 ? (
+            <div style={emptyStateStyle}>
+              No request history yet. Search using your email or phone number.
             </div>
-          </div>
-
-          <div style={{ marginBottom: 20 }}>
-            <h3 style={{ marginBottom: 10 }}>Original Fabric Request</h3>
-            <div
-              style={{
-                backgroundColor: COLORS.softBg,
-                padding: 16,
-                borderRadius: 14,
-                border: `1px solid ${COLORS.border}`,
-                lineHeight: 1.8,
-                color: COLORS.text,
-              }}
-            >
-              {selectedRequest.user_input}
-            </div>
-          </div>
-
-          <div style={{ marginBottom: 20 }}>
-            <h3 style={{ marginBottom: 10 }}>AI Fabric Specification</h3>
-            <pre
-              style={{
-                whiteSpace: "pre-wrap",
-                backgroundColor: "#fff",
-                padding: 16,
-                borderRadius: 14,
-                border: `1px solid ${COLORS.border}`,
-                lineHeight: 1.75,
-                overflowX: "auto",
-                boxShadow: COLORS.shadowSoft,
-              }}
-            >
-              {typeof selectedRequest.ai_output === "string"
-                ? selectedRequest.ai_output
-                : JSON.stringify(selectedRequest.ai_output, null, 2)}
-            </pre>
-          </div>
-
-          <div>
-            <h3 style={{ marginBottom: 10 }}>Quotes from Verified Suppliers</h3>
-
-            {selectedQuotes.length > 0 ? (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-                  gap: 16,
-                }}
-              >
-                {selectedQuotes.map((quote) => (
-                  <div
-                    key={quote.id}
-                    style={{
-                      border: `1px solid ${COLORS.border}`,
-                      padding: 18,
-                      borderRadius: 14,
-                      backgroundColor: "#fff",
-                      boxShadow: COLORS.shadowSoft,
-                    }}
-                  >
-                    <p
-                      style={{
-                        margin: 0,
-                        fontWeight: 800,
-                        fontSize: 16,
-                        color: COLORS.text,
-                      }}
-                    >
-                      {quote.supplier_name}
-                    </p>
-
-                    <div
-                      style={{
-                        marginTop: 12,
-                        lineHeight: 1.8,
-                        color: COLORS.subtext,
-                      }}
-                    >
-                      <p style={{ margin: "6px 0" }}>
-                        <strong style={{ color: COLORS.text }}>Price:</strong>{" "}
-                        {quote.price}
-                      </p>
-                      <p style={{ margin: "6px 0" }}>
-                        <strong style={{ color: COLORS.text }}>MOQ:</strong>{" "}
-                        {quote.moq}
-                      </p>
-                      <p style={{ margin: "6px 0" }}>
-                        <strong style={{ color: COLORS.text }}>Note:</strong>{" "}
-                        {quote.note}
-                      </p>
+          ) : (
+            requests.map((request) => (
+              <div key={request.id} style={requestCardStyle}>
+                <div style={requestHeaderStyle}>
+                  <div>
+                    <h3 style={{ margin: 0, color: "#0f172a" }}>
+                      Request ID: {request.id}
+                    </h3>
+                    <div style={metaTextStyle}>
+                      Created: {new Date(request.created_at).toLocaleString()}
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <Card style={{ padding: 18, backgroundColor: COLORS.softBg }}>
-                <p style={{ margin: 0, color: COLORS.subtext }}>
-                  No quotes available yet for this request.
-                </p>
-              </Card>
-            )}
-          </div>
-        </Card>
-      )}
 
-      <footer
-        style={{
-          marginTop: 40,
-          paddingTop: 24,
-          paddingBottom: 24,
-          borderTop: `1px solid ${COLORS.border}`,
-          textAlign: "center",
-          color: COLORS.subtext,
-          fontSize: 14,
-        }}
-      >
-        © {new Date().getFullYear()} Weinly. AI-powered fabric sourcing.
-      </footer>
+                  <div style={pillWrapStyle}>
+                    <span style={statusPillStyle}>
+                      Status: {request.status || "submitted"}
+                    </span>
+                    <span style={paymentPillStyle}>
+                      Payment: {request.payment_status || "unpaid"}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={infoGridStyle}>
+                  <div style={miniCardStyle}>
+                    <strong>Buyer</strong>
+                    <div style={smallMuted}>{request.client_name || "Not provided"}</div>
+                  </div>
+                  <div style={miniCardStyle}>
+                    <strong>Email</strong>
+                    <div style={smallMuted}>{request.client_email || "—"}</div>
+                  </div>
+                  <div style={miniCardStyle}>
+                    <strong>Phone</strong>
+                    <div style={smallMuted}>{request.client_phone || "—"}</div>
+                  </div>
+                  <div style={miniCardStyle}>
+                    <strong>Contact request</strong>
+                    <div style={smallMuted}>
+                      {request.contact_request_status || "none"}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={contentBoxStyle}>
+                  <strong>Fabric request</strong>
+                  <p style={preWrapText}>{request.user_input}</p>
+                </div>
+
+                {request.ai_output && (
+                  <div style={contentBoxStyle}>
+                    <strong>AI sourcing spec</strong>
+                    <p style={preWrapText}>{request.ai_output}</p>
+                  </div>
+                )}
+
+                <div style={footerRowStyle}>
+                  <div style={smallMuted}>
+                    Access fee: {request.contact_access_fee || "—"}
+                  </div>
+                  <a href={`/?requestId=${request.id}`} style={trackLinkStyle}>
+                    Track this request
+                  </a>
+                </div>
+              </div>
+            ))
+          )}
+        </section>
+      </div>
     </main>
   );
 }
+
+const pageStyle: React.CSSProperties = {
+  minHeight: "100vh",
+  background: "#f8fafc",
+  padding: "40px 16px",
+  fontFamily:
+    'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+};
+
+const containerStyle: React.CSSProperties = {
+  maxWidth: 980,
+  margin: "0 auto",
+};
+
+const cardStyle: React.CSSProperties = {
+  background: "white",
+  border: "1px solid #e5e7eb",
+  borderRadius: 24,
+  padding: 24,
+  boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
+  marginBottom: 24,
+};
+
+const badgeStyle: React.CSSProperties = {
+  display: "inline-block",
+  padding: "8px 12px",
+  borderRadius: 999,
+  background: "#eff6ff",
+  color: "#1d4ed8",
+  fontSize: 13,
+  fontWeight: 700,
+  marginBottom: 14,
+};
+
+const titleStyle: React.CSSProperties = {
+  margin: "0 0 10px 0",
+  fontSize: 34,
+  lineHeight: 1.1,
+  color: "#0f172a",
+};
+
+const subtitleStyle: React.CSSProperties = {
+  margin: "0 0 18px 0",
+  color: "#475569",
+  lineHeight: 1.7,
+};
+
+const formGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+  gap: 12,
+};
+
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  padding: "14px 16px",
+  borderRadius: 14,
+  border: "1px solid #cbd5e1",
+  background: "white",
+  color: "#0f172a",
+  fontSize: 15,
+  outline: "none",
+  boxSizing: "border-box",
+};
+
+const darkButtonStyle: React.CSSProperties = {
+  background: "#0f172a",
+  color: "white",
+  border: "none",
+  borderRadius: 12,
+  padding: "12px 16px",
+  fontWeight: 700,
+  cursor: "pointer",
+  textDecoration: "none",
+};
+
+const linkButtonStyle: React.CSSProperties = {
+  background: "#e2e8f0",
+  color: "#0f172a",
+  borderRadius: 12,
+  padding: "12px 16px",
+  fontWeight: 700,
+  textDecoration: "none",
+};
+
+const sectionTitle: React.CSSProperties = {
+  margin: "0 0 12px 0",
+  fontSize: 24,
+  color: "#0f172a",
+};
+
+const emptyStateStyle: React.CSSProperties = {
+  border: "1px dashed #cbd5e1",
+  background: "#f8fafc",
+  borderRadius: 16,
+  padding: 18,
+  color: "#64748b",
+};
+
+const requestCardStyle: React.CSSProperties = {
+  border: "1px solid #e2e8f0",
+  borderRadius: 18,
+  padding: 18,
+  background: "#ffffff",
+  marginBottom: 14,
+};
+
+const requestHeaderStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 12,
+  flexWrap: "wrap",
+  marginBottom: 10,
+};
+
+const pillWrapStyle: React.CSSProperties = {
+  display: "flex",
+  gap: 10,
+  flexWrap: "wrap",
+};
+
+const statusPillStyle: React.CSSProperties = {
+  background: "#eff6ff",
+  color: "#1d4ed8",
+  borderRadius: 999,
+  padding: "8px 12px",
+  fontSize: 12,
+  fontWeight: 700,
+};
+
+const paymentPillStyle: React.CSSProperties = {
+  background: "#fef3c7",
+  color: "#92400e",
+  borderRadius: 999,
+  padding: "8px 12px",
+  fontSize: 12,
+  fontWeight: 700,
+};
+
+const metaTextStyle: React.CSSProperties = {
+  color: "#64748b",
+  fontSize: 14,
+  lineHeight: 1.6,
+  marginTop: 6,
+};
+
+const infoGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: 10,
+  marginTop: 12,
+};
+
+const miniCardStyle: React.CSSProperties = {
+  border: "1px solid #e2e8f0",
+  background: "#f8fafc",
+  borderRadius: 14,
+  padding: 12,
+  color: "#0f172a",
+};
+
+const smallMuted: React.CSSProperties = {
+  color: "#64748b",
+  marginTop: 6,
+  fontSize: 14,
+  lineHeight: 1.6,
+  wordBreak: "break-word",
+};
+
+const contentBoxStyle: React.CSSProperties = {
+  marginTop: 14,
+  border: "1px solid #e2e8f0",
+  background: "#f8fafc",
+  borderRadius: 16,
+  padding: 14,
+};
+
+const preWrapText: React.CSSProperties = {
+  margin: "6px 0 0 0",
+  color: "#334155",
+  whiteSpace: "pre-wrap",
+  lineHeight: 1.7,
+};
+
+const footerRowStyle: React.CSSProperties = {
+  marginTop: 14,
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 12,
+  flexWrap: "wrap",
+  alignItems: "center",
+};
+
+const trackLinkStyle: React.CSSProperties = {
+  color: "#2563eb",
+  fontWeight: 700,
+  textDecoration: "none",
+};

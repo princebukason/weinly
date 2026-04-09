@@ -2,10 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
+import PaystackPop from "@paystack/inline-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+const PAYSTACK_PUBLIC_KEY = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "";
 
 type FabricRequest = {
   id: string;
@@ -23,8 +26,6 @@ type FabricRequest = {
   payment_status: string | null;
   payment_reference: string | null;
   paid_at: string | null;
-  payment_proof_url: string | null;
-  payment_proof_name: string | null;
 };
 
 type Quote = {
@@ -51,18 +52,16 @@ export default function HomePage() {
 
   const [loading, setLoading] = useState(false);
   const [lookupLoading, setLookupLoading] = useState(false);
-  const [paymentSubmitting, setPaymentSubmitting] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState(false);
 
   const [requestId, setRequestId] = useState("");
   const [lookupId, setLookupId] = useState("");
 
   const [submittedRequest, setSubmittedRequest] = useState<FabricRequest | null>(null);
   const [submittedQuotes, setSubmittedQuotes] = useState<Quote[]>([]);
+
   const [lookupRequest, setLookupRequest] = useState<FabricRequest | null>(null);
   const [lookupQuotes, setLookupQuotes] = useState<Quote[]>([]);
-
-  const [paymentReferenceInput, setPaymentReferenceInput] = useState("");
-  const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
 
   async function generateAISpec(userInput: string) {
     try {
@@ -75,6 +74,7 @@ export default function HomePage() {
       });
 
       if (!res.ok) return null;
+
       const data = await res.json();
       return data?.output || null;
     } catch (error) {
@@ -114,16 +114,25 @@ export default function HomePage() {
   }
 
   async function syncActiveRequestState(id: string) {
-    const refreshed = await fetchRequestById(id);
+    const request = await fetchRequestById(id);
     const quotes = await fetchQuotesByRequestId(id);
 
-    setLookupRequest(refreshed);
+    setLookupRequest(request);
     setLookupQuotes(quotes);
 
     if (submittedRequest?.id === id) {
-      setSubmittedRequest(refreshed);
+      setSubmittedRequest(request);
       setSubmittedQuotes(quotes);
     }
+  }
+
+  function getUnlockAmountInKobo(fee?: string | null) {
+    if (!fee) return 300000;
+
+    const numeric = Number(String(fee).replace(/[^\d.]/g, ""));
+    if (!numeric || Number.isNaN(numeric)) return 300000;
+
+    return Math.round(numeric * 100);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -186,17 +195,16 @@ export default function HomePage() {
 
     try {
       const request = await fetchRequestById(cleanId);
+
       if (!request) {
         alert("Request not found.");
         return;
       }
 
       const quotes = await fetchQuotesByRequestId(cleanId);
+
       setLookupRequest(request);
       setLookupQuotes(quotes);
-
-      setPaymentReferenceInput(request.payment_reference || "");
-      setPaymentProofFile(null);
     } catch (error) {
       console.error(error);
       alert("Failed to fetch request.");
@@ -213,7 +221,7 @@ export default function HomePage() {
           buyer_requested_contact: true,
           contact_request_status: "pending",
           payment_status: "unpaid",
-          contact_access_fee: "¥299",
+          contact_access_fee: "₦3000",
         })
         .eq("id", requestId);
 
@@ -227,65 +235,86 @@ export default function HomePage() {
     }
   }
 
-  async function uploadPaymentProof(requestId: string, file: File) {
-    const safeName = file.name.replace(/\s+/g, "-");
-    const filePath = `${requestId}/${Date.now()}-${safeName}`;
+  async function startPaystackCheckout(request: FabricRequest) {
+    try {
+      if (!request.client_email) {
+        alert("Buyer email is required before payment.");
+        return;
+      }
 
-    const { error: uploadError } = await supabase.storage
-      .from("payment-proofs")
-      .upload(filePath, file, {
-        upsert: true,
+      if (!PAYSTACK_PUBLIC_KEY) {
+        alert("Missing NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY.");
+        return;
+      }
+
+      setPaymentLoading(true);
+
+      const expectedAmount = getUnlockAmountInKobo(request.contact_access_fee);
+
+      const initRes = await fetch("/api/paystack/initialize", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: request.client_email,
+          amount: expectedAmount,
+          requestId: request.id,
+          name: request.client_name,
+          phone: request.client_phone,
+        }),
       });
 
-    if (uploadError) {
-      throw uploadError;
-    }
+      const initData = await initRes.json();
 
-    const { data } = supabase.storage.from("payment-proofs").getPublicUrl(filePath);
+      if (!initRes.ok || !initData?.access_code) {
+        alert(initData?.error || "Failed to initialize payment.");
+        setPaymentLoading(false);
+        return;
+      }
 
-    return {
-      publicUrl: data.publicUrl,
-      fileName: file.name,
-    };
-  }
+      const popup = new PaystackPop();
 
-  async function submitPaymentProof(requestId: string) {
-    if (!paymentReferenceInput.trim()) {
-      alert("Enter your payment reference.");
-      return;
-    }
+      popup.resumeTransaction(initData.access_code, {
+        onSuccess: async (transaction: { reference: string }) => {
+          try {
+            const verifyRes = await fetch("/api/paystack/verify", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                reference: transaction.reference,
+                requestId: request.id,
+                expectedAmount,
+              }),
+            });
 
-    if (!paymentProofFile) {
-      alert("Upload your payment proof.");
-      return;
-    }
+            const verifyData = await verifyRes.json();
 
-    setPaymentSubmitting(true);
+            if (!verifyRes.ok) {
+              alert(verifyData?.error || "Payment verification failed.");
+              return;
+            }
 
-    try {
-      const uploaded = await uploadPaymentProof(requestId, paymentProofFile);
-
-      const { error } = await supabase
-        .from("fabric_requests")
-        .update({
-          payment_status: "pending",
-          payment_reference: paymentReferenceInput.trim(),
-          payment_proof_url: uploaded.publicUrl,
-          payment_proof_name: uploaded.fileName,
-        })
-        .eq("id", requestId);
-
-      if (error) throw error;
-
-      await syncActiveRequestState(requestId);
-      setPaymentProofFile(null);
-
-      alert("Payment proof submitted for review.");
+            await syncActiveRequestState(request.id);
+            alert("Payment confirmed successfully.");
+          } catch (error) {
+            console.error(error);
+            alert("Payment verification failed.");
+          } finally {
+            setPaymentLoading(false);
+          }
+        },
+        onCancel: () => {
+          setPaymentLoading(false);
+          alert("Payment window closed.");
+        },
+      });
     } catch (error) {
       console.error(error);
-      alert("Failed to submit payment proof.");
-    } finally {
-      setPaymentSubmitting(false);
+      setPaymentLoading(false);
+      alert("Failed to launch payment.");
     }
   }
 
@@ -297,10 +326,6 @@ export default function HomePage() {
       const quotes = await fetchQuotesByRequestId(requestId);
       setSubmittedRequest(request);
       setSubmittedQuotes(quotes);
-
-      if (request?.payment_reference) {
-        setPaymentReferenceInput(request.payment_reference);
-      }
     }
 
     refreshSubmittedData();
@@ -315,16 +340,8 @@ export default function HomePage() {
   }, [lookupRequest, lookupQuotes, submittedQuotes]);
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: "#f8fafc",
-        padding: "40px 16px",
-        fontFamily:
-          'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-      }}
-    >
-      <div style={{ maxWidth: 980, margin: "0 auto" }}>
+    <main style={pageStyle}>
+      <div style={containerStyle}>
         <section style={heroCardStyle}>
           <div style={{ marginBottom: 22 }}>
             <div style={badgeStyle}>WEINLY</div>
@@ -351,14 +368,14 @@ export default function HomePage() {
             <div style={featureCardStyle}>
               <strong style={featureTitleStyle}>Verified supplier quoting</strong>
               <span style={featureTextStyle}>
-                Receive quotes before any supplier contact is released.
+                Receive quotes before supplier contact is released.
               </span>
             </div>
 
             <div style={featureCardStyle}>
-              <strong style={featureTitleStyle}>Monetized access control</strong>
+              <strong style={featureTitleStyle}>Controlled supplier access</strong>
               <span style={featureTextStyle}>
-                Proceed, upload proof, get approved, then reveal supplier contact.
+                Proceed, pay securely, get approved, then reveal supplier contact.
               </span>
             </div>
           </div>
@@ -436,13 +453,19 @@ export default function HomePage() {
                 {lookupLoading ? "Loading..." : "Track request"}
               </button>
             </div>
+
+            <div style={{ marginTop: 12 }}>
+              <a href="/history" style={historyLinkStyle}>
+                View your previous requests
+              </a>
+            </div>
           </div>
         </section>
 
         {submittedRequest && (
           <section style={cardStyle}>
             <h2 style={sectionTitle}>Request submitted successfully</h2>
-            <p style={mutedText}>Save this request ID so you can track quotes later.</p>
+            <p style={mutedText}>Save this request ID so you can track supplier quotes later.</p>
 
             <div style={infoBoxStyle}>
               <div style={{ marginBottom: 6 }}>
@@ -464,19 +487,11 @@ export default function HomePage() {
 
         {activeRequest && (
           <section style={cardStyle}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 16,
-                flexWrap: "wrap",
-                marginBottom: 18,
-              }}
-            >
+            <div style={requestHeaderRowStyle}>
               <div>
                 <h2 style={sectionTitle}>Request tracker</h2>
                 <p style={mutedText}>
-                  Follow your request, review quotes, upload payment proof, and unlock supplier contact.
+                  Follow your request, review quotes, pay for supplier access, and unlock supplier contact after approval.
                 </p>
               </div>
 
@@ -534,15 +549,7 @@ export default function HomePage() {
 
                   return (
                     <div key={quote.id} style={quoteCardStyle}>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: 12,
-                          flexWrap: "wrap",
-                          marginBottom: 10,
-                        }}
-                      >
+                      <div style={quoteHeaderStyle}>
                         <div>
                           <h4 style={{ margin: 0, color: "#0f172a", fontSize: 18 }}>
                             {quote.supplier_name || "Verified Supplier"}
@@ -614,86 +621,34 @@ export default function HomePage() {
                             <div style={instructionCardStyle}>
                               <div style={instructionRowStyle}>
                                 <span style={instructionLabelStyle}>Access fee</span>
-                                <strong>{activeRequest.contact_access_fee || "¥299"}</strong>
+                                <strong>{activeRequest.contact_access_fee || "₦3000"}</strong>
                               </div>
                               <div style={instructionRowStyle}>
                                 <span style={instructionLabelStyle}>Payment method</span>
-                                <strong>Bank transfer / RMB collection</strong>
+                                <strong>Paystack Checkout</strong>
                               </div>
                               <div style={instructionRowStyle}>
-                                <span style={instructionLabelStyle}>Receiver name</span>
-                                <strong>Weinly</strong>
-                              </div>
-                              <div style={instructionRowStyle}>
-                                <span style={instructionLabelStyle}>Reference</span>
+                                <span style={instructionLabelStyle}>Request reference</span>
                                 <strong>{activeRequest.id}</strong>
                               </div>
                             </div>
 
                             <p style={{ color: "#475569", lineHeight: 1.7, marginTop: 12 }}>
-                              Pay the access fee, enter your payment reference, and upload your proof screenshot below for review.
+                              Pay securely to unlock supplier contact. After successful payment,
+                              your request will be marked paid automatically.
                             </p>
 
-                            <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
-                              <input
-                                value={paymentReferenceInput}
-                                onChange={(e) => setPaymentReferenceInput(e.target.value)}
-                                placeholder="Enter payment reference"
-                                style={inputStyle}
-                              />
-
-                              <div style={uploadBoxStyle}>
-                                <label
-                                  htmlFor="payment-proof"
-                                  style={{
-                                    display: "block",
-                                    marginBottom: 8,
-                                    fontWeight: 700,
-                                    color: "#0f172a",
-                                  }}
-                                >
-                                  Upload payment proof
-                                </label>
-                                <input
-                                  id="payment-proof"
-                                  type="file"
-                                  accept="image/*,.pdf"
-                                  onChange={(e) =>
-                                    setPaymentProofFile(e.target.files?.[0] || null)
-                                  }
-                                />
-                                {paymentProofFile && (
-                                  <div style={{ marginTop: 8, color: "#64748b", fontSize: 14 }}>
-                                    Selected: {paymentProofFile.name}
-                                  </div>
-                                )}
-                              </div>
-
-                              <button
-                                onClick={() => submitPaymentProof(activeRequest.id)}
-                                disabled={paymentSubmitting}
-                                style={{
-                                  ...darkButtonStyle,
-                                  opacity: paymentSubmitting ? 0.7 : 1,
-                                  cursor: paymentSubmitting ? "not-allowed" : "pointer",
-                                }}
-                              >
-                                {paymentSubmitting ? "Submitting..." : "Submit payment proof"}
-                              </button>
-                            </div>
-                          </div>
-                        )}
-
-                      {!isReleased &&
-                        contactStatus === "pending" &&
-                        paymentStatus === "pending" && (
-                          <div style={pendingBoxStyle}>
-                            Payment proof submitted for review. Awaiting confirmation.
-                            {activeRequest.payment_proof_name && (
-                              <div style={{ marginTop: 8, fontWeight: 500 }}>
-                                Proof: {activeRequest.payment_proof_name}
-                              </div>
-                            )}
+                            <button
+                              onClick={() => startPaystackCheckout(activeRequest)}
+                              disabled={paymentLoading}
+                              style={{
+                                ...darkButtonStyle,
+                                opacity: paymentLoading ? 0.7 : 1,
+                                cursor: paymentLoading ? "not-allowed" : "pointer",
+                              }}
+                            >
+                              {paymentLoading ? "Processing..." : "Pay & Unlock Contact"}
+                            </button>
                           </div>
                         )}
 
@@ -748,6 +703,19 @@ export default function HomePage() {
     </main>
   );
 }
+
+const pageStyle: React.CSSProperties = {
+  minHeight: "100vh",
+  background: "#f8fafc",
+  padding: "40px 16px",
+  fontFamily:
+    'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+};
+
+const containerStyle: React.CSSProperties = {
+  maxWidth: 980,
+  margin: "0 auto",
+};
 
 const heroCardStyle: React.CSSProperties = {
   background: "white",
@@ -824,6 +792,12 @@ const trackerCardStyle: React.CSSProperties = {
   border: "1px solid #e2e8f0",
 };
 
+const historyLinkStyle: React.CSSProperties = {
+  color: "#2563eb",
+  fontWeight: 700,
+  textDecoration: "none",
+};
+
 const inputStyle: React.CSSProperties = {
   width: "100%",
   padding: "14px 16px",
@@ -878,6 +852,14 @@ const specBoxStyle: React.CSSProperties = {
   padding: 16,
 };
 
+const requestHeaderRowStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 16,
+  flexWrap: "wrap",
+  marginBottom: 18,
+};
+
 const infoGridStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
@@ -917,6 +899,14 @@ const quoteCardStyle: React.CSSProperties = {
   padding: 18,
   background: "#ffffff",
   marginBottom: 14,
+};
+
+const quoteHeaderStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 12,
+  flexWrap: "wrap",
+  marginBottom: 10,
 };
 
 const quoteGridStyle: React.CSSProperties = {
@@ -967,13 +957,6 @@ const instructionRowStyle: React.CSSProperties = {
 
 const instructionLabelStyle: React.CSSProperties = {
   color: "#475569",
-};
-
-const uploadBoxStyle: React.CSSProperties = {
-  border: "1px dashed #cbd5e1",
-  borderRadius: 14,
-  padding: 14,
-  background: "#ffffff",
 };
 
 const pendingBoxStyle: React.CSSProperties = {

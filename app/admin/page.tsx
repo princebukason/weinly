@@ -25,8 +25,6 @@ type FabricRequest = {
   payment_status: string | null;
   payment_reference: string | null;
   paid_at: string | null;
-  payment_proof_url: string | null;
-  payment_proof_name: string | null;
 };
 
 type Quote = {
@@ -247,52 +245,9 @@ export default function AdminPage() {
     }
   }
 
-  async function confirmPayment(requestId: string) {
-    try {
-      const { error } = await supabase
-        .from("fabric_requests")
-        .update({
-          payment_status: "paid",
-          paid_at: new Date().toISOString(),
-        })
-        .eq("id", requestId);
-
-      if (error) throw error;
-
-      await fetchRequests();
-      alert("Payment confirmed.");
-    } catch (error) {
-      console.error(error);
-      alert("Failed to confirm payment.");
-    }
-  }
-
-  async function resetPayment(requestId: string) {
-    try {
-      const { error } = await supabase
-        .from("fabric_requests")
-        .update({
-          payment_status: "unpaid",
-          payment_reference: null,
-          payment_proof_url: null,
-          payment_proof_name: null,
-          paid_at: null,
-        })
-        .eq("id", requestId);
-
-      if (error) throw error;
-
-      await fetchRequests();
-      alert("Payment reset.");
-    } catch (error) {
-      console.error(error);
-      alert("Failed to reset payment.");
-    }
-  }
-
   async function approveContactRelease(requestId: string, paymentStatus?: string | null) {
     if (paymentStatus !== "paid") {
-      alert("Confirm payment before releasing supplier contact.");
+      alert("Payment must be confirmed before releasing supplier contact.");
       return;
     }
 
@@ -423,7 +378,7 @@ export default function AdminPage() {
           <div>
             <h1 style={{ margin: 0, color: "#0f172a" }}>Weinly Admin Dashboard</h1>
             <p style={{ margin: "8px 0 0 0", color: "#64748b" }}>
-              Manage buyer requests, quotes, proofs, payments, and supplier contact release.
+              Manage buyer requests, quotes, payments, and supplier contact release.
             </p>
           </div>
 
@@ -525,23 +480,6 @@ export default function AdminPage() {
                   </div>
                 )}
 
-                {request.payment_proof_url && (
-                  <div style={proofCardStyle}>
-                    <strong style={{ display: "block", marginBottom: 10 }}>Payment proof</strong>
-                    <div style={{ color: "#64748b", marginBottom: 10 }}>
-                      {request.payment_proof_name || "Uploaded proof"}
-                    </div>
-                    <a
-                      href={request.payment_proof_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={proofLinkStyle}
-                    >
-                      Open payment proof
-                    </a>
-                  </div>
-                )}
-
                 <div style={{ marginTop: 16 }}>
                   <strong style={{ color: "#0f172a" }}>Internal note</strong>
                   <textarea
@@ -572,24 +510,6 @@ export default function AdminPage() {
                   >
                     Mark Completed
                   </button>
-
-                  {request.payment_status === "pending" && (
-                    <button
-                      onClick={() => confirmPayment(request.id)}
-                      style={approveButtonStyle}
-                    >
-                      Confirm Payment
-                    </button>
-                  )}
-
-                  {request.payment_status === "paid" && (
-                    <button
-                      onClick={() => resetPayment(request.id)}
-                      style={smallButtonStyle}
-                    >
-                      Reset Payment
-                    </button>
-                  )}
 
                   {request.contact_request_status === "pending" && (
                     <>
@@ -635,15 +555,7 @@ export default function AdminPage() {
                   ) : (
                     quotes.map((quote) => (
                       <div key={quote.id} style={quoteCardStyle}>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: 10,
-                            flexWrap: "wrap",
-                            marginBottom: 10,
-                          }}
-                        >
+                        <div style={quoteHeaderStyle}>
                           <strong style={{ color: "#0f172a" }}>{quote.supplier_name}</strong>
                           <span
                             style={{
@@ -902,24 +814,6 @@ const contentBoxStyle: React.CSSProperties = {
   padding: 14,
 };
 
-const proofCardStyle: React.CSSProperties = {
-  marginTop: 14,
-  border: "1px solid #dbeafe",
-  background: "#eff6ff",
-  borderRadius: 16,
-  padding: 14,
-};
-
-const proofLinkStyle: React.CSSProperties = {
-  display: "inline-block",
-  padding: "10px 14px",
-  borderRadius: 12,
-  background: "#0f172a",
-  color: "white",
-  textDecoration: "none",
-  fontWeight: 700,
-};
-
 const quotesSectionStyle: React.CSSProperties = {
   marginTop: 22,
   borderTop: "1px solid #e2e8f0",
@@ -940,6 +834,14 @@ const quoteCardStyle: React.CSSProperties = {
   padding: 14,
   background: "white",
   marginBottom: 12,
+};
+
+const quoteHeaderStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 10,
+  flexWrap: "wrap",
+  marginBottom: 10,
 };
 
 const formGridStyle: React.CSSProperties = {
