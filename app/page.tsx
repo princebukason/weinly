@@ -1,1061 +1,1033 @@
 "use client";
 
-import { useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { useEffect, useMemo, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
 
-const COLORS = {
-  primary: "#0F766E",
-  primaryDark: "#0B5E58",
-  accent: "#D97706",
-  text: "#111827",
-  subtext: "#6B7280",
-  border: "#E5E7EB",
-  bg: "#FFFFFF",
-  softBg: "#F9FAFB",
-  heroBg: "linear-gradient(135deg, #F9FAFB, #ECFDF5)",
-  successBg: "#ECFDF5",
-  successBorder: "#A7F3D0",
-  warningBg: "#FFFBEB",
-  infoBg: "#EFF6FF",
-  completedBg: "#ECFDF5",
-  quotedBg: "#FFFBEB",
-  progressBg: "#EFF6FF",
-  newBg: "#F3F4F6",
-  shadow: "0 10px 30px rgba(17, 24, 39, 0.08)",
-  shadowSoft: "0 4px 14px rgba(17, 24, 39, 0.06)",
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+type FabricRequest = {
+  id: string;
+  created_at: string;
+  client_name: string | null;
+  client_email: string | null;
+  client_phone: string | null;
+  user_input: string;
+  ai_output: string | null;
+  status: string | null;
+  internal_note: string | null;
+  buyer_requested_contact: boolean | null;
+  contact_request_status: string | null;
+  contact_access_fee: string | null;
+  payment_status: string | null;
+  payment_reference: string | null;
+  paid_at: string | null;
+  payment_proof_url: string | null;
+  payment_proof_name: string | null;
 };
 
-export default function Home() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [input, setInput] = useState("");
+type Quote = {
+  id: string;
+  request_id: string;
+  supplier_name: string;
+  price: string | null;
+  moq: string | null;
+  note: string | null;
+  contact_name: string | null;
+  contact_phone: string | null;
+  contact_wechat: string | null;
+  contact_email: string | null;
+  supplier_region: string | null;
+  lead_time: string | null;
+  is_contact_released: boolean | null;
+};
+
+export default function HomePage() {
+  const [description, setDescription] = useState("");
+  const [clientName, setClientName] = useState("");
+  const [clientEmail, setClientEmail] = useState("");
+  const [clientPhone, setClientPhone] = useState("");
+
   const [loading, setLoading] = useState(false);
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [paymentSubmitting, setPaymentSubmitting] = useState(false);
 
-  const [result, setResult] = useState<any>(null);
-  const [requestId, setRequestId] = useState<string | null>(null);
-  const [buyerQuotes, setBuyerQuotes] = useState<any[]>([]);
+  const [requestId, setRequestId] = useState("");
   const [lookupId, setLookupId] = useState("");
-  const [loadedRequest, setLoadedRequest] = useState<any>(null);
-  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
-  function formatStatus(status: string) {
-    if (status === "in_progress") return "In Progress";
-    if (status === "quoted") return "Quoted";
-    if (status === "completed") return "Completed";
-    return "New";
-  }
+  const [submittedRequest, setSubmittedRequest] = useState<FabricRequest | null>(null);
+  const [submittedQuotes, setSubmittedQuotes] = useState<Quote[]>([]);
+  const [lookupRequest, setLookupRequest] = useState<FabricRequest | null>(null);
+  const [lookupQuotes, setLookupQuotes] = useState<Quote[]>([]);
 
-  function getStatusBackground(status: string) {
-    if (status === "completed") return COLORS.completedBg;
-    if (status === "quoted") return COLORS.quotedBg;
-    if (status === "in_progress") return COLORS.progressBg;
-    return COLORS.newBg;
-  }
+  const [paymentReferenceInput, setPaymentReferenceInput] = useState("");
+  const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
 
-  async function fetchQuotesForRequest(id: string) {
-    const { data, error } = await supabase
-      .from("quotes")
-      .select("*")
-      .eq("request_id", id);
-
-    if (!error) {
-      setBuyerQuotes(data || []);
-    }
-  }
-
-  async function submitRequest() {
-    if (!name || !email || !phone || !input) {
-      alert("Please fill in your name, email, phone number, and fabric request.");
-      return;
-    }
-
-    setLoading(true);
-    setBuyerQuotes([]);
-    setLoadedRequest(null);
-    setRequestId(null);
-
+  async function generateAISpec(userInput: string) {
     try {
-      const res = await fetch("/api/analyze", {
+      const res = await fetch("/api/spec", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ input }),
+        body: JSON.stringify({ input: userInput }),
       });
 
+      if (!res.ok) return null;
       const data = await res.json();
-      setResult(data.result);
+      return data?.output || null;
+    } catch (error) {
+      console.error("AI spec generation failed:", error);
+      return null;
+    }
+  }
 
-      const { data: insertedRequest, error } = await supabase
+  async function fetchQuotesByRequestId(id: string) {
+    const { data, error } = await supabase
+      .from("quotes")
+      .select("*")
+      .eq("request_id", id)
+      .order("id", { ascending: false });
+
+    if (error) {
+      console.error(error);
+      return [];
+    }
+
+    return (data || []) as Quote[];
+  }
+
+  async function fetchRequestById(id: string) {
+    const { data, error } = await supabase
+      .from("fabric_requests")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      console.error(error);
+      return null;
+    }
+
+    return data as FabricRequest;
+  }
+
+  async function syncActiveRequestState(id: string) {
+    const refreshed = await fetchRequestById(id);
+    const quotes = await fetchQuotesByRequestId(id);
+
+    setLookupRequest(refreshed);
+    setLookupQuotes(quotes);
+
+    if (submittedRequest?.id === id) {
+      setSubmittedRequest(refreshed);
+      setSubmittedQuotes(quotes);
+    }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (!description.trim()) {
+      alert("Please describe the fabric you need.");
+      return;
+    }
+
+    setLoading(true);
+    setSubmittedRequest(null);
+    setSubmittedQuotes([]);
+
+    try {
+      const aiOutput = await generateAISpec(description.trim());
+
+      const { data, error } = await supabase
         .from("fabric_requests")
-        .insert({
-          user_input: input,
-          ai_output: data.result,
-          client_name: name,
-          client_email: email,
-          client_phone: phone,
-        })
+        .insert([
+          {
+            client_name: clientName || null,
+            client_email: clientEmail || null,
+            client_phone: clientPhone || null,
+            user_input: description.trim(),
+            ai_output: aiOutput,
+            status: "submitted",
+            buyer_requested_contact: false,
+            contact_request_status: "none",
+            payment_status: "unpaid",
+          },
+        ])
         .select()
         .single();
 
-      if (error) {
-        alert("Failed to save request");
-        setLoading(false);
-        return;
-      }
+      if (error) throw error;
 
-      setRequestId(insertedRequest.id);
-      setLoadedRequest(insertedRequest);
-      await fetchQuotesForRequest(insertedRequest.id);
+      setSubmittedRequest(data as FabricRequest);
+      setRequestId(data.id);
+      setLookupId(data.id);
     } catch (error) {
+      console.error(error);
       alert("Something went wrong while submitting your request.");
     } finally {
       setLoading(false);
     }
   }
 
-  async function loadRequestById() {
-    if (!lookupId) {
-      alert("Please enter your request ID");
+  async function handleLookup(id?: string) {
+    const cleanId = (id ?? lookupId).trim();
+
+    if (!cleanId) {
+      alert("Enter a request ID.");
       return;
     }
 
-    const { data: request, error } = await supabase
-      .from("fabric_requests")
-      .select("*")
-      .eq("id", lookupId)
-      .single();
+    setLookupLoading(true);
+    setLookupRequest(null);
+    setLookupQuotes([]);
 
-    if (error || !request) {
-      alert("Request not found");
+    try {
+      const request = await fetchRequestById(cleanId);
+      if (!request) {
+        alert("Request not found.");
+        return;
+      }
+
+      const quotes = await fetchQuotesByRequestId(cleanId);
+      setLookupRequest(request);
+      setLookupQuotes(quotes);
+
+      setPaymentReferenceInput(request.payment_reference || "");
+      setPaymentProofFile(null);
+    } catch (error) {
+      console.error(error);
+      alert("Failed to fetch request.");
+    } finally {
+      setLookupLoading(false);
+    }
+  }
+
+  async function requestSupplierContact(requestId: string) {
+    try {
+      const { error } = await supabase
+        .from("fabric_requests")
+        .update({
+          buyer_requested_contact: true,
+          contact_request_status: "pending",
+          payment_status: "unpaid",
+          contact_access_fee: "¥299",
+        })
+        .eq("id", requestId);
+
+      if (error) throw error;
+
+      await syncActiveRequestState(requestId);
+      alert("Contact request submitted. Complete payment to continue.");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to request supplier contact.");
+    }
+  }
+
+  async function uploadPaymentProof(requestId: string, file: File) {
+    const safeName = file.name.replace(/\s+/g, "-");
+    const filePath = `${requestId}/${Date.now()}-${safeName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("payment-proofs")
+      .upload(filePath, file, {
+        upsert: true,
+      });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data } = supabase.storage.from("payment-proofs").getPublicUrl(filePath);
+
+    return {
+      publicUrl: data.publicUrl,
+      fileName: file.name,
+    };
+  }
+
+  async function submitPaymentProof(requestId: string) {
+    if (!paymentReferenceInput.trim()) {
+      alert("Enter your payment reference.");
       return;
     }
 
-    setLoadedRequest(request);
-    setResult(request.ai_output);
-    setRequestId(request.id);
-
-    const { data: quotesData } = await supabase
-      .from("quotes")
-      .select("*")
-      .eq("request_id", request.id);
-
-    setBuyerQuotes(quotesData || []);
-  }
-
-  async function handleBuyerAction(quoteId: string, actionType: string) {
-    if (!requestId) {
-      alert("No request found for this action.");
+    if (!paymentProofFile) {
+      alert("Upload your payment proof.");
       return;
     }
 
-    setActionLoadingId(quoteId + actionType);
+    setPaymentSubmitting(true);
 
-    const { error } = await supabase.from("buyer_actions").insert({
-      request_id: requestId,
-      quote_id: quoteId,
-      action_type: actionType,
-    });
+    try {
+      const uploaded = await uploadPaymentProof(requestId, paymentProofFile);
 
-    setActionLoadingId(null);
+      const { error } = await supabase
+        .from("fabric_requests")
+        .update({
+          payment_status: "pending",
+          payment_reference: paymentReferenceInput.trim(),
+          payment_proof_url: uploaded.publicUrl,
+          payment_proof_name: uploaded.fileName,
+        })
+        .eq("id", requestId);
 
-    if (error) {
-      alert("Failed to save action.");
-      return;
+      if (error) throw error;
+
+      await syncActiveRequestState(requestId);
+      setPaymentProofFile(null);
+
+      alert("Payment proof submitted for review.");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to submit payment proof.");
+    } finally {
+      setPaymentSubmitting(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!requestId) return;
+
+    async function refreshSubmittedData() {
+      const request = await fetchRequestById(requestId);
+      const quotes = await fetchQuotesByRequestId(requestId);
+      setSubmittedRequest(request);
+      setSubmittedQuotes(quotes);
+
+      if (request?.payment_reference) {
+        setPaymentReferenceInput(request.payment_reference);
+      }
     }
 
-    alert(`Action submitted: ${actionType}`);
-  }
+    refreshSubmittedData();
+  }, [requestId]);
 
-  function Card({
-    children,
-    style = {},
-  }: {
-    children: React.ReactNode;
-    style?: React.CSSProperties;
-  }) {
-    return (
-      <div
-        style={{
-          backgroundColor: COLORS.bg,
-          border: `1px solid ${COLORS.border}`,
-          borderRadius: 18,
-          padding: 24,
-          boxShadow: COLORS.shadowSoft,
-          ...style,
-        }}
-      >
-        {children}
-      </div>
-    );
-  }
+  const activeRequest = useMemo(() => {
+    return lookupRequest || submittedRequest;
+  }, [lookupRequest, submittedRequest]);
 
-  function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
-    return (
-      <input
-        {...props}
-        style={{
-          width: "100%",
-          padding: "14px 16px",
-          marginBottom: 12,
-          borderRadius: 12,
-          border: `1px solid ${COLORS.border}`,
-          outline: "none",
-          fontSize: 15,
-          color: COLORS.text,
-          backgroundColor: "#fff",
-          ...props.style,
-        }}
-      />
-    );
-  }
-
-  function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
-    return (
-      <textarea
-        {...props}
-        style={{
-          width: "100%",
-          padding: "14px 16px",
-          borderRadius: 12,
-          border: `1px solid ${COLORS.border}`,
-          outline: "none",
-          fontSize: 15,
-          color: COLORS.text,
-          backgroundColor: "#fff",
-          resize: "vertical",
-          ...props.style,
-        }}
-      />
-    );
-  }
-
-  function PrimaryButton({
-    children,
-    ...props
-  }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
-    return (
-      <button
-        {...props}
-        style={{
-          backgroundColor: COLORS.primary,
-          color: "#fff",
-          padding: "12px 18px",
-          border: "none",
-          borderRadius: 12,
-          cursor: "pointer",
-          fontWeight: 700,
-          fontSize: 15,
-          boxShadow: "0 6px 18px rgba(15, 118, 110, 0.22)",
-          width: "100%",
-          ...props.style,
-        }}
-      >
-        {children}
-      </button>
-    );
-  }
+  const activeQuotes = useMemo(() => {
+    return lookupRequest ? lookupQuotes : submittedQuotes;
+  }, [lookupRequest, lookupQuotes, submittedQuotes]);
 
   return (
     <main
       style={{
-        padding: 20,
-        maxWidth: 980,
-        margin: "0 auto",
+        minHeight: "100vh",
+        background: "#f8fafc",
+        padding: "40px 16px",
         fontFamily:
           'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-        color: COLORS.text,
-        backgroundColor: COLORS.softBg,
-        minHeight: "100vh",
       }}
     >
-      <nav
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: 12,
-          marginBottom: 24,
-          padding: "12px 0",
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: 12,
-              background: COLORS.primary,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              fontWeight: 800,
-              flexShrink: 0,
-            }}
-          >
-            W
+      <div style={{ maxWidth: 980, margin: "0 auto" }}>
+        <section style={heroCardStyle}>
+          <div style={{ marginBottom: 22 }}>
+            <div style={badgeStyle}>WEINLY</div>
+
+            <h1 style={heroTitleStyle}>
+              AI-powered fabric sourcing for serious buyers.
+            </h1>
+
+            <p style={heroTextStyle}>
+              Describe the fabric you need, get a professional sourcing request,
+              receive supplier quotes from trusted partners in China, then unlock
+              supplier contact through controlled payment and approval.
+            </p>
           </div>
-          <div>
-            <div style={{ fontWeight: 800, fontSize: 18 }}>Weinly</div>
-            <div style={{ fontSize: 12, color: COLORS.subtext }}>
-              AI-powered sourcing
+
+          <div style={featureGridStyle}>
+            <div style={featureCardStyle}>
+              <strong style={featureTitleStyle}>Professional request formatting</strong>
+              <span style={featureTextStyle}>
+                Turn rough descriptions into structured sourcing specs.
+              </span>
+            </div>
+
+            <div style={featureCardStyle}>
+              <strong style={featureTitleStyle}>Verified supplier quoting</strong>
+              <span style={featureTextStyle}>
+                Receive quotes before any supplier contact is released.
+              </span>
+            </div>
+
+            <div style={featureCardStyle}>
+              <strong style={featureTitleStyle}>Monetized access control</strong>
+              <span style={featureTextStyle}>
+                Proceed, upload proof, get approved, then reveal supplier contact.
+              </span>
             </div>
           </div>
-        </div>
 
-        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-          <a
-            href="/"
-            style={{
-              textDecoration: "none",
-              color: COLORS.text,
-              fontWeight: 700,
-              fontSize: 14,
-            }}
-          >
-            Home
-          </a>
-          <a
-            href="/history"
-            style={{
-              textDecoration: "none",
-              color: COLORS.primary,
-              fontWeight: 700,
-              fontSize: 14,
-            }}
-          >
-            History
-          </a>
-        </div>
-      </nav>
-
-      <Card
-        style={{
-          marginBottom: 20,
-          background: COLORS.heroBg,
-          boxShadow: COLORS.shadow,
-          border: "none",
-        }}
-      >
-        <div style={{ maxWidth: 760 }}>
-          <div
-            style={{
-              display: "inline-block",
-              backgroundColor: "#D1FAE5",
-              color: COLORS.primary,
-              fontWeight: 700,
-              fontSize: 13,
-              padding: "8px 12px",
-              borderRadius: 999,
-              marginBottom: 16,
-            }}
-          >
-            Built for serious buyers sourcing from China to Africa
-          </div>
-
-          <h1
-            style={{
-              marginTop: 0,
-              marginBottom: 14,
-              fontSize: 34,
-              lineHeight: 1.1,
-              letterSpacing: "-0.02em",
-            }}
-          >
-            AI-powered fabric sourcing platform.
-          </h1>
-
-          <p
-            style={{
-              margin: 0,
-              color: COLORS.subtext,
-              lineHeight: 1.75,
-              fontSize: 16,
-              maxWidth: 720,
-            }}
-          >
-            Describe your fabric → get a professional specification → receive
-            quotes from verified suppliers in China.
-          </p>
-
-          <p
-            style={{
-              marginTop: 16,
-              fontWeight: 700,
-              color: COLORS.primary,
-              fontSize: 15,
-            }}
-          >
-            Trusted by fabric buyers and sourcing clients across Africa.
-          </p>
-
-          <p
-            style={{
-              marginTop: 12,
-              color: "#374151",
-              lineHeight: 1.75,
-              maxWidth: 720,
-            }}
-          >
-            Weinly combines AI technology with real sourcing expertise on the
-            ground in China to ensure accuracy, reliability, and quality.
-          </p>
-
-          <p
-            style={{
-              marginTop: 14,
-              color: COLORS.accent,
-              fontWeight: 700,
-            }}
-          >
-            We are currently onboarding a limited number of buyers to ensure
-            quality service.
-          </p>
-
-          <div
-            style={{
-              marginTop: 18,
-              display: "flex",
-              gap: 12,
-              flexWrap: "wrap",
-              alignItems: "stretch",
-            }}
-          >
-            <a
-              href="#request-form"
-              style={{
-                backgroundColor: COLORS.primary,
-                color: "#fff",
-                textDecoration: "none",
-                padding: "12px 18px",
-                borderRadius: 12,
-                fontWeight: 700,
-                boxShadow: "0 6px 18px rgba(15, 118, 110, 0.22)",
-                flex: "1 1 220px",
-                textAlign: "center",
-              }}
-            >
-              Start a Request
-            </a>
-
-            <a
-              href="/history"
-              style={{
-                backgroundColor: "#fff",
-                color: COLORS.text,
-                textDecoration: "none",
-                padding: "12px 18px",
-                borderRadius: 12,
-                fontWeight: 700,
-                border: `1px solid ${COLORS.border}`,
-                flex: "1 1 220px",
-                textAlign: "center",
-              }}
-            >
-              View Previous Requests
-            </a>
-          </div>
-        </div>
-      </Card>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: 16,
-          marginBottom: 20,
-        }}
-      >
-        <Card style={{ padding: 18 }}>
-          <div style={{ fontWeight: 700, marginBottom: 6 }}>
-            Clear specifications
-          </div>
-          <div style={{ color: COLORS.subtext, lineHeight: 1.7, fontSize: 14 }}>
-            Turn vague ideas into supplier-ready fabric requests.
-          </div>
-        </Card>
-
-        <Card style={{ padding: 18 }}>
-          <div style={{ fontWeight: 700, marginBottom: 6 }}>
-            Verified suppliers
-          </div>
-          <div style={{ color: COLORS.subtext, lineHeight: 1.7, fontSize: 14 }}>
-            Receive quotes from trusted suppliers, not random guesses.
-          </div>
-        </Card>
-
-        <Card style={{ padding: 18 }}>
-          <div style={{ fontWeight: 700, marginBottom: 6 }}>Track everything</div>
-          <div style={{ color: COLORS.subtext, lineHeight: 1.7, fontSize: 14 }}>
-            Keep request IDs, statuses, and quotes in one place.
-          </div>
-        </Card>
-      </div>
-
-      <Card style={{ marginBottom: 20 }}>
-        <p
-          style={{
-            margin: 0,
-            fontStyle: "italic",
-            color: "#374151",
-            lineHeight: 1.8,
-            fontSize: 16,
-          }}
-        >
-          “Weinly helped me clearly describe the exact fabric I needed.
-          Normally I struggle explaining to suppliers, but this made it easier
-          and more direct.”
-        </p>
-
-        <p style={{ marginTop: 14, fontWeight: 800, color: COLORS.text }}>— Ada</p>
-      </Card>
-
-      <Card style={{ marginBottom: 20, backgroundColor: COLORS.softBg }}>
-        <h2 style={{ marginTop: 0, marginBottom: 12 }}>How Weinly Works</h2>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-            gap: 14,
-          }}
-        >
-          {[
-            "Submit your fabric request",
-            "Weinly generates a supplier-ready specification",
-            "Our sourcing team reviews your request",
-            "Verified suppliers submit quotes",
-            "You receive the best options",
-          ].map((step, index) => (
-            <div
-              key={step}
-              style={{
-                backgroundColor: "#fff",
-                border: `1px solid ${COLORS.border}`,
-                borderRadius: 14,
-                padding: 16,
-              }}
-            >
-              <div
-                style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: 999,
-                  backgroundColor: COLORS.primary,
-                  color: "#fff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontWeight: 700,
-                  marginBottom: 12,
-                }}
-              >
-                {index + 1}
-              </div>
-              <div
-                style={{ color: COLORS.text, lineHeight: 1.7, fontSize: 14 }}
-              >
-                {step}
-              </div>
+          <form onSubmit={handleSubmit}>
+            <div style={formTopGridStyle}>
+              <input
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                placeholder="Your name"
+                style={inputStyle}
+              />
+              <input
+                value={clientEmail}
+                onChange={(e) => setClientEmail(e.target.value)}
+                placeholder="Your email"
+                type="email"
+                style={inputStyle}
+              />
+              <input
+                value={clientPhone}
+                onChange={(e) => setClientPhone(e.target.value)}
+                placeholder="WhatsApp / phone"
+                style={inputStyle}
+              />
             </div>
-          ))}
-        </div>
-      </Card>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-          gap: 20,
-          marginBottom: 20,
-        }}
-      >
-        <Card>
-          <div id="request-form" />
-          <h2 style={{ marginTop: 0 }}>Start a Fabric Request</h2>
-          <p style={{ color: COLORS.subtext, lineHeight: 1.7 }}>
-            Tell us what fabric you need and Weinly will turn it into a
-            professional sourcing specification.
-          </p>
-
-          <Input
-            type="text"
-            placeholder="Your name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-
-          <Input
-            type="email"
-            placeholder="Your email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-
-          <Input
-            type="text"
-            placeholder="Your WhatsApp or phone number"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-          />
-
-          <div
-            style={{
-              marginBottom: 10,
-              padding: 12,
-              borderRadius: 12,
-              backgroundColor: COLORS.softBg,
-              color: COLORS.subtext,
-              lineHeight: 1.7,
-              fontSize: 14,
-            }}
-          >
-            Tip: Include fabric type, use, color, quality, and budget if
-            possible.
-          </div>
-
-          <Textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            rows={7}
-            placeholder="Describe the fabric you need. Example: Lace for wedding gowns, premium quality, white, lightweight, for hot weather."
-            style={{ marginBottom: 12 }}
-          />
-
-          <div
-            style={{
-              marginBottom: 18,
-              backgroundColor: "#F8FAFC",
-              border: `1px dashed ${COLORS.border}`,
-              borderRadius: 14,
-              padding: 14,
-            }}
-          >
-            <p style={{ fontWeight: 700, marginTop: 0, marginBottom: 10 }}>
-              Example requests
-            </p>
-
-            <p
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe the fabric you need. Example: premium beaded lace for wedding asoebi, navy blue, soft handfeel, 5-yard packs, high-end quality..."
+              rows={7}
               style={{
-                cursor: "pointer",
-                color: COLORS.primary,
-                margin: "8px 0",
-                lineHeight: 1.7,
+                ...inputStyle,
+                resize: "vertical",
+                width: "100%",
+                marginBottom: 14,
               }}
-              onClick={() =>
-                setInput(
-                  "Lace fabric for wedding gowns, premium quality, white, lightweight"
-                )
-              }
-            >
-              Lace for wedding gowns (premium, white, lightweight)
-            </p>
-
-            <p
-              style={{
-                cursor: "pointer",
-                color: COLORS.primary,
-                margin: "8px 0 0",
-                lineHeight: 1.7,
-              }}
-              onClick={() =>
-                setInput(
-                  "Cotton fabric for men’s shirts, breathable, affordable, for hot weather"
-                )
-              }
-            >
-              Cotton for shirts (breathable, budget-friendly)
-            </p>
-          </div>
-
-          <PrimaryButton onClick={submitRequest} disabled={loading}>
-            {loading ? "Analyzing..." : "Submit Request"}
-          </PrimaryButton>
-        </Card>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          <Card style={{ backgroundColor: COLORS.softBg }}>
-            <h3 style={{ marginTop: 0 }}>Check Existing Request</h3>
-            <p
-              style={{
-                color: COLORS.subtext,
-                marginBottom: 12,
-                lineHeight: 1.7,
-              }}
-            >
-              Enter your saved request ID to view your request, status, and
-              supplier quotes.
-            </p>
-
-            <Input
-              value={lookupId}
-              onChange={(e) => setLookupId(e.target.value)}
-              placeholder="Enter your request ID"
-              style={{ marginBottom: 12 }}
             />
 
-            <PrimaryButton onClick={loadRequestById}>Load Request</PrimaryButton>
-          </Card>
-
-          <Card>
-            <h3 style={{ marginTop: 0 }}>Why trust Weinly?</h3>
-            <ul
+            <button
+              type="submit"
+              disabled={loading}
               style={{
-                paddingLeft: 20,
-                color: COLORS.subtext,
-                lineHeight: 1.9,
-                marginBottom: 0,
+                ...darkButtonStyle,
+                opacity: loading ? 0.7 : 1,
+                cursor: loading ? "not-allowed" : "pointer",
               }}
             >
-              <li>Reduce costly sourcing mistakes</li>
-              <li>Work with verified suppliers</li>
-              <li>Clear communication before ordering</li>
-              <li>Real sourcing support from China</li>
-            </ul>
-          </Card>
+              {loading ? "Submitting..." : "Submit fabric request"}
+            </button>
+          </form>
 
-          <Card>
-            <h3 style={{ marginTop: 0 }}>Need direct sourcing support?</h3>
-            <p style={{ color: COLORS.subtext, lineHeight: 1.7 }}>
-              Our team can assist you with supplier selection, negotiation, and
-              order handling.
-            </p>
-            <p style={{ marginBottom: 12 }}>
-              <strong>Email:</strong> support@weinly.com
-            </p>
-            <a
-              href="https://wa.me/2348130630046"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: "inline-block",
-                padding: "12px 16px",
-                borderRadius: 12,
-                backgroundColor: COLORS.primary,
-                color: "white",
-                textDecoration: "none",
-                fontWeight: 700,
-                textAlign: "center",
-                width: "100%",
-              }}
-            >
-              Chat with us on WhatsApp
-            </a>
-          </Card>
-        </div>
-      </div>
+          <div style={trackerCardStyle}>
+            <strong style={{ display: "block", marginBottom: 8, color: "#0f172a" }}>
+              Already submitted a request?
+            </strong>
 
-      {(result || requestId || buyerQuotes.length > 0 || loadedRequest) && (
-        <div style={{ marginTop: 28, marginBottom: 16 }}>
-          <h2 style={{ marginBottom: 0 }}>Your Request Result</h2>
-        </div>
-      )}
-
-      {result && (
-        <Card
-          style={{
-            marginBottom: 20,
-            backgroundColor: COLORS.successBg,
-            border: `1px solid ${COLORS.successBorder}`,
-          }}
-        >
-          <p style={{ color: COLORS.primary, fontWeight: 800, marginTop: 0 }}>
-            ✔ Fabric identified successfully
-          </p>
-
-          <h3>Fabric Specification</h3>
-
-          <pre
-            style={{
-              whiteSpace: "pre-wrap",
-              backgroundColor: "#fff",
-              padding: 16,
-              borderRadius: 14,
-              border: `1px solid ${COLORS.border}`,
-              lineHeight: 1.7,
-              overflowX: "auto",
-            }}
-          >
-            {typeof result === "string"
-              ? result
-              : JSON.stringify(result, null, 2)}
-          </pre>
-
-          <p style={{ marginTop: 14, fontStyle: "italic", color: "#374151" }}>
-            This specification is ready to be shared with verified suppliers.
-          </p>
-
-          <p style={{ color: COLORS.primary, fontWeight: 800, marginBottom: 0 }}>
-            Confidence Level: High
-          </p>
-        </Card>
-      )}
-
-      {requestId && (
-        <Card style={{ marginBottom: 20 }}>
-          <p style={{ marginTop: 0 }}>
-            <strong>Your Request ID:</strong> {requestId}
-          </p>
-          <p style={{ fontSize: 14, color: COLORS.subtext, lineHeight: 1.7 }}>
-            Save this ID so you can check your request and quotes later.
-          </p>
-
-          <PrimaryButton
-            onClick={() => {
-              navigator.clipboard.writeText(requestId);
-              alert("Request ID copied!");
-            }}
-            style={{ marginTop: 6, maxWidth: 220 }}
-          >
-            Copy Request ID
-          </PrimaryButton>
-        </Card>
-      )}
-
-      {requestId && (
-        <Card style={{ marginBottom: 20, backgroundColor: COLORS.infoBg }}>
-          <p style={{ margin: 0, lineHeight: 1.7, fontWeight: 700 }}>
-            Your request has been received.
-          </p>
-          <p
-            style={{
-              marginTop: 8,
-              marginBottom: 0,
-              color: COLORS.subtext,
-              lineHeight: 1.8,
-            }}
-          >
-            Our sourcing team is reviewing your request and matching you with
-            verified suppliers. You will start receiving quotes shortly.
-          </p>
-        </Card>
-      )}
-
-      {loadedRequest?.status && (
-        <Card
-          style={{
-            marginBottom: 20,
-            backgroundColor: getStatusBackground(loadedRequest.status),
-          }}
-        >
-          <p style={{ marginTop: 0 }}>
-            <strong>Request Status:</strong>{" "}
-            {formatStatus(loadedRequest.status)}
-          </p>
-
-          <div
-            style={{ marginTop: 10, color: COLORS.subtext, lineHeight: 1.8 }}
-          >
-            <p style={{ margin: "4px 0", fontWeight: 700 }}>Status Guide</p>
-            <p style={{ margin: "4px 0" }}>New → Request received</p>
-            <p style={{ margin: "4px 0" }}>
-              In Progress → Being reviewed by sourcing team
-            </p>
-            <p style={{ margin: "4px 0" }}>
-              Quoted → Supplier quotes available
-            </p>
-            <p style={{ margin: "4px 0" }}>Completed → Order finalized</p>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <input
+                value={lookupId}
+                onChange={(e) => setLookupId(e.target.value)}
+                placeholder="Enter your request ID"
+                style={{ ...inputStyle, flex: 1, minWidth: 260 }}
+              />
+              <button
+                onClick={() => handleLookup()}
+                disabled={lookupLoading}
+                style={{
+                  ...blueButtonStyle,
+                  opacity: lookupLoading ? 0.7 : 1,
+                  cursor: lookupLoading ? "not-allowed" : "pointer",
+                }}
+              >
+                {lookupLoading ? "Loading..." : "Track request"}
+              </button>
+            </div>
           </div>
-        </Card>
-      )}
+        </section>
 
-      {buyerQuotes.length > 0 && (
-        <div style={{ marginTop: 30 }}>
-          <h3>Quotes from Verified Suppliers</h3>
+        {submittedRequest && (
+          <section style={cardStyle}>
+            <h2 style={sectionTitle}>Request submitted successfully</h2>
+            <p style={mutedText}>Save this request ID so you can track quotes later.</p>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-              gap: 16,
-              marginTop: 12,
-            }}
-          >
-            {buyerQuotes.map((quote) => (
-              <Card key={quote.id} style={{ padding: 20 }}>
-                <p
-                  style={{
-                    margin: 0,
-                    fontWeight: 800,
-                    fontSize: 17,
-                    color: COLORS.text,
-                  }}
-                >
-                  {quote.supplier_name}
+            <div style={infoBoxStyle}>
+              <div style={{ marginBottom: 6 }}>
+                <strong>Request ID:</strong> {submittedRequest.id}
+              </div>
+              <div>
+                <strong>Status:</strong> {submittedRequest.status || "submitted"}
+              </div>
+            </div>
+
+            {submittedRequest.ai_output && (
+              <div style={specBoxStyle}>
+                <h3 style={smallTitle}>AI sourcing spec</h3>
+                <p style={preWrapText}>{submittedRequest.ai_output}</p>
+              </div>
+            )}
+          </section>
+        )}
+
+        {activeRequest && (
+          <section style={cardStyle}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 16,
+                flexWrap: "wrap",
+                marginBottom: 18,
+              }}
+            >
+              <div>
+                <h2 style={sectionTitle}>Request tracker</h2>
+                <p style={mutedText}>
+                  Follow your request, review quotes, upload payment proof, and unlock supplier contact.
                 </p>
-                <div
-                  style={{
-                    marginTop: 14,
-                    color: COLORS.subtext,
-                    lineHeight: 1.8,
-                  }}
-                >
-                  <p style={{ margin: "6px 0" }}>
-                    <strong style={{ color: COLORS.text }}>Price:</strong>{" "}
-                    {quote.price}
-                  </p>
-                  <p style={{ margin: "6px 0" }}>
-                    <strong style={{ color: COLORS.text }}>MOQ:</strong>{" "}
-                    {quote.moq}
-                  </p>
-                  <p style={{ margin: "6px 0" }}>
-                    <strong style={{ color: COLORS.text }}>Note:</strong>{" "}
-                    {quote.note}
-                  </p>
+              </div>
+
+              <div style={infoPillStyle}>
+                Contact request: <strong>{activeRequest.contact_request_status || "none"}</strong>
+              </div>
+            </div>
+
+            <div style={infoGridStyle}>
+              <div style={infoBoxStyle}>
+                <strong>Request ID</strong>
+                <div style={smallMuted}>{activeRequest.id}</div>
+              </div>
+
+              <div style={infoBoxStyle}>
+                <strong>Buyer</strong>
+                <div style={smallMuted}>{activeRequest.client_name || "Not provided"}</div>
+              </div>
+
+              <div style={infoBoxStyle}>
+                <strong>Status</strong>
+                <div style={smallMuted}>{activeRequest.status || "submitted"}</div>
+              </div>
+
+              <div style={infoBoxStyle}>
+                <strong>Payment</strong>
+                <div style={smallMuted}>{activeRequest.payment_status || "unpaid"}</div>
+              </div>
+            </div>
+
+            <div style={specBoxStyle}>
+              <h3 style={smallTitle}>Fabric request</h3>
+              <p style={preWrapText}>{activeRequest.user_input}</p>
+            </div>
+
+            {activeRequest.ai_output && (
+              <div style={specBoxStyle}>
+                <h3 style={smallTitle}>AI sourcing spec</h3>
+                <p style={preWrapText}>{activeRequest.ai_output}</p>
+              </div>
+            )}
+
+            <div style={{ marginTop: 22 }}>
+              <h3 style={smallTitle}>Supplier quotes</h3>
+
+              {activeQuotes.length === 0 ? (
+                <div style={emptyStateStyle}>
+                  No quotes yet. Your request has been received and is waiting for supplier pricing.
                 </div>
+              ) : (
+                activeQuotes.map((quote) => {
+                  const isReleased = !!quote.is_contact_released;
+                  const contactStatus = activeRequest.contact_request_status || "none";
+                  const paymentStatus = activeRequest.payment_status || "unpaid";
 
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 10,
-                    flexWrap: "wrap",
-                    marginTop: 14,
-                  }}
-                >
-                  <button
-                    onClick={() => handleBuyerAction(quote.id, "request_sample")}
-                    style={{
-                      padding: "10px 14px",
-                      borderRadius: 12,
-                      border: `1px solid ${COLORS.border}`,
-                      backgroundColor: "#fff",
-                      color: COLORS.text,
-                      cursor: "pointer",
-                      fontWeight: 700,
-                      flex: "1 1 160px",
-                    }}
-                  >
-                    {actionLoadingId === quote.id + "request_sample"
-                      ? "Submitting..."
-                      : "Request Sample"}
-                  </button>
+                  return (
+                    <div key={quote.id} style={quoteCardStyle}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: 12,
+                          flexWrap: "wrap",
+                          marginBottom: 10,
+                        }}
+                      >
+                        <div>
+                          <h4 style={{ margin: 0, color: "#0f172a", fontSize: 18 }}>
+                            {quote.supplier_name || "Verified Supplier"}
+                          </h4>
+                          <div style={{ color: "#64748b", fontSize: 14, marginTop: 6 }}>
+                            {quote.supplier_region || "China"} · Verified sourcing partner
+                          </div>
+                        </div>
 
-                  <button
-                    onClick={() => handleBuyerAction(quote.id, "request_contact")}
-                    style={{
-                      padding: "10px 14px",
-                      borderRadius: 12,
-                      border: `1px solid ${COLORS.border}`,
-                      backgroundColor: "#fff",
-                      color: COLORS.text,
-                      cursor: "pointer",
-                      fontWeight: 700,
-                      flex: "1 1 160px",
-                    }}
-                  >
-                    {actionLoadingId === quote.id + "request_contact"
-                      ? "Submitting..."
-                      : "Request Contact"}
-                  </button>
+                        <div
+                          style={{
+                            alignSelf: "start",
+                            background: isReleased ? "#dcfce7" : "#eff6ff",
+                            color: isReleased ? "#166534" : "#1d4ed8",
+                            borderRadius: 999,
+                            padding: "8px 12px",
+                            fontSize: 12,
+                            fontWeight: 700,
+                          }}
+                        >
+                          {isReleased ? "Contact released" : "Protected contact"}
+                        </div>
+                      </div>
 
-                  <button
-                    onClick={() =>
-                      handleBuyerAction(quote.id, "proceed_with_supplier")
-                    }
-                    style={{
-                      padding: "10px 14px",
-                      borderRadius: 12,
-                      border: "none",
-                      backgroundColor: COLORS.primary,
-                      color: "#fff",
-                      cursor: "pointer",
-                      fontWeight: 700,
-                      flex: "1 1 160px",
-                    }}
-                  >
-                    {actionLoadingId === quote.id + "proceed_with_supplier"
-                      ? "Submitting..."
-                      : "Proceed"}
-                  </button>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
+                      <div style={quoteGridStyle}>
+                        <div style={miniBoxStyle}>
+                          <strong>Price</strong>
+                          <div style={smallMuted}>{quote.price || "Pending"}</div>
+                        </div>
+                        <div style={miniBoxStyle}>
+                          <strong>MOQ</strong>
+                          <div style={smallMuted}>{quote.moq || "Pending"}</div>
+                        </div>
+                        <div style={miniBoxStyle}>
+                          <strong>Lead time</strong>
+                          <div style={smallMuted}>{quote.lead_time || "Not added yet"}</div>
+                        </div>
+                      </div>
 
-      {requestId && buyerQuotes.length === 0 && (
-        <Card style={{ marginTop: 20 }}>
-          <p style={{ margin: 0, color: COLORS.subtext }}>
-            No supplier quotes yet. Please check back later or contact support.
-          </p>
-        </Card>
-      )}
+                      {quote.note && (
+                        <div style={{ marginTop: 12 }}>
+                          <strong style={{ color: "#0f172a" }}>Supplier note</strong>
+                          <p style={{ ...preWrapText, marginTop: 6 }}>{quote.note}</p>
+                        </div>
+                      )}
 
-      <div
-        style={{
-          marginTop: 32,
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-          gap: 16,
-        }}
-      >
-        <Card style={{ backgroundColor: COLORS.softBg }}>
-          <h3 style={{ marginTop: 0 }}>Why buyers use Weinly</h3>
-          <ul
-            style={{
-              paddingLeft: 20,
-              color: COLORS.subtext,
-              lineHeight: 1.9,
-            }}
-          >
-            <li>Get clear fabric specifications before contacting suppliers</li>
-            <li>Track requests, quotes, and status in one place</li>
-            <li>Reduce sourcing mistakes and communicate more professionally</li>
-          </ul>
-        </Card>
+                      {!isReleased && contactStatus === "none" && (
+                        <div style={protectedBoxStyle}>
+                          <p style={{ margin: "0 0 10px 0", color: "#334155" }}>
+                            Supplier contact is protected. Click proceed to request access.
+                          </p>
+                          <button
+                            onClick={() => requestSupplierContact(activeRequest.id)}
+                            style={darkButtonStyle}
+                          >
+                            Proceed
+                          </button>
+                        </div>
+                      )}
 
-        <Card
-          style={{
-            backgroundColor: COLORS.text,
-            color: "#fff",
-            border: "none",
-            boxShadow: COLORS.shadow,
-          }}
-        >
-          <h3 style={{ marginTop: 0, color: "#fff" }}>
-            Ready to source fabrics the right way?
-          </h3>
+                      {!isReleased &&
+                        contactStatus === "pending" &&
+                        paymentStatus === "unpaid" && (
+                          <div style={paymentBoxStyle}>
+                            <h4 style={{ margin: "0 0 10px 0", color: "#0f172a" }}>
+                              Unlock supplier contact
+                            </h4>
 
-          <p style={{ color: "#D1D5DB", lineHeight: 1.8 }}>
-            Start your request now and get a clear specification in seconds.
-          </p>
+                            <div style={instructionCardStyle}>
+                              <div style={instructionRowStyle}>
+                                <span style={instructionLabelStyle}>Access fee</span>
+                                <strong>{activeRequest.contact_access_fee || "¥299"}</strong>
+                              </div>
+                              <div style={instructionRowStyle}>
+                                <span style={instructionLabelStyle}>Payment method</span>
+                                <strong>Bank transfer / RMB collection</strong>
+                              </div>
+                              <div style={instructionRowStyle}>
+                                <span style={instructionLabelStyle}>Receiver name</span>
+                                <strong>Weinly</strong>
+                              </div>
+                              <div style={instructionRowStyle}>
+                                <span style={instructionLabelStyle}>Reference</span>
+                                <strong>{activeRequest.id}</strong>
+                              </div>
+                            </div>
 
-          <a
-            href="#request-form"
-            style={{
-              display: "inline-block",
-              marginTop: 8,
-              backgroundColor: COLORS.accent,
-              color: "#fff",
-              textDecoration: "none",
-              padding: "12px 16px",
-              borderRadius: 12,
-              fontWeight: 700,
-              textAlign: "center",
-            }}
-          >
-            Start Now
-          </a>
-        </Card>
+                            <p style={{ color: "#475569", lineHeight: 1.7, marginTop: 12 }}>
+                              Pay the access fee, enter your payment reference, and upload your proof screenshot below for review.
+                            </p>
+
+                            <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
+                              <input
+                                value={paymentReferenceInput}
+                                onChange={(e) => setPaymentReferenceInput(e.target.value)}
+                                placeholder="Enter payment reference"
+                                style={inputStyle}
+                              />
+
+                              <div style={uploadBoxStyle}>
+                                <label
+                                  htmlFor="payment-proof"
+                                  style={{
+                                    display: "block",
+                                    marginBottom: 8,
+                                    fontWeight: 700,
+                                    color: "#0f172a",
+                                  }}
+                                >
+                                  Upload payment proof
+                                </label>
+                                <input
+                                  id="payment-proof"
+                                  type="file"
+                                  accept="image/*,.pdf"
+                                  onChange={(e) =>
+                                    setPaymentProofFile(e.target.files?.[0] || null)
+                                  }
+                                />
+                                {paymentProofFile && (
+                                  <div style={{ marginTop: 8, color: "#64748b", fontSize: 14 }}>
+                                    Selected: {paymentProofFile.name}
+                                  </div>
+                                )}
+                              </div>
+
+                              <button
+                                onClick={() => submitPaymentProof(activeRequest.id)}
+                                disabled={paymentSubmitting}
+                                style={{
+                                  ...darkButtonStyle,
+                                  opacity: paymentSubmitting ? 0.7 : 1,
+                                  cursor: paymentSubmitting ? "not-allowed" : "pointer",
+                                }}
+                              >
+                                {paymentSubmitting ? "Submitting..." : "Submit payment proof"}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                      {!isReleased &&
+                        contactStatus === "pending" &&
+                        paymentStatus === "pending" && (
+                          <div style={pendingBoxStyle}>
+                            Payment proof submitted for review. Awaiting confirmation.
+                            {activeRequest.payment_proof_name && (
+                              <div style={{ marginTop: 8, fontWeight: 500 }}>
+                                Proof: {activeRequest.payment_proof_name}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                      {!isReleased &&
+                        contactStatus === "pending" &&
+                        paymentStatus === "paid" && (
+                          <div style={pendingBoxStyle}>
+                            Payment confirmed. Awaiting admin approval for supplier contact release.
+                          </div>
+                        )}
+
+                      {!isReleased && contactStatus === "rejected" && (
+                        <div style={rejectedBoxStyle}>
+                          Contact release has not been approved yet. Reach support if you need managed sourcing help.
+                        </div>
+                      )}
+
+                      {isReleased && (
+                        <div style={releasedBoxStyle}>
+                          <h4 style={{ marginTop: 0, marginBottom: 10, color: "#166534" }}>
+                            Supplier contact details
+                          </h4>
+
+                          <div style={quoteGridStyle}>
+                            <div style={miniBoxStyle}>
+                              <strong>Contact name</strong>
+                              <div style={smallMuted}>{quote.contact_name || "—"}</div>
+                            </div>
+                            <div style={miniBoxStyle}>
+                              <strong>Phone</strong>
+                              <div style={smallMuted}>{quote.contact_phone || "—"}</div>
+                            </div>
+                            <div style={miniBoxStyle}>
+                              <strong>WeChat</strong>
+                              <div style={smallMuted}>{quote.contact_wechat || "—"}</div>
+                            </div>
+                            <div style={miniBoxStyle}>
+                              <strong>Email</strong>
+                              <div style={smallMuted}>{quote.contact_email || "—"}</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </section>
+        )}
       </div>
-
-      <footer
-        style={{
-          marginTop: 40,
-          paddingTop: 24,
-          paddingBottom: 24,
-          borderTop: `1px solid ${COLORS.border}`,
-          textAlign: "center",
-          color: COLORS.subtext,
-          fontSize: 14,
-        }}
-      >
-        © {new Date().getFullYear()} Weinly. AI-powered fabric sourcing.
-      </footer>
     </main>
   );
 }
+
+const heroCardStyle: React.CSSProperties = {
+  background: "white",
+  border: "1px solid #e5e7eb",
+  borderRadius: 24,
+  padding: 28,
+  boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
+  marginBottom: 24,
+};
+
+const badgeStyle: React.CSSProperties = {
+  display: "inline-block",
+  padding: "8px 12px",
+  borderRadius: 999,
+  background: "#eff6ff",
+  color: "#1d4ed8",
+  fontSize: 13,
+  fontWeight: 700,
+  marginBottom: 14,
+};
+
+const heroTitleStyle: React.CSSProperties = {
+  fontSize: 40,
+  lineHeight: 1.1,
+  margin: "0 0 12px 0",
+  color: "#0f172a",
+};
+
+const heroTextStyle: React.CSSProperties = {
+  fontSize: 17,
+  color: "#475569",
+  lineHeight: 1.7,
+  maxWidth: 760,
+  margin: 0,
+};
+
+const featureGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: 12,
+  marginBottom: 20,
+};
+
+const featureCardStyle: React.CSSProperties = {
+  background: "#f8fafc",
+  border: "1px solid #e2e8f0",
+  borderRadius: 16,
+  padding: 16,
+};
+
+const featureTitleStyle: React.CSSProperties = {
+  display: "block",
+  color: "#0f172a",
+  marginBottom: 6,
+};
+
+const featureTextStyle: React.CSSProperties = {
+  color: "#64748b",
+  fontSize: 14,
+};
+
+const formTopGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: 12,
+  marginBottom: 12,
+};
+
+const trackerCardStyle: React.CSSProperties = {
+  marginTop: 18,
+  padding: 16,
+  borderRadius: 14,
+  background: "#f8fafc",
+  border: "1px solid #e2e8f0",
+};
+
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  padding: "14px 16px",
+  borderRadius: 14,
+  border: "1px solid #cbd5e1",
+  background: "white",
+  color: "#0f172a",
+  fontSize: 15,
+  outline: "none",
+  boxSizing: "border-box",
+};
+
+const cardStyle: React.CSSProperties = {
+  background: "white",
+  border: "1px solid #e5e7eb",
+  borderRadius: 24,
+  padding: 24,
+  boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
+  marginBottom: 24,
+};
+
+const sectionTitle: React.CSSProperties = {
+  margin: "0 0 8px 0",
+  fontSize: 26,
+  color: "#0f172a",
+};
+
+const smallTitle: React.CSSProperties = {
+  margin: "0 0 10px 0",
+  fontSize: 18,
+  color: "#0f172a",
+};
+
+const mutedText: React.CSSProperties = {
+  margin: 0,
+  color: "#64748b",
+  lineHeight: 1.7,
+};
+
+const preWrapText: React.CSSProperties = {
+  margin: 0,
+  color: "#334155",
+  whiteSpace: "pre-wrap",
+  lineHeight: 1.7,
+};
+
+const specBoxStyle: React.CSSProperties = {
+  marginTop: 16,
+  border: "1px solid #e2e8f0",
+  background: "#f8fafc",
+  borderRadius: 16,
+  padding: 16,
+};
+
+const infoGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: 12,
+  marginBottom: 16,
+};
+
+const infoBoxStyle: React.CSSProperties = {
+  border: "1px solid #e2e8f0",
+  background: "#f8fafc",
+  borderRadius: 16,
+  padding: 14,
+  color: "#0f172a",
+};
+
+const smallMuted: React.CSSProperties = {
+  color: "#64748b",
+  marginTop: 6,
+  fontSize: 14,
+  lineHeight: 1.6,
+  wordBreak: "break-word",
+};
+
+const infoPillStyle: React.CSSProperties = {
+  background: "#eff6ff",
+  color: "#1d4ed8",
+  borderRadius: 999,
+  padding: "10px 14px",
+  fontSize: 14,
+  fontWeight: 600,
+  alignSelf: "center",
+};
+
+const quoteCardStyle: React.CSSProperties = {
+  border: "1px solid #e2e8f0",
+  borderRadius: 18,
+  padding: 18,
+  background: "#ffffff",
+  marginBottom: 14,
+};
+
+const quoteGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: 10,
+  marginTop: 12,
+};
+
+const miniBoxStyle: React.CSSProperties = {
+  border: "1px solid #e2e8f0",
+  background: "#f8fafc",
+  borderRadius: 14,
+  padding: 12,
+  color: "#0f172a",
+};
+
+const protectedBoxStyle: React.CSSProperties = {
+  marginTop: 14,
+  padding: 14,
+  borderRadius: 14,
+  background: "#f8fafc",
+  border: "1px solid #e2e8f0",
+};
+
+const paymentBoxStyle: React.CSSProperties = {
+  marginTop: 14,
+  padding: 16,
+  borderRadius: 16,
+  background: "#f8fafc",
+  border: "1px solid #e2e8f0",
+};
+
+const instructionCardStyle: React.CSSProperties = {
+  border: "1px solid #dbeafe",
+  background: "#eff6ff",
+  borderRadius: 14,
+  padding: 14,
+};
+
+const instructionRowStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 12,
+  padding: "6px 0",
+  flexWrap: "wrap",
+};
+
+const instructionLabelStyle: React.CSSProperties = {
+  color: "#475569",
+};
+
+const uploadBoxStyle: React.CSSProperties = {
+  border: "1px dashed #cbd5e1",
+  borderRadius: 14,
+  padding: 14,
+  background: "#ffffff",
+};
+
+const pendingBoxStyle: React.CSSProperties = {
+  marginTop: 14,
+  padding: 14,
+  borderRadius: 14,
+  background: "#fff7ed",
+  border: "1px solid #fdba74",
+  color: "#9a3412",
+  fontWeight: 600,
+};
+
+const rejectedBoxStyle: React.CSSProperties = {
+  marginTop: 14,
+  padding: 14,
+  borderRadius: 14,
+  background: "#fef2f2",
+  border: "1px solid #fecaca",
+  color: "#991b1b",
+  fontWeight: 600,
+};
+
+const releasedBoxStyle: React.CSSProperties = {
+  marginTop: 14,
+  padding: 14,
+  borderRadius: 14,
+  background: "#ecfdf5",
+  border: "1px solid #86efac",
+};
+
+const emptyStateStyle: React.CSSProperties = {
+  border: "1px dashed #cbd5e1",
+  background: "#f8fafc",
+  borderRadius: 16,
+  padding: 18,
+  color: "#64748b",
+};
+
+const darkButtonStyle: React.CSSProperties = {
+  background: "#0f172a",
+  color: "white",
+  border: "none",
+  borderRadius: 12,
+  padding: "12px 16px",
+  fontWeight: 700,
+  cursor: "pointer",
+};
+
+const blueButtonStyle: React.CSSProperties = {
+  background: "#2563eb",
+  color: "white",
+  border: "none",
+  borderRadius: 12,
+  padding: "12px 16px",
+  fontWeight: 700,
+  cursor: "pointer",
+};

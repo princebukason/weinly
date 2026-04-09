@@ -1,854 +1,1048 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
 
-const COLORS = {
-  primary: "#0F766E",
-  primaryDark: "#0B5E58",
-  accent: "#D97706",
-  text: "#111827",
-  subtext: "#6B7280",
-  border: "#E5E7EB",
-  bg: "#FFFFFF",
-  softBg: "#F9FAFB",
-  heroBg: "linear-gradient(135deg, #F9FAFB, #ECFDF5)",
-  completedBg: "#ECFDF5",
-  quotedBg: "#FFFBEB",
-  progressBg: "#EFF6FF",
-  newBg: "#F3F4F6",
-  shadow: "0 10px 30px rgba(17, 24, 39, 0.08)",
-  shadowSoft: "0 4px 14px rgba(17, 24, 39, 0.06)",
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "";
+
+type FabricRequest = {
+  id: string;
+  created_at: string;
+  client_name: string | null;
+  client_email: string | null;
+  client_phone: string | null;
+  user_input: string;
+  ai_output: string | null;
+  status: string | null;
+  internal_note: string | null;
+  buyer_requested_contact: boolean | null;
+  contact_request_status: string | null;
+  contact_access_fee: string | null;
+  payment_status: string | null;
+  payment_reference: string | null;
+  paid_at: string | null;
+  payment_proof_url: string | null;
+  payment_proof_name: string | null;
 };
 
-export default function Admin() {
-  const [requests, setRequests] = useState<any[]>([]);
-  const [quotes, setQuotes] = useState<any[]>([]);
-  const [buyerActions, setBuyerActions] = useState<any[]>([]);
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [passwordInput, setPasswordInput] = useState("");
-  const [isAuthorized, setIsAuthorized] = useState(false);
+type Quote = {
+  id: string;
+  request_id: string;
+  supplier_name: string;
+  price: string | null;
+  moq: string | null;
+  note: string | null;
+  contact_name: string | null;
+  contact_phone: string | null;
+  contact_wechat: string | null;
+  contact_email: string | null;
+  supplier_region: string | null;
+  lead_time: string | null;
+  is_contact_released: boolean | null;
+};
+
+export default function AdminPage() {
+  const [password, setPassword] = useState("");
+  const [authenticated, setAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [requests, setRequests] = useState<FabricRequest[]>([]);
+  const [quotesMap, setQuotesMap] = useState<Record<string, Quote[]>>({});
+  const [search, setSearch] = useState("");
+
+  const [newQuotes, setNewQuotes] = useState<
+    Record<
+      string,
+      {
+        supplier_name: string;
+        price: string;
+        moq: string;
+        note: string;
+        contact_name: string;
+        contact_phone: string;
+        contact_wechat: string;
+        contact_email: string;
+        supplier_region: string;
+        lead_time: string;
+      }
+    >
+  >({});
 
   useEffect(() => {
-    if (isAuthorized) {
-      fetchData();
+    const saved =
+      typeof window !== "undefined"
+        ? localStorage.getItem("weinly_admin_auth")
+        : null;
+
+    if (saved === "true") {
+      setAuthenticated(true);
     }
-  }, [isAuthorized]);
 
-  async function fetchData() {
-    const { data: reqs } = await supabase
-      .from("fabric_requests")
-      .select("*")
-      .order("created_at", { ascending: false });
+    setLoading(false);
+  }, []);
 
-    const { data: qs } = await supabase.from("quotes").select("*");
-    const { data: actions } = await supabase
-      .from("buyer_actions")
-      .select("*")
-      .order("created_at", { ascending: false });
+  useEffect(() => {
+    if (authenticated) {
+      fetchRequests();
+    }
+  }, [authenticated]);
 
-    setRequests(reqs || []);
-    setQuotes(qs || []);
-    setBuyerActions(actions || []);
+  async function fetchRequests() {
+    try {
+      const { data: requestData, error: reqError } = await supabase
+        .from("fabric_requests")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (reqError) throw reqError;
+
+      const allRequests = (requestData || []) as FabricRequest[];
+      setRequests(allRequests);
+
+      const ids = allRequests.map((r) => r.id);
+
+      if (ids.length === 0) {
+        setQuotesMap({});
+        return;
+      }
+
+      const { data: quoteData, error: quoteError } = await supabase
+        .from("quotes")
+        .select("*")
+        .in("request_id", ids)
+        .order("id", { ascending: false });
+
+      if (quoteError) throw quoteError;
+
+      const grouped: Record<string, Quote[]> = {};
+
+      (quoteData || []).forEach((quote) => {
+        const q = quote as Quote;
+        if (!grouped[q.request_id]) grouped[q.request_id] = [];
+        grouped[q.request_id].push(q);
+      });
+
+      setQuotesMap(grouped);
+    } catch (error) {
+      console.error(error);
+      alert("Failed to load admin data.");
+    }
   }
 
-  async function handleAddQuote(e: any, requestId: string) {
-    e.preventDefault();
-
-    const formData = new FormData(e.target);
-
-    await supabase.from("quotes").insert({
-      request_id: requestId,
-      supplier_name: formData.get("supplier"),
-      price: formData.get("price"),
-      moq: formData.get("moq"),
-      note: formData.get("note"),
-    });
-
-    await supabase
-      .from("fabric_requests")
-      .update({ status: "quoted" })
-      .eq("id", requestId);
-
-    e.target.reset();
-    alert("Quote added and status updated to quoted!");
-    fetchData();
-  }
-
-  function handleAdminLogin() {
-    if (passwordInput === process.env.NEXT_PUBLIC_ADMIN_PASSWORD) {
-      setIsAuthorized(true);
+  function handleLogin() {
+    if (password === ADMIN_PASSWORD) {
+      setAuthenticated(true);
+      localStorage.setItem("weinly_admin_auth", "true");
     } else {
-      alert("Incorrect password");
+      alert("Wrong password.");
     }
   }
 
-  function getStatusBackground(status: string) {
-    if (status === "completed") return COLORS.completedBg;
-    if (status === "quoted") return COLORS.quotedBg;
-    if (status === "in_progress") return COLORS.progressBg;
-    return COLORS.newBg;
+  function handleLogout() {
+    localStorage.removeItem("weinly_admin_auth");
+    setAuthenticated(false);
   }
 
-  function formatStatus(status: string) {
-    if (status === "in_progress") return "In Progress";
-    if (status === "quoted") return "Quoted";
-    if (status === "completed") return "Completed";
-    return "New";
+  function updateNewQuoteField(requestId: string, field: string, value: string) {
+    setNewQuotes((prev) => ({
+      ...prev,
+      [requestId]: {
+        supplier_name: "",
+        price: "",
+        moq: "",
+        note: "",
+        contact_name: "",
+        contact_phone: "",
+        contact_wechat: "",
+        contact_email: "",
+        supplier_region: "",
+        lead_time: "",
+        ...prev[requestId],
+        [field]: value,
+      },
+    }));
   }
 
-  function formatAction(action: string) {
-    if (action === "request_sample") return "Request Sample";
-    if (action === "request_contact") return "Request Contact";
-    if (action === "proceed_with_supplier") return "Proceed With Supplier";
-    return action;
+  async function addQuote(requestId: string) {
+    const form = newQuotes[requestId];
+
+    if (!form?.supplier_name?.trim()) {
+      alert("Supplier name is required.");
+      return;
+    }
+
+    try {
+      const { error } = await supabase.from("quotes").insert([
+        {
+          request_id: requestId,
+          supplier_name: form.supplier_name.trim(),
+          price: form.price || null,
+          moq: form.moq || null,
+          note: form.note || null,
+          contact_name: form.contact_name || null,
+          contact_phone: form.contact_phone || null,
+          contact_wechat: form.contact_wechat || null,
+          contact_email: form.contact_email || null,
+          supplier_region: form.supplier_region || null,
+          lead_time: form.lead_time || null,
+          is_contact_released: false,
+        },
+      ]);
+
+      if (error) throw error;
+
+      setNewQuotes((prev) => ({
+        ...prev,
+        [requestId]: {
+          supplier_name: "",
+          price: "",
+          moq: "",
+          note: "",
+          contact_name: "",
+          contact_phone: "",
+          contact_wechat: "",
+          contact_email: "",
+          supplier_region: "",
+          lead_time: "",
+        },
+      }));
+
+      await fetchRequests();
+      alert("Quote added.");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to add quote.");
+    }
   }
 
-  const filteredRequests = requests
-    .filter((item) => statusFilter === "all" || item.status === statusFilter)
-    .filter((item) => {
-      const term = searchTerm.toLowerCase();
+  async function updateRequestStatus(requestId: string, status: string) {
+    try {
+      const { error } = await supabase
+        .from("fabric_requests")
+        .update({ status })
+        .eq("id", requestId);
 
-      return (
-        (item.client_name || "").toLowerCase().includes(term) ||
-        (item.client_email || "").toLowerCase().includes(term) ||
-        (item.client_phone || "").toLowerCase().includes(term) ||
-        (item.user_input || "").toLowerCase().includes(term)
-      );
-    });
+      if (error) throw error;
+      await fetchRequests();
+    } catch (error) {
+      console.error(error);
+      alert("Failed to update status.");
+    }
+  }
 
-  const totalRequests = requests.length;
-  const newRequests = requests.filter((item) => item.status === "new").length;
-  const inProgressRequests = requests.filter(
-    (item) => item.status === "in_progress"
-  ).length;
-  const quotedRequests = requests.filter((item) => item.status === "quoted").length;
-  const completedRequests = requests.filter(
-    (item) => item.status === "completed"
-  ).length;
+  async function saveInternalNote(requestId: string, note: string) {
+    try {
+      const { error } = await supabase
+        .from("fabric_requests")
+        .update({ internal_note: note })
+        .eq("id", requestId);
 
-  function Card({
-    children,
-    style = {},
-  }: {
-    children: React.ReactNode;
-    style?: React.CSSProperties;
-  }) {
+      if (error) throw error;
+    } catch (error) {
+      console.error(error);
+      alert("Failed to save internal note.");
+    }
+  }
+
+  async function confirmPayment(requestId: string) {
+    try {
+      const { error } = await supabase
+        .from("fabric_requests")
+        .update({
+          payment_status: "paid",
+          paid_at: new Date().toISOString(),
+        })
+        .eq("id", requestId);
+
+      if (error) throw error;
+
+      await fetchRequests();
+      alert("Payment confirmed.");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to confirm payment.");
+    }
+  }
+
+  async function resetPayment(requestId: string) {
+    try {
+      const { error } = await supabase
+        .from("fabric_requests")
+        .update({
+          payment_status: "unpaid",
+          payment_reference: null,
+          payment_proof_url: null,
+          payment_proof_name: null,
+          paid_at: null,
+        })
+        .eq("id", requestId);
+
+      if (error) throw error;
+
+      await fetchRequests();
+      alert("Payment reset.");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to reset payment.");
+    }
+  }
+
+  async function approveContactRelease(requestId: string, paymentStatus?: string | null) {
+    if (paymentStatus !== "paid") {
+      alert("Confirm payment before releasing supplier contact.");
+      return;
+    }
+
+    try {
+      const { error: reqError } = await supabase
+        .from("fabric_requests")
+        .update({
+          contact_request_status: "approved",
+        })
+        .eq("id", requestId);
+
+      if (reqError) throw reqError;
+
+      const { error: quoteError } = await supabase
+        .from("quotes")
+        .update({
+          is_contact_released: true,
+        })
+        .eq("request_id", requestId);
+
+      if (quoteError) throw quoteError;
+
+      await fetchRequests();
+      alert("Supplier contact approved and released.");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to approve contact release.");
+    }
+  }
+
+  async function rejectContactRelease(requestId: string) {
+    try {
+      const { error: reqError } = await supabase
+        .from("fabric_requests")
+        .update({
+          contact_request_status: "rejected",
+        })
+        .eq("id", requestId);
+
+      if (reqError) throw reqError;
+
+      const { error: quoteError } = await supabase
+        .from("quotes")
+        .update({
+          is_contact_released: false,
+        })
+        .eq("request_id", requestId);
+
+      if (quoteError) throw quoteError;
+
+      await fetchRequests();
+      alert("Contact request rejected.");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to reject contact release.");
+    }
+  }
+
+  async function deleteRequest(requestId: string) {
+    const confirmed = window.confirm("Delete this request and all related quotes?");
+    if (!confirmed) return;
+
+    try {
+      const { error: quoteError } = await supabase
+        .from("quotes")
+        .delete()
+        .eq("request_id", requestId);
+
+      if (quoteError) throw quoteError;
+
+      const { error: reqError } = await supabase
+        .from("fabric_requests")
+        .delete()
+        .eq("id", requestId);
+
+      if (reqError) throw reqError;
+
+      await fetchRequests();
+      alert("Request deleted.");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to delete request.");
+    }
+  }
+
+  if (loading) {
+    return <div style={{ padding: 30 }}>Loading...</div>;
+  }
+
+  if (!authenticated) {
     return (
-      <div
-        style={{
-          backgroundColor: COLORS.bg,
-          border: `1px solid ${COLORS.border}`,
-          borderRadius: 18,
-          padding: 20,
-          boxShadow: COLORS.shadowSoft,
-          ...style,
-        }}
-      >
-        {children}
-      </div>
-    );
-  }
-
-  function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
-    return (
-      <input
-        {...props}
-        style={{
-          width: "100%",
-          padding: "12px 14px",
-          borderRadius: 12,
-          border: `1px solid ${COLORS.border}`,
-          outline: "none",
-          fontSize: 14,
-          color: COLORS.text,
-          backgroundColor: "#fff",
-          ...props.style,
-        }}
-      />
-    );
-  }
-
-  function PrimaryButton({
-    children,
-    ...props
-  }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
-    return (
-      <button
-        {...props}
-        style={{
-          backgroundColor: COLORS.primary,
-          color: "#fff",
-          padding: "10px 14px",
-          border: "none",
-          borderRadius: 12,
-          cursor: "pointer",
-          fontWeight: 700,
-          fontSize: 14,
-          boxShadow: "0 6px 18px rgba(15, 118, 110, 0.22)",
-          ...props.style,
-        }}
-      >
-        {children}
-      </button>
-    );
-  }
-
-  if (!isAuthorized) {
-    return (
-      <main
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: 20,
-          backgroundColor: COLORS.softBg,
-          fontFamily:
-            'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-        }}
-      >
-        <Card
-          style={{
-            maxWidth: 420,
-            width: "100%",
-            boxShadow: COLORS.shadow,
-            border: "none",
-            background: COLORS.heroBg,
-          }}
-        >
-          <div
-            style={{
-              width: 46,
-              height: 46,
-              borderRadius: 14,
-              background: COLORS.primary,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              fontWeight: 800,
-              marginBottom: 16,
-            }}
-          >
-            W
-          </div>
-
-          <h1 style={{ marginTop: 0, marginBottom: 10, color: COLORS.text }}>
-            Admin Login
-          </h1>
-          <p style={{ color: COLORS.subtext, lineHeight: 1.7, marginBottom: 16 }}>
-            Enter your admin password to access the Weinly dashboard.
-          </p>
-
-          <Input
+      <main style={pageStyle}>
+        <div style={loginCardStyle}>
+          <h1 style={{ marginTop: 0 }}>Weinly Admin</h1>
+          <p style={{ color: "#64748b" }}>Enter admin password to continue.</p>
+          <input
             type="password"
-            value={passwordInput}
-            onChange={(e) => setPasswordInput(e.target.value)}
-            placeholder="Enter password"
-            style={{ marginBottom: 12 }}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Admin password"
+            style={inputStyle}
           />
-
-          <PrimaryButton onClick={handleAdminLogin} style={{ width: "100%" }}>
+          <button onClick={handleLogin} style={darkButtonStyle}>
             Login
-          </PrimaryButton>
-        </Card>
+          </button>
+        </div>
       </main>
     );
   }
 
+  const filteredRequests = requests.filter((request) => {
+    const q = search.toLowerCase().trim();
+    if (!q) return true;
+
+    return (
+      request.id.toLowerCase().includes(q) ||
+      (request.client_name || "").toLowerCase().includes(q) ||
+      (request.client_email || "").toLowerCase().includes(q) ||
+      (request.client_phone || "").toLowerCase().includes(q) ||
+      request.user_input.toLowerCase().includes(q)
+    );
+  });
+
   return (
-    <main
-      style={{
-        padding: 20,
-        maxWidth: 1200,
-        margin: "0 auto",
-        fontFamily:
-          'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-        color: COLORS.text,
-        backgroundColor: COLORS.softBg,
-        minHeight: "100vh",
-      }}
-    >
-      <nav
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: 12,
-          marginBottom: 24,
-          padding: "12px 0",
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: 12,
-              background: COLORS.primary,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              fontWeight: 800,
-              flexShrink: 0,
-            }}
-          >
-            W
-          </div>
+    <main style={pageStyle}>
+      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+        <div style={topBarStyle}>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 18 }}>Weinly Admin</div>
-            <div style={{ fontSize: 12, color: COLORS.subtext }}>
-              Internal sourcing workspace
-            </div>
+            <h1 style={{ margin: 0, color: "#0f172a" }}>Weinly Admin Dashboard</h1>
+            <p style={{ margin: "8px 0 0 0", color: "#64748b" }}>
+              Manage buyer requests, quotes, proofs, payments, and supplier contact release.
+            </p>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button onClick={fetchRequests} style={blueButtonStyle}>
+              Refresh
+            </button>
+            <button onClick={handleLogout} style={dangerButtonStyle}>
+              Logout
+            </button>
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-          <a
-            href="/"
-            style={{
-              textDecoration: "none",
-              color: COLORS.primary,
-              fontWeight: 700,
-              fontSize: 14,
-            }}
-          >
-            Home
-          </a>
-          <a
-            href="/history"
-            style={{
-              textDecoration: "none",
-              color: COLORS.text,
-              fontWeight: 700,
-              fontSize: 14,
-            }}
-          >
-            History
-          </a>
-        </div>
-      </nav>
-
-      <Card
-        style={{
-          marginBottom: 20,
-          background: COLORS.heroBg,
-          boxShadow: COLORS.shadow,
-          border: "none",
-        }}
-      >
-        <h1 style={{ marginTop: 0, marginBottom: 10 }}>Manage buyer requests</h1>
-        <p style={{ color: COLORS.subtext, lineHeight: 1.8, margin: 0 }}>
-          Review requests, add quotes, update statuses, see buyer intent, leave
-          internal notes, and follow up with buyers from one dashboard.
-        </p>
-      </Card>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-          gap: 14,
-          marginBottom: 20,
-        }}
-      >
-        <Card style={{ padding: 16 }}>
-          <strong>Total</strong>
-          <p style={{ fontSize: 26, margin: "10px 0 0" }}>{totalRequests}</p>
-        </Card>
-
-        <Card style={{ padding: 16, backgroundColor: COLORS.newBg }}>
-          <strong>New</strong>
-          <p style={{ fontSize: 26, margin: "10px 0 0" }}>{newRequests}</p>
-        </Card>
-
-        <Card style={{ padding: 16, backgroundColor: COLORS.progressBg }}>
-          <strong>In Progress</strong>
-          <p style={{ fontSize: 26, margin: "10px 0 0" }}>{inProgressRequests}</p>
-        </Card>
-
-        <Card style={{ padding: 16, backgroundColor: COLORS.quotedBg }}>
-          <strong>Quoted</strong>
-          <p style={{ fontSize: 26, margin: "10px 0 0" }}>{quotedRequests}</p>
-        </Card>
-
-        <Card style={{ padding: 16, backgroundColor: COLORS.completedBg }}>
-          <strong>Completed</strong>
-          <p style={{ fontSize: 26, margin: "10px 0 0" }}>{completedRequests}</p>
-        </Card>
-      </div>
-
-      <Card style={{ marginBottom: 20 }}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-            gap: 16,
-            alignItems: "end",
-          }}
-        >
-          <div>
-            <label
-              style={{
-                display: "block",
-                marginBottom: 8,
-                fontWeight: 700,
-                fontSize: 14,
-              }}
-            >
-              Filter by status
-            </label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                borderRadius: 12,
-                border: `1px solid ${COLORS.border}`,
-                fontSize: 14,
-                backgroundColor: "#fff",
-              }}
-            >
-              <option value="all">all</option>
-              <option value="new">new</option>
-              <option value="in_progress">in_progress</option>
-              <option value="quoted">quoted</option>
-              <option value="completed">completed</option>
-            </select>
-          </div>
-
-          <div>
-            <label
-              style={{
-                display: "block",
-                marginBottom: 8,
-                fontWeight: 700,
-                fontSize: 14,
-              }}
-            >
-              Search requests
-            </label>
-            <Input
-              type="text"
-              placeholder="Search by client name, email, phone, or request..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ marginBottom: 0 }}
-            />
-          </div>
+        <div style={searchCardStyle}>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by request ID, name, email, phone, or request text"
+            style={inputStyle}
+          />
         </div>
 
-        <p style={{ marginTop: 16, marginBottom: 0, color: COLORS.subtext }}>
-          Showing {filteredRequests.length} request(s)
-        </p>
-      </Card>
+        {filteredRequests.length === 0 ? (
+          <div style={emptyStateStyle}>No requests found.</div>
+        ) : (
+          filteredRequests.map((request) => {
+            const quotes = quotesMap[request.id] || [];
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-        {filteredRequests.map((item) => (
-          <Card
-            key={item.id}
-            style={{
-              backgroundColor: getStatusBackground(item.status),
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 12,
-                flexWrap: "wrap",
-                marginBottom: 16,
-              }}
-            >
-              <div>
-                <p style={{ margin: 0, fontWeight: 800, fontSize: 18 }}>
-                  {item.client_name || "Unnamed client"}
-                </p>
-                <p
-                  style={{
-                    margin: "6px 0 0",
-                    color: COLORS.subtext,
-                    wordBreak: "break-word",
-                  }}
-                >
-                  Request ID: {item.id}
-                </p>
-              </div>
+            return (
+              <section key={request.id} style={requestCardStyle}>
+                <div style={requestHeaderStyle}>
+                  <div>
+                    <h2 style={{ margin: "0 0 8px 0", color: "#0f172a" }}>
+                      {request.client_name || "Unnamed buyer"}
+                    </h2>
+                    <div style={metaTextStyle}>Request ID: {request.id}</div>
+                    <div style={metaTextStyle}>
+                      Created: {new Date(request.created_at).toLocaleString()}
+                    </div>
+                  </div>
 
-              <div>
-                <span
-                  style={{
-                    display: "inline-block",
-                    padding: "8px 12px",
-                    borderRadius: 999,
-                    backgroundColor: "#fff",
-                    border: `1px solid ${COLORS.border}`,
-                    fontWeight: 700,
-                    fontSize: 13,
-                  }}
-                >
-                  {formatStatus(item.status)}
-                </span>
-              </div>
-            </div>
+                  <div style={pillWrapStyle}>
+                    <span style={statusPillStyle}>Status: {request.status || "submitted"}</span>
+                    <span style={contactPillStyle}>
+                      Contact: {request.contact_request_status || "none"}
+                    </span>
+                  </div>
+                </div>
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-                gap: 16,
-                marginBottom: 16,
-              }}
-            >
-              <div>
-                <p style={{ margin: "0 0 8px" }}>
-                  <strong>Email:</strong> {item.client_email || "Not provided"}
-                </p>
+                <div style={infoGridStyle}>
+                  <div style={miniCardStyle}>
+                    <strong>Email</strong>
+                    <div style={smallMuted}>{request.client_email || "—"}</div>
+                  </div>
+                  <div style={miniCardStyle}>
+                    <strong>Phone</strong>
+                    <div style={smallMuted}>{request.client_phone || "—"}</div>
+                  </div>
+                  <div style={miniCardStyle}>
+                    <strong>Buyer requested contact</strong>
+                    <div style={smallMuted}>{request.buyer_requested_contact ? "Yes" : "No"}</div>
+                  </div>
+                  <div style={miniCardStyle}>
+                    <strong>Total quotes</strong>
+                    <div style={smallMuted}>{quotes.length}</div>
+                  </div>
+                </div>
 
-                {item.client_email && (
-                  <p style={{ margin: "0 0 8px" }}>
-                    <a
-                      href={`mailto:${item.client_email}`}
-                      style={{
-                        color: COLORS.primary,
-                        fontWeight: 700,
-                        textDecoration: "none",
-                      }}
-                    >
-                      Send Email
-                    </a>
-                  </p>
+                <div style={infoGridStyle}>
+                  <div style={miniCardStyle}>
+                    <strong>Payment status</strong>
+                    <div style={smallMuted}>{request.payment_status || "unpaid"}</div>
+                  </div>
+                  <div style={miniCardStyle}>
+                    <strong>Access fee</strong>
+                    <div style={smallMuted}>{request.contact_access_fee || "—"}</div>
+                  </div>
+                  <div style={miniCardStyle}>
+                    <strong>Payment reference</strong>
+                    <div style={smallMuted}>{request.payment_reference || "—"}</div>
+                  </div>
+                  <div style={miniCardStyle}>
+                    <strong>Paid at</strong>
+                    <div style={smallMuted}>
+                      {request.paid_at ? new Date(request.paid_at).toLocaleString() : "—"}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={contentBoxStyle}>
+                  <strong>Fabric request</strong>
+                  <p style={preWrapText}>{request.user_input}</p>
+                </div>
+
+                {request.ai_output && (
+                  <div style={contentBoxStyle}>
+                    <strong>AI sourcing spec</strong>
+                    <p style={preWrapText}>{request.ai_output}</p>
+                  </div>
                 )}
 
-                <p style={{ margin: "0 0 8px" }}>
-                  <strong>Phone:</strong> {item.client_phone || "Not provided"}
-                </p>
-
-                {item.client_phone && (
-                  <p style={{ margin: 0 }}>
+                {request.payment_proof_url && (
+                  <div style={proofCardStyle}>
+                    <strong style={{ display: "block", marginBottom: 10 }}>Payment proof</strong>
+                    <div style={{ color: "#64748b", marginBottom: 10 }}>
+                      {request.payment_proof_name || "Uploaded proof"}
+                    </div>
                     <a
-                      href={`https://wa.me/${item.client_phone.replace(/\D/g, "")}`}
+                      href={request.payment_proof_url}
                       target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        color: COLORS.primary,
-                        fontWeight: 700,
-                        textDecoration: "none",
-                      }}
+                      rel="noreferrer"
+                      style={proofLinkStyle}
                     >
-                      Contact on WhatsApp
+                      Open payment proof
                     </a>
-                  </p>
+                  </div>
                 )}
-              </div>
 
-              <div>
-                <p style={{ margin: "0 0 8px" }}>
-                  <strong>Created:</strong>{" "}
-                  {item.created_at
-                    ? new Date(item.created_at).toLocaleString()
-                    : "Unknown"}
-                </p>
-
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: 8,
-                    fontWeight: 700,
-                    fontSize: 14,
-                  }}
-                >
-                  Update status
-                </label>
-                <select
-                  defaultValue={item.status}
-                  onChange={async (e) => {
-                    const newStatus = e.target.value;
-
-                    await supabase
-                      .from("fabric_requests")
-                      .update({ status: newStatus })
-                      .eq("id", item.id);
-
-                    fetchData();
-                  }}
-                  style={{
-                    width: "100%",
-                    padding: "12px 14px",
-                    borderRadius: 12,
-                    border: `1px solid ${COLORS.border}`,
-                    fontSize: 14,
-                    backgroundColor: "#fff",
-                  }}
-                >
-                  <option value="new">new</option>
-                  <option value="in_progress">in_progress</option>
-                  <option value="quoted">quoted</option>
-                  <option value="completed">completed</option>
-                </select>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: 16 }}>
-              <h3 style={{ marginBottom: 10 }}>Fabric Request</h3>
-              <div
-                style={{
-                  backgroundColor: "#fff",
-                  border: `1px solid ${COLORS.border}`,
-                  borderRadius: 14,
-                  padding: 16,
-                  lineHeight: 1.8,
-                  wordBreak: "break-word",
-                }}
-              >
-                {item.user_input}
-              </div>
-            </div>
-
-            <div style={{ marginBottom: 16 }}>
-              <h3 style={{ marginBottom: 10 }}>AI Fabric Specification</h3>
-              <pre
-                style={{
-                  whiteSpace: "pre-wrap",
-                  backgroundColor: "#fff",
-                  padding: 16,
-                  borderRadius: 14,
-                  border: `1px solid ${COLORS.border}`,
-                  lineHeight: 1.75,
-                  overflowX: "auto",
-                }}
-              >
-                {typeof item.ai_output === "string"
-                  ? item.ai_output
-                  : JSON.stringify(item.ai_output, null, 2)}
-              </pre>
-            </div>
-
-            <div style={{ marginBottom: 16 }}>
-              <h3 style={{ marginBottom: 10 }}>Internal Note</h3>
-              <textarea
-                defaultValue={item.internal_note || ""}
-                placeholder="Add private note for this request..."
-                onBlur={async (e) => {
-                  await supabase
-                    .from("fabric_requests")
-                    .update({ internal_note: e.target.value })
-                    .eq("id", item.id);
-
-                  fetchData();
-                }}
-                style={{
-                  width: "100%",
-                  minHeight: 90,
-                  padding: 14,
-                  borderRadius: 14,
-                  border: `1px solid ${COLORS.border}`,
-                  fontSize: 14,
-                  lineHeight: 1.7,
-                  resize: "vertical",
-                  backgroundColor: "#fff",
-                }}
-              />
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                gap: 10,
-                marginBottom: 16,
-                flexWrap: "wrap",
-              }}
-            >
-              <PrimaryButton
-                onClick={async () => {
-                  await supabase
-                    .from("fabric_requests")
-                    .update({ status: "completed" })
-                    .eq("id", item.id);
-
-                  fetchData();
-                }}
-                style={{ width: "auto" }}
-              >
-                Mark as Completed
-              </PrimaryButton>
-
-              <button
-                onClick={async () => {
-                  const confirmed = window.confirm(
-                    "Are you sure you want to delete this request?"
-                  );
-
-                  if (!confirmed) return;
-
-                  await supabase.from("quotes").delete().eq("request_id", item.id);
-                  await supabase.from("buyer_actions").delete().eq("request_id", item.id);
-                  await supabase.from("fabric_requests").delete().eq("id", item.id);
-
-                  fetchData();
-                }}
-                style={{
-                  padding: "10px 14px",
-                  borderRadius: 12,
-                  border: "none",
-                  backgroundColor: "#B91C1C",
-                  color: "white",
-                  cursor: "pointer",
-                  fontWeight: 700,
-                }}
-              >
-                Delete Request
-              </button>
-            </div>
-
-            <div style={{ marginBottom: 16 }}>
-              <h3 style={{ marginBottom: 12 }}>Add Quote</h3>
-
-              <form
-                onSubmit={(e) => handleAddQuote(e, item.id)}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                  gap: 12,
-                }}
-              >
-                <Input name="supplier" placeholder="Supplier name" />
-                <Input name="price" placeholder="Price" />
-                <Input name="moq" placeholder="MOQ" />
-                <Input name="note" placeholder="Notes" />
-
-                <div style={{ display: "flex", alignItems: "center" }}>
-                  <PrimaryButton type="submit" style={{ width: "100%" }}>
-                    Add Quote
-                  </PrimaryButton>
+                <div style={{ marginTop: 16 }}>
+                  <strong style={{ color: "#0f172a" }}>Internal note</strong>
+                  <textarea
+                    defaultValue={request.internal_note || ""}
+                    onBlur={(e) => saveInternalNote(request.id, e.target.value)}
+                    placeholder="Add internal notes here..."
+                    rows={4}
+                    style={{ ...inputStyle, resize: "vertical", marginTop: 8 }}
+                  />
                 </div>
-              </form>
-            </div>
 
-            <div style={{ marginBottom: 16 }}>
-              <h3 style={{ marginBottom: 12 }}>Quotes</h3>
+                <div style={{ marginTop: 16, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <button
+                    onClick={() => updateRequestStatus(request.id, "submitted")}
+                    style={smallButtonStyle}
+                  >
+                    Mark Submitted
+                  </button>
+                  <button
+                    onClick={() => updateRequestStatus(request.id, "quoted")}
+                    style={smallButtonStyle}
+                  >
+                    Mark Quoted
+                  </button>
+                  <button
+                    onClick={() => updateRequestStatus(request.id, "completed")}
+                    style={smallButtonStyle}
+                  >
+                    Mark Completed
+                  </button>
 
-              {quotes.filter((q) => q.request_id === item.id).length > 0 ? (
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-                    gap: 14,
-                  }}
-                >
-                  {quotes
-                    .filter((q) => q.request_id === item.id)
-                    .map((q) => (
-                      <div
-                        key={q.id}
-                        style={{
-                          border: `1px solid ${COLORS.border}`,
-                          padding: 18,
-                          borderRadius: 14,
-                          backgroundColor: "#fff",
-                        }}
+                  {request.payment_status === "pending" && (
+                    <button
+                      onClick={() => confirmPayment(request.id)}
+                      style={approveButtonStyle}
+                    >
+                      Confirm Payment
+                    </button>
+                  )}
+
+                  {request.payment_status === "paid" && (
+                    <button
+                      onClick={() => resetPayment(request.id)}
+                      style={smallButtonStyle}
+                    >
+                      Reset Payment
+                    </button>
+                  )}
+
+                  {request.contact_request_status === "pending" && (
+                    <>
+                      <button
+                        onClick={() =>
+                          approveContactRelease(request.id, request.payment_status)
+                        }
+                        style={approveButtonStyle}
                       >
-                        <p style={{ margin: 0, fontWeight: 800 }}>{q.supplier_name}</p>
-                        <p style={{ margin: "10px 0 6px", color: COLORS.subtext }}>
-                          <strong style={{ color: COLORS.text }}>Price:</strong> {q.price}
-                        </p>
-                        <p style={{ margin: "6px 0", color: COLORS.subtext }}>
-                          <strong style={{ color: COLORS.text }}>MOQ:</strong> {q.moq}
-                        </p>
-                        <p style={{ margin: "6px 0 0", color: COLORS.subtext }}>
-                          <strong style={{ color: COLORS.text }}>Note:</strong> {q.note}
-                        </p>
-                      </div>
-                    ))}
-                </div>
-              ) : (
-                <div
-                  style={{
-                    backgroundColor: "#fff",
-                    border: `1px solid ${COLORS.border}`,
-                    borderRadius: 14,
-                    padding: 16,
-                    color: COLORS.subtext,
-                  }}
-                >
-                  No quotes added yet.
-                </div>
-              )}
-            </div>
-
-            <div style={{ marginTop: 16 }}>
-              <h3 style={{ marginBottom: 12 }}>Buyer Actions</h3>
-
-              {buyerActions.filter((a) => a.request_id === item.id).length > 0 ? (
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                    gap: 12,
-                  }}
-                >
-                  {buyerActions
-                    .filter((a) => a.request_id === item.id)
-                    .map((a) => (
-                      <div
-                        key={a.id}
-                        style={{
-                          border: `1px solid ${COLORS.border}`,
-                          padding: 14,
-                          borderRadius: 14,
-                          backgroundColor: "#fff",
-                        }}
+                        Approve Contact Release
+                      </button>
+                      <button
+                        onClick={() => rejectContactRelease(request.id)}
+                        style={dangerButtonStyle}
                       >
-                        <p style={{ margin: 0, fontWeight: 700 }}>
-                          Action: {formatAction(a.action_type)}
-                        </p>
-                        <p style={{ margin: "8px 0 0", color: COLORS.subtext }}>
-                          {new Date(a.created_at).toLocaleString()}
-                        </p>
-                        {a.quote_id && (
-                          <p style={{ margin: "8px 0 0", color: COLORS.subtext }}>
-                            Quote ID: {a.quote_id}
-                          </p>
+                        Reject
+                      </button>
+                    </>
+                  )}
+
+                  {request.contact_request_status === "approved" && (
+                    <button
+                      onClick={() => rejectContactRelease(request.id)}
+                      style={dangerButtonStyle}
+                    >
+                      Revoke Contact Access
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => deleteRequest(request.id)}
+                    style={dangerButtonStyle}
+                  >
+                    Delete Request
+                  </button>
+                </div>
+
+                <div style={quotesSectionStyle}>
+                  <h3 style={{ marginTop: 0, color: "#0f172a" }}>Existing quotes</h3>
+
+                  {quotes.length === 0 ? (
+                    <div style={emptyStateStyle}>No quotes added yet.</div>
+                  ) : (
+                    quotes.map((quote) => (
+                      <div key={quote.id} style={quoteCardStyle}>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 10,
+                            flexWrap: "wrap",
+                            marginBottom: 10,
+                          }}
+                        >
+                          <strong style={{ color: "#0f172a" }}>{quote.supplier_name}</strong>
+                          <span
+                            style={{
+                              background: quote.is_contact_released ? "#dcfce7" : "#eff6ff",
+                              color: quote.is_contact_released ? "#166534" : "#1d4ed8",
+                              borderRadius: 999,
+                              padding: "6px 10px",
+                              fontSize: 12,
+                              fontWeight: 700,
+                            }}
+                          >
+                            {quote.is_contact_released ? "Released" : "Protected"}
+                          </span>
+                        </div>
+
+                        <div style={infoGridStyle}>
+                          <div style={miniCardStyle}>
+                            <strong>Region</strong>
+                            <div style={smallMuted}>{quote.supplier_region || "—"}</div>
+                          </div>
+                          <div style={miniCardStyle}>
+                            <strong>Price</strong>
+                            <div style={smallMuted}>{quote.price || "—"}</div>
+                          </div>
+                          <div style={miniCardStyle}>
+                            <strong>MOQ</strong>
+                            <div style={smallMuted}>{quote.moq || "—"}</div>
+                          </div>
+                          <div style={miniCardStyle}>
+                            <strong>Lead time</strong>
+                            <div style={smallMuted}>{quote.lead_time || "—"}</div>
+                          </div>
+                        </div>
+
+                        {quote.note && (
+                          <div style={{ marginTop: 10 }}>
+                            <strong>Note</strong>
+                            <p style={preWrapText}>{quote.note}</p>
+                          </div>
                         )}
-                      </div>
-                    ))}
-                </div>
-              ) : (
-                <div
-                  style={{
-                    backgroundColor: "#fff",
-                    border: `1px solid ${COLORS.border}`,
-                    borderRadius: 14,
-                    padding: 16,
-                    color: COLORS.subtext,
-                  }}
-                >
-                  No buyer actions yet.
-                </div>
-              )}
-            </div>
-          </Card>
-        ))}
-      </div>
 
-      <footer
-        style={{
-          marginTop: 40,
-          paddingTop: 24,
-          paddingBottom: 24,
-          borderTop: `1px solid ${COLORS.border}`,
-          textAlign: "center",
-          color: COLORS.subtext,
-          fontSize: 14,
-        }}
-      >
-        © {new Date().getFullYear()} Weinly Admin. Internal sourcing workspace.
-      </footer>
+                        <div style={infoGridStyle}>
+                          <div style={miniCardStyle}>
+                            <strong>Contact name</strong>
+                            <div style={smallMuted}>{quote.contact_name || "—"}</div>
+                          </div>
+                          <div style={miniCardStyle}>
+                            <strong>Phone</strong>
+                            <div style={smallMuted}>{quote.contact_phone || "—"}</div>
+                          </div>
+                          <div style={miniCardStyle}>
+                            <strong>WeChat</strong>
+                            <div style={smallMuted}>{quote.contact_wechat || "—"}</div>
+                          </div>
+                          <div style={miniCardStyle}>
+                            <strong>Email</strong>
+                            <div style={smallMuted}>{quote.contact_email || "—"}</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div style={addQuoteCardStyle}>
+                  <h3 style={{ marginTop: 0, color: "#0f172a" }}>Add new quote</h3>
+
+                  <div style={formGridStyle}>
+                    <input
+                      placeholder="Supplier name"
+                      value={newQuotes[request.id]?.supplier_name || ""}
+                      onChange={(e) =>
+                        updateNewQuoteField(request.id, "supplier_name", e.target.value)
+                      }
+                      style={inputStyle}
+                    />
+                    <input
+                      placeholder="Price"
+                      value={newQuotes[request.id]?.price || ""}
+                      onChange={(e) =>
+                        updateNewQuoteField(request.id, "price", e.target.value)
+                      }
+                      style={inputStyle}
+                    />
+                    <input
+                      placeholder="MOQ"
+                      value={newQuotes[request.id]?.moq || ""}
+                      onChange={(e) =>
+                        updateNewQuoteField(request.id, "moq", e.target.value)
+                      }
+                      style={inputStyle}
+                    />
+                    <input
+                      placeholder="Supplier region"
+                      value={newQuotes[request.id]?.supplier_region || ""}
+                      onChange={(e) =>
+                        updateNewQuoteField(request.id, "supplier_region", e.target.value)
+                      }
+                      style={inputStyle}
+                    />
+                    <input
+                      placeholder="Lead time"
+                      value={newQuotes[request.id]?.lead_time || ""}
+                      onChange={(e) =>
+                        updateNewQuoteField(request.id, "lead_time", e.target.value)
+                      }
+                      style={inputStyle}
+                    />
+                    <input
+                      placeholder="Contact name"
+                      value={newQuotes[request.id]?.contact_name || ""}
+                      onChange={(e) =>
+                        updateNewQuoteField(request.id, "contact_name", e.target.value)
+                      }
+                      style={inputStyle}
+                    />
+                    <input
+                      placeholder="Contact phone"
+                      value={newQuotes[request.id]?.contact_phone || ""}
+                      onChange={(e) =>
+                        updateNewQuoteField(request.id, "contact_phone", e.target.value)
+                      }
+                      style={inputStyle}
+                    />
+                    <input
+                      placeholder="Contact WeChat"
+                      value={newQuotes[request.id]?.contact_wechat || ""}
+                      onChange={(e) =>
+                        updateNewQuoteField(request.id, "contact_wechat", e.target.value)
+                      }
+                      style={inputStyle}
+                    />
+                    <input
+                      placeholder="Contact email"
+                      value={newQuotes[request.id]?.contact_email || ""}
+                      onChange={(e) =>
+                        updateNewQuoteField(request.id, "contact_email", e.target.value)
+                      }
+                      style={inputStyle}
+                    />
+                  </div>
+
+                  <textarea
+                    placeholder="Supplier note"
+                    value={newQuotes[request.id]?.note || ""}
+                    onChange={(e) =>
+                      updateNewQuoteField(request.id, "note", e.target.value)
+                    }
+                    rows={4}
+                    style={{ ...inputStyle, marginTop: 12, resize: "vertical" }}
+                  />
+
+                  <div style={{ marginTop: 12 }}>
+                    <button onClick={() => addQuote(request.id)} style={darkButtonStyle}>
+                      Add Quote
+                    </button>
+                  </div>
+                </div>
+              </section>
+            );
+          })
+        )}
+      </div>
     </main>
   );
 }
+
+const pageStyle: React.CSSProperties = {
+  minHeight: "100vh",
+  background: "#f8fafc",
+  padding: "32px 16px",
+  fontFamily:
+    'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+};
+
+const loginCardStyle: React.CSSProperties = {
+  maxWidth: 420,
+  margin: "80px auto",
+  background: "white",
+  border: "1px solid #e5e7eb",
+  borderRadius: 24,
+  padding: 24,
+  boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
+};
+
+const topBarStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 16,
+  flexWrap: "wrap",
+  alignItems: "center",
+  marginBottom: 18,
+};
+
+const searchCardStyle: React.CSSProperties = {
+  background: "white",
+  border: "1px solid #e5e7eb",
+  borderRadius: 18,
+  padding: 16,
+  marginBottom: 18,
+};
+
+const requestCardStyle: React.CSSProperties = {
+  background: "white",
+  border: "1px solid #e5e7eb",
+  borderRadius: 24,
+  padding: 22,
+  marginBottom: 20,
+  boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
+};
+
+const requestHeaderStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 14,
+  flexWrap: "wrap",
+  marginBottom: 16,
+};
+
+const pillWrapStyle: React.CSSProperties = {
+  display: "flex",
+  gap: 10,
+  flexWrap: "wrap",
+  alignSelf: "start",
+};
+
+const statusPillStyle: React.CSSProperties = {
+  background: "#eff6ff",
+  color: "#1d4ed8",
+  borderRadius: 999,
+  padding: "8px 12px",
+  fontSize: 12,
+  fontWeight: 700,
+};
+
+const contactPillStyle: React.CSSProperties = {
+  background: "#fef3c7",
+  color: "#92400e",
+  borderRadius: 999,
+  padding: "8px 12px",
+  fontSize: 12,
+  fontWeight: 700,
+};
+
+const metaTextStyle: React.CSSProperties = {
+  color: "#64748b",
+  fontSize: 14,
+  lineHeight: 1.6,
+};
+
+const contentBoxStyle: React.CSSProperties = {
+  marginTop: 14,
+  border: "1px solid #e2e8f0",
+  background: "#f8fafc",
+  borderRadius: 16,
+  padding: 14,
+};
+
+const proofCardStyle: React.CSSProperties = {
+  marginTop: 14,
+  border: "1px solid #dbeafe",
+  background: "#eff6ff",
+  borderRadius: 16,
+  padding: 14,
+};
+
+const proofLinkStyle: React.CSSProperties = {
+  display: "inline-block",
+  padding: "10px 14px",
+  borderRadius: 12,
+  background: "#0f172a",
+  color: "white",
+  textDecoration: "none",
+  fontWeight: 700,
+};
+
+const quotesSectionStyle: React.CSSProperties = {
+  marginTop: 22,
+  borderTop: "1px solid #e2e8f0",
+  paddingTop: 18,
+};
+
+const addQuoteCardStyle: React.CSSProperties = {
+  marginTop: 18,
+  border: "1px solid #e2e8f0",
+  background: "#f8fafc",
+  borderRadius: 18,
+  padding: 16,
+};
+
+const quoteCardStyle: React.CSSProperties = {
+  border: "1px solid #e2e8f0",
+  borderRadius: 16,
+  padding: 14,
+  background: "white",
+  marginBottom: 12,
+};
+
+const formGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: 10,
+};
+
+const infoGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: 10,
+  marginTop: 12,
+};
+
+const miniCardStyle: React.CSSProperties = {
+  border: "1px solid #e2e8f0",
+  background: "#f8fafc",
+  borderRadius: 14,
+  padding: 12,
+  color: "#0f172a",
+};
+
+const smallMuted: React.CSSProperties = {
+  color: "#64748b",
+  marginTop: 6,
+  fontSize: 14,
+  lineHeight: 1.6,
+  wordBreak: "break-word",
+};
+
+const preWrapText: React.CSSProperties = {
+  margin: "6px 0 0 0",
+  color: "#334155",
+  whiteSpace: "pre-wrap",
+  lineHeight: 1.7,
+};
+
+const emptyStateStyle: React.CSSProperties = {
+  border: "1px dashed #cbd5e1",
+  background: "#f8fafc",
+  borderRadius: 16,
+  padding: 16,
+  color: "#64748b",
+};
+
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  padding: "12px 14px",
+  borderRadius: 12,
+  border: "1px solid #cbd5e1",
+  background: "white",
+  color: "#0f172a",
+  fontSize: 14,
+  boxSizing: "border-box",
+};
+
+const darkButtonStyle: React.CSSProperties = {
+  background: "#0f172a",
+  color: "white",
+  border: "none",
+  borderRadius: 12,
+  padding: "12px 16px",
+  fontWeight: 700,
+  cursor: "pointer",
+};
+
+const blueButtonStyle: React.CSSProperties = {
+  background: "#2563eb",
+  color: "white",
+  border: "none",
+  borderRadius: 12,
+  padding: "12px 16px",
+  fontWeight: 700,
+  cursor: "pointer",
+};
+
+const approveButtonStyle: React.CSSProperties = {
+  background: "#065f46",
+  color: "white",
+  border: "none",
+  borderRadius: 12,
+  padding: "10px 14px",
+  fontWeight: 700,
+  cursor: "pointer",
+};
+
+const dangerButtonStyle: React.CSSProperties = {
+  background: "#991b1b",
+  color: "white",
+  border: "none",
+  borderRadius: 12,
+  padding: "10px 14px",
+  fontWeight: 700,
+  cursor: "pointer",
+};
+
+const smallButtonStyle: React.CSSProperties = {
+  background: "#e2e8f0",
+  color: "#0f172a",
+  border: "none",
+  borderRadius: 12,
+  padding: "10px 14px",
+  fontWeight: 700,
+  cursor: "pointer",
+};
