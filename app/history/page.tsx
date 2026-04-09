@@ -14,7 +14,7 @@ type FabricRequest = {
   client_email: string | null;
   client_phone: string | null;
   user_input: string;
-  ai_output: string | null;
+  ai_output: unknown;
   status: string | null;
   buyer_requested_contact: boolean | null;
   contact_request_status: string | null;
@@ -23,6 +23,20 @@ type FabricRequest = {
   payment_reference: string | null;
   paid_at: string | null;
 };
+
+function formatAiOutput(aiOutput: unknown) {
+  if (!aiOutput) return "—";
+
+  if (typeof aiOutput === "string") return aiOutput;
+
+  if (typeof aiOutput === "object") {
+    return Object.entries(aiOutput as Record<string, unknown>)
+      .map(([key, value]) => `${key.replace(/_/g, " ")}: ${String(value ?? "")}`)
+      .join("\n");
+  }
+
+  return String(aiOutput);
+}
 
 export default function HistoryPage() {
   const [email, setEmail] = useState("");
@@ -177,7 +191,7 @@ export default function HistoryPage() {
                 {request.ai_output && (
                   <div style={contentBoxStyle}>
                     <strong>AI sourcing spec</strong>
-                    <p style={preWrapText}>{request.ai_output}</p>
+                    <p style={preWrapText}>{formatAiOutput(request.ai_output)}</p>
                   </div>
                 )}
 

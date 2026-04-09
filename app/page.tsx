@@ -17,7 +17,7 @@ type FabricRequest = {
   client_email: string | null;
   client_phone: string | null;
   user_input: string;
-  ai_output: string | null;
+  ai_output: unknown;
   status: string | null;
   internal_note: string | null;
   buyer_requested_contact: boolean | null;
@@ -43,6 +43,20 @@ type Quote = {
   lead_time: string | null;
   is_contact_released: boolean | null;
 };
+
+function formatAiOutput(aiOutput: unknown) {
+  if (!aiOutput) return "—";
+
+  if (typeof aiOutput === "string") return aiOutput;
+
+  if (typeof aiOutput === "object") {
+    return Object.entries(aiOutput as Record<string, unknown>)
+      .map(([key, value]) => `${key.replace(/_/g, " ")}: ${String(value ?? "")}`)
+      .join("\n");
+  }
+
+  return String(aiOutput);
+}
 
 export default function HomePage() {
   const [description, setDescription] = useState("");
@@ -331,6 +345,16 @@ export default function HomePage() {
     refreshSubmittedData();
   }, [requestId]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestIdFromUrl = params.get("requestId");
+
+    if (requestIdFromUrl) {
+      setLookupId(requestIdFromUrl);
+      handleLookup(requestIdFromUrl);
+    }
+  }, []);
+
   const activeRequest = useMemo(() => {
     return lookupRequest || submittedRequest;
   }, [lookupRequest, submittedRequest]);
@@ -479,7 +503,7 @@ export default function HomePage() {
             {submittedRequest.ai_output && (
               <div style={specBoxStyle}>
                 <h3 style={smallTitle}>AI sourcing spec</h3>
-                <p style={preWrapText}>{submittedRequest.ai_output}</p>
+                <p style={preWrapText}>{formatAiOutput(submittedRequest.ai_output)}</p>
               </div>
             )}
           </section>
@@ -530,7 +554,7 @@ export default function HomePage() {
             {activeRequest.ai_output && (
               <div style={specBoxStyle}>
                 <h3 style={smallTitle}>AI sourcing spec</h3>
-                <p style={preWrapText}>{activeRequest.ai_output}</p>
+                <p style={preWrapText}>{formatAiOutput(activeRequest.ai_output)}</p>
               </div>
             )}
 
