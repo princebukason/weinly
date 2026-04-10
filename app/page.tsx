@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-import PaystackPop from "@paystack/inline-js";
+
+let PaystackPop: any = null;
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -287,6 +288,16 @@ export default function HomePage() {
         return;
       }
 
+      if (typeof window === "undefined") {
+        setPaymentLoading(false);
+        return;
+      }
+
+      if (!PaystackPop) {
+        const module = await import("@paystack/inline-js");
+        PaystackPop = module.default;
+      }
+
       const popup = new PaystackPop();
 
       popup.resumeTransaction(initData.access_code, {
@@ -346,6 +357,8 @@ export default function HomePage() {
   }, [requestId]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     const params = new URLSearchParams(window.location.search);
     const requestIdFromUrl = params.get("requestId");
 
