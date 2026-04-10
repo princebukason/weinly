@@ -7,6 +7,9 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+const WHATSAPP_LINK = "https://wa.me/2348130630046";
+const SUPPORT_EMAIL = "support@weinly.com";
+
 type FabricRequest = {
   id: string;
   created_at: string;
@@ -169,6 +172,42 @@ export default function HistoryPage() {
   return (
     <main style={pageStyle}>
       <div style={containerStyle}>
+        <header style={navWrapperStyle}>
+          <div style={navBarStyle}>
+            <a href="/" style={brandStyle}>
+              <span style={brandBadgeStyle}>W</span>
+              <span>Weinly</span>
+            </a>
+
+            <nav style={navLinksStyle}>
+              <a href="/" style={navLinkStyle}>
+                Home
+              </a>
+              <a href="/#how-it-works" style={navLinkStyle}>
+                How it works
+              </a>
+              <a href="/history" style={navLinkStyle}>
+                History
+              </a>
+              <a href="/#pricing" style={navLinkStyle}>
+                Pricing
+              </a>
+              <a
+                href={WHATSAPP_LINK}
+                target="_blank"
+                rel="noreferrer"
+                style={navLinkStyle}
+              >
+                WhatsApp Support
+              </a>
+            </nav>
+
+            <a href="/#submit-request" style={navCtaStyle}>
+              Submit Request
+            </a>
+          </div>
+        </header>
+
         <section style={cardStyle}>
           <div style={badgeStyle}>WEINLY HISTORY</div>
 
@@ -479,7 +518,7 @@ export default function HistoryPage() {
                         </a>
 
                         <a
-                          href="https://wa.me/2348130630046"
+                          href={WHATSAPP_LINK}
                           target="_blank"
                           rel="noreferrer"
                           style={whatsAppButtonStyle}
@@ -503,6 +542,51 @@ export default function HistoryPage() {
             })
           )}
         </section>
+
+        <footer style={footerStyle}>
+          <div style={footerTopStyle}>
+            <div>
+              <div style={footerBrandStyle}>Weinly</div>
+              <p style={footerTextStyle}>
+                Built for fabric buyers sourcing from China.
+              </p>
+            </div>
+
+            <div style={footerGridStyle}>
+              <div>
+                <div style={footerHeadingStyle}>Navigation</div>
+                <div style={footerLinksWrapStyle}>
+                  <a href="/history" style={footerLinkStyle}>
+                    History
+                  </a>
+                  <a href="/#pricing" style={footerLinkStyle}>
+                    Pricing
+                  </a>
+                  <a href="/#how-it-works" style={footerLinkStyle}>
+                    How it works
+                  </a>
+                </div>
+              </div>
+
+              <div>
+                <div style={footerHeadingStyle}>Support</div>
+                <div style={footerLinksWrapStyle}>
+                  <a
+                    href={WHATSAPP_LINK}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={footerLinkStyle}
+                  >
+                    WhatsApp
+                  </a>
+                  <a href={`mailto:${SUPPORT_EMAIL}`} style={footerLinkStyle}>
+                    {SUPPORT_EMAIL}
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </footer>
       </div>
     </main>
   );
@@ -511,14 +595,80 @@ export default function HistoryPage() {
 const pageStyle: React.CSSProperties = {
   minHeight: "100vh",
   background: "#f8fafc",
-  padding: "40px 16px",
+  padding: "24px 16px 40px",
   fontFamily:
     'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
 };
 
 const containerStyle: React.CSSProperties = {
-  maxWidth: 980,
+  maxWidth: 1100,
   margin: "0 auto",
+};
+
+const navWrapperStyle: React.CSSProperties = {
+  marginBottom: 18,
+};
+
+const navBarStyle: React.CSSProperties = {
+  background: "rgba(255,255,255,0.9)",
+  border: "1px solid #e5e7eb",
+  borderRadius: 22,
+  padding: "14px 18px",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 16,
+  flexWrap: "wrap",
+  boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
+};
+
+const brandStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 10,
+  textDecoration: "none",
+  color: "#0f172a",
+  fontWeight: 800,
+  fontSize: 20,
+};
+
+const brandBadgeStyle: React.CSSProperties = {
+  width: 34,
+  height: 34,
+  borderRadius: 999,
+  background: "#0f172a",
+  color: "white",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: 14,
+  fontWeight: 800,
+};
+
+const navLinksStyle: React.CSSProperties = {
+  display: "flex",
+  gap: 18,
+  flexWrap: "wrap",
+  alignItems: "center",
+};
+
+const navLinkStyle: React.CSSProperties = {
+  color: "#475569",
+  textDecoration: "none",
+  fontWeight: 600,
+  fontSize: 14,
+};
+
+const navCtaStyle: React.CSSProperties = {
+  background: "#0f172a",
+  color: "white",
+  textDecoration: "none",
+  borderRadius: 12,
+  padding: "12px 16px",
+  fontWeight: 700,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
 };
 
 const cardStyle: React.CSSProperties = {
@@ -885,4 +1035,58 @@ const trackLinkStyle: React.CSSProperties = {
   color: "#2563eb",
   fontWeight: 700,
   textDecoration: "none",
+};
+
+const footerStyle: React.CSSProperties = {
+  marginTop: 8,
+  background: "white",
+  border: "1px solid #e5e7eb",
+  borderRadius: 24,
+  padding: 24,
+  boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
+};
+
+const footerTopStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 24,
+  flexWrap: "wrap",
+};
+
+const footerBrandStyle: React.CSSProperties = {
+  fontSize: 24,
+  fontWeight: 800,
+  color: "#0f172a",
+};
+
+const footerTextStyle: React.CSSProperties = {
+  margin: "8px 0 0 0",
+  color: "#64748b",
+  lineHeight: 1.7,
+  maxWidth: 320,
+};
+
+const footerGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: 24,
+  minWidth: 320,
+};
+
+const footerHeadingStyle: React.CSSProperties = {
+  color: "#0f172a",
+  fontWeight: 700,
+  marginBottom: 10,
+};
+
+const footerLinksWrapStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 10,
+};
+
+const footerLinkStyle: React.CSSProperties = {
+  color: "#475569",
+  textDecoration: "none",
+  fontWeight: 600,
 };
