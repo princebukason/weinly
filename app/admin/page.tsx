@@ -43,6 +43,32 @@ type Quote = {
   is_contact_released: boolean | null;
 };
 
+type NewQuoteForm = {
+  supplier_name: string;
+  price: string;
+  moq: string;
+  note: string;
+  contact_name: string;
+  contact_phone: string;
+  contact_wechat: string;
+  contact_email: string;
+  supplier_region: string;
+  lead_time: string;
+};
+
+const emptyQuoteForm: NewQuoteForm = {
+  supplier_name: "",
+  price: "",
+  moq: "",
+  note: "",
+  contact_name: "",
+  contact_phone: "",
+  contact_wechat: "",
+  contact_email: "",
+  supplier_region: "",
+  lead_time: "",
+};
+
 function formatAiOutput(aiOutput: unknown) {
   if (!aiOutput) return "—";
 
@@ -64,24 +90,7 @@ export default function AdminPage() {
   const [requests, setRequests] = useState<FabricRequest[]>([]);
   const [quotesMap, setQuotesMap] = useState<Record<string, Quote[]>>({});
   const [search, setSearch] = useState("");
-
-  const [newQuotes, setNewQuotes] = useState<
-    Record<
-      string,
-      {
-        supplier_name: string;
-        price: string;
-        moq: string;
-        note: string;
-        contact_name: string;
-        contact_phone: string;
-        contact_wechat: string;
-        contact_email: string;
-        supplier_region: string;
-        lead_time: string;
-      }
-    >
-  >({});
+  const [newQuotes, setNewQuotes] = useState<Record<string, NewQuoteForm>>({});
 
   useEffect(() => {
     const saved =
@@ -158,21 +167,15 @@ export default function AdminPage() {
     setAuthenticated(false);
   }
 
-  function updateNewQuoteField(requestId: string, field: string, value: string) {
+  function updateNewQuoteField(
+    requestId: string,
+    field: keyof NewQuoteForm,
+    value: string
+  ) {
     setNewQuotes((prev) => ({
       ...prev,
       [requestId]: {
-        supplier_name: "",
-        price: "",
-        moq: "",
-        note: "",
-        contact_name: "",
-        contact_phone: "",
-        contact_wechat: "",
-        contact_email: "",
-        supplier_region: "",
-        lead_time: "",
-        ...prev[requestId],
+        ...(prev[requestId] || { ...emptyQuoteForm }),
         [field]: value,
       },
     }));
@@ -208,18 +211,7 @@ export default function AdminPage() {
 
       setNewQuotes((prev) => ({
         ...prev,
-        [requestId]: {
-          supplier_name: "",
-          price: "",
-          moq: "",
-          note: "",
-          contact_name: "",
-          contact_phone: "",
-          contact_wechat: "",
-          contact_email: "",
-          supplier_region: "",
-          lead_time: "",
-        },
+        [requestId]: { ...emptyQuoteForm },
       }));
 
       await fetchRequests();
@@ -259,7 +251,10 @@ export default function AdminPage() {
     }
   }
 
-  async function approveContactRelease(requestId: string, paymentStatus?: string | null) {
+  async function approveContactRelease(
+    requestId: string,
+    paymentStatus?: string | null
+  ) {
     if (paymentStatus !== "paid") {
       alert("Payment must be confirmed before releasing supplier contact.");
       return;
@@ -435,7 +430,9 @@ export default function AdminPage() {
                   </div>
 
                   <div style={pillWrapStyle}>
-                    <span style={statusPillStyle}>Status: {request.status || "submitted"}</span>
+                    <span style={statusPillStyle}>
+                      Status: {request.status || "submitted"}
+                    </span>
                     <span style={contactPillStyle}>
                       Contact: {request.contact_request_status || "none"}
                     </span>
@@ -453,7 +450,9 @@ export default function AdminPage() {
                   </div>
                   <div style={miniCardStyle}>
                     <strong>Buyer requested contact</strong>
-                    <div style={smallMuted}>{request.buyer_requested_contact ? "Yes" : "No"}</div>
+                    <div style={smallMuted}>
+                      {request.buyer_requested_contact ? "Yes" : "No"}
+                    </div>
                   </div>
                   <div style={miniCardStyle}>
                     <strong>Total quotes</strong>
