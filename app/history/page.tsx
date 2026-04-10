@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-const WHATSAPP_LINK = "https://wa.me/2348130630046";
+const WHATSAPP_NUMBER = "2348130630046";
 const SUPPORT_EMAIL = "support@weinly.com";
 
 type FabricRequest = {
@@ -98,12 +98,28 @@ function getStageTone(request: FabricRequest, quoteCount: number) {
   };
 }
 
+function buildWhatsappLink(message: string) {
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
+
 export default function HistoryPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [requests, setRequests] = useState<FabricRequest[]>([]);
   const [quotesMap, setQuotesMap] = useState<Record<string, Quote[]>>({});
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    function checkMobile() {
+      setIsMobile(window.innerWidth < 880);
+    }
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   async function searchHistory(e: React.FormEvent) {
     e.preventDefault();
@@ -169,42 +185,78 @@ export default function HistoryPage() {
     }
   }
 
+  const genericSupportLink = buildWhatsappLink(
+    "Hello Weinly, I need help with my request history."
+  );
+
   return (
     <main style={pageStyle}>
       <div style={containerStyle}>
         <header style={navWrapperStyle}>
           <div style={navBarStyle}>
-            <a href="/" style={brandStyle}>
-              <span style={brandBadgeStyle}>W</span>
-              <span>Weinly</span>
-            </a>
+            <div style={navTopRowStyle}>
+              <a href="/" style={brandStyle}>
+                <span style={brandBadgeStyle}>W</span>
+                <span>Weinly</span>
+              </a>
 
-            <nav style={navLinksStyle}>
-              <a href="/" style={navLinkStyle}>
-                Home
-              </a>
-              <a href="/#how-it-works" style={navLinkStyle}>
-                How it works
-              </a>
-              <a href="/history" style={navLinkStyle}>
-                History
-              </a>
-              <a href="/#pricing" style={navLinkStyle}>
-                Pricing
-              </a>
-              <a
-                href={WHATSAPP_LINK}
-                target="_blank"
-                rel="noreferrer"
-                style={navLinkStyle}
+              {isMobile && (
+                <button
+                  type="button"
+                  onClick={() => setMobileMenuOpen((prev) => !prev)}
+                  style={menuButtonStyle}
+                >
+                  {mobileMenuOpen ? "Close" : "Menu"}
+                </button>
+              )}
+            </div>
+
+            <div
+              style={{
+                ...navContentWrapStyle,
+                display: isMobile ? (mobileMenuOpen ? "flex" : "none") : "flex",
+              }}
+            >
+              <nav
+                style={{
+                  ...navLinksStyle,
+                  flexDirection: isMobile ? "column" : "row",
+                  alignItems: isMobile ? "flex-start" : "center",
+                  width: isMobile ? "100%" : "auto",
+                }}
               >
-                WhatsApp Support
-              </a>
-            </nav>
+                <a href="/" style={navLinkStyle}>
+                  Home
+                </a>
+                <a href="/#how-it-works" style={navLinkStyle}>
+                  How it works
+                </a>
+                <a href="/history" style={navLinkStyle}>
+                  History
+                </a>
+                <a href="/#pricing" style={navLinkStyle}>
+                  Pricing
+                </a>
+                <a
+                  href={genericSupportLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={navLinkStyle}
+                >
+                  WhatsApp Support
+                </a>
+              </nav>
 
-            <a href="/#submit-request" style={navCtaStyle}>
-              Submit Request
-            </a>
+              <a
+                href="/#submit-request"
+                style={{
+                  ...navCtaStyle,
+                  width: isMobile ? "100%" : "auto",
+                }}
+              >
+                Submit Request
+              </a>
+            </div>
           </div>
         </header>
 
@@ -264,6 +316,9 @@ export default function HistoryPage() {
             requests.map((request) => {
               const quotes = quotesMap[request.id] || [];
               const stage = getStageTone(request, quotes.length);
+              const requestSupportLink = buildWhatsappLink(
+                `Hello Weinly, I need help with request ID: ${request.id}`
+              );
 
               return (
                 <div key={request.id} style={requestCardStyle}>
@@ -378,7 +433,7 @@ export default function HistoryPage() {
 
                     {quotes.length === 0 ? (
                       <div style={emptyStateStyle}>
-                        No quote has been added to this request yet.
+                        We are currently sourcing suppliers for this request. Quotes will appear here shortly.
                       </div>
                     ) : (
                       quotes.map((quote) => (
@@ -489,11 +544,13 @@ export default function HistoryPage() {
                   {quotes.length > 0 && request.contact_request_status !== "approved" && (
                     <div style={unlockBoxStyle}>
                       <div>
-                        <h4 style={unlockTitleStyle}>Unlock direct supplier contact</h4>
+                        <h4 style={unlockTitleStyle}>Unlock verified supplier contact now</h4>
                         <p style={unlockTextStyle}>
-                          Get access to supplier phone number, WeChat, email, and contact
-                          person after approval.
+                          Get direct access to supplier phone, WeChat, and contact person. Avoid middlemen and negotiate better deals instantly.
                         </p>
+                        <div style={{ marginTop: 8, fontSize: 13, color: "#64748b" }}>
+                          Trusted by fabric buyers sourcing from China to Africa.
+                        </div>
                       </div>
 
                       <div style={unlockMetaWrapStyle}>
@@ -518,7 +575,7 @@ export default function HistoryPage() {
                         </a>
 
                         <a
-                          href={WHATSAPP_LINK}
+                          href={requestSupportLink}
                           target="_blank"
                           rel="noreferrer"
                           style={whatsAppButtonStyle}
@@ -572,7 +629,7 @@ export default function HistoryPage() {
                 <div style={footerHeadingStyle}>Support</div>
                 <div style={footerLinksWrapStyle}>
                   <a
-                    href={WHATSAPP_LINK}
+                    href={genericSupportLink}
                     target="_blank"
                     rel="noreferrer"
                     style={footerLinkStyle}
@@ -595,7 +652,7 @@ export default function HistoryPage() {
 const pageStyle: React.CSSProperties = {
   minHeight: "100vh",
   background: "#f8fafc",
-  padding: "24px 16px 40px",
+  padding: "16px 12px 36px",
   fontFamily:
     'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
 };
@@ -610,16 +667,26 @@ const navWrapperStyle: React.CSSProperties = {
 };
 
 const navBarStyle: React.CSSProperties = {
-  background: "rgba(255,255,255,0.9)",
+  background: "rgba(255,255,255,0.95)",
   border: "1px solid #e5e7eb",
   borderRadius: 22,
   padding: "14px 18px",
+  boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
+};
+
+const navTopRowStyle: React.CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
   gap: 16,
+};
+
+const navContentWrapStyle: React.CSSProperties = {
+  marginTop: 14,
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 16,
   flexWrap: "wrap",
-  boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
 };
 
 const brandStyle: React.CSSProperties = {
@@ -649,7 +716,6 @@ const navLinksStyle: React.CSSProperties = {
   display: "flex",
   gap: 18,
   flexWrap: "wrap",
-  alignItems: "center",
 };
 
 const navLinkStyle: React.CSSProperties = {
@@ -669,6 +735,16 @@ const navCtaStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
+};
+
+const menuButtonStyle: React.CSSProperties = {
+  background: "#e2e8f0",
+  color: "#0f172a",
+  border: "none",
+  borderRadius: 12,
+  padding: "10px 14px",
+  fontWeight: 700,
+  cursor: "pointer",
 };
 
 const cardStyle: React.CSSProperties = {
@@ -693,7 +769,7 @@ const badgeStyle: React.CSSProperties = {
 
 const titleStyle: React.CSSProperties = {
   margin: "0 0 10px 0",
-  fontSize: 34,
+  fontSize: "clamp(2rem, 6vw, 3rem)",
   lineHeight: 1.1,
   color: "#0f172a",
 };
@@ -761,7 +837,7 @@ const whatsAppButtonStyle: React.CSSProperties = {
 
 const sectionTitle: React.CSSProperties = {
   margin: "0 0 12px 0",
-  fontSize: 24,
+  fontSize: "clamp(1.4rem, 3.8vw, 2rem)",
   color: "#0f172a",
 };
 
