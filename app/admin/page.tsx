@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -81,6 +81,38 @@ function formatAiOutput(aiOutput: unknown) {
   }
 
   return String(aiOutput);
+}
+
+function getRequestStage(request: FabricRequest, quoteCount: number) {
+  if (request.contact_request_status === "approved") {
+    return {
+      label: "Contact released",
+      background: "#dcfce7",
+      color: "#166534",
+    };
+  }
+
+  if (request.payment_status === "paid" && request.contact_request_status === "pending") {
+    return {
+      label: "Paid - awaiting release",
+      background: "#ede9fe",
+      color: "#6d28d9",
+    };
+  }
+
+  if (quoteCount > 0) {
+    return {
+      label: "Quotes ready",
+      background: "#dbeafe",
+      color: "#1d4ed8",
+    };
+  }
+
+  return {
+    label: "In progress",
+    background: "#fef3c7",
+    color: "#92400e",
+  };
 }
 
 export default function AdminPage() {
@@ -209,6 +241,11 @@ export default function AdminPage() {
 
       if (error) throw error;
 
+      await supabase
+        .from("fabric_requests")
+        .update({ status: "quoted" })
+        .eq("id", requestId);
+
       setNewQuotes((prev) => ({
         ...prev,
         [requestId]: { ...emptyQuoteForm },
@@ -234,6 +271,37 @@ export default function AdminPage() {
     } catch (error) {
       console.error(error);
       alert("Failed to update status.");
+    }
+  }
+
+  async function updatePaymentStatus(
+    requestId: string,
+    paymentStatus: "paid" | "unpaid"
+  ) {
+    try {
+      const updatePayload =
+        paymentStatus === "paid"
+          ? {
+              payment_status: "paid",
+              paid_at: new Date().toISOString(),
+            }
+          : {
+              payment_status: "unpaid",
+              paid_at: null,
+            };
+
+      const { error } = await supabase
+        .from("fabric_requests")
+        .update(updatePayload)
+        .eq("id", requestId);
+
+      if (error) throw error;
+
+      await fetchRequests();
+      alert(`Payment marked as ${paymentStatus}.`);
+    } catch (error) {
+      console.error(error);
+      alert("Failed to update payment status.");
     }
   }
 
@@ -315,6 +383,34 @@ export default function AdminPage() {
     }
   }
 
+  async function revokeContactAccess(requestId: string) {
+    try {
+      const { error: reqError } = await supabase
+        .from("fabric_requests")
+        .update({
+          contact_request_status: "rejected",
+        })
+        .eq("id", requestId);
+
+      if (reqError) throw reqError;
+
+      const { error: quoteError } = await supabase
+        .from("quotes")
+        .update({
+          is_contact_released: false,
+        })
+        .eq("request_id", requestId);
+
+      if (quoteError) throw quoteError;
+
+      await fetchRequests();
+      alert("Contact access revoked.");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to revoke contact access.");
+    }
+  }
+
   async function deleteRequest(requestId: string) {
     const confirmed = window.confirm("Delete this request and all related quotes?");
     if (!confirmed) return;
@@ -342,6 +438,42 @@ export default function AdminPage() {
     }
   }
 
+  const filteredRequests = useMemo(() => {
+    const q = search.toLowerCase().trim();
+
+    return requests.filter((request) => {
+      if (!q) return true;
+
+      return (
+        request.id.toLowerCase().includes(q) ||
+        (request.client_name || "").toLowerCase().includes(q) ||
+        (request.client_email || "").toLowerCase().includes(q) ||
+        (request.client_phone || "").toLowerCase().includes(q) ||
+        request.user_input.toLowerCase().includes(q)
+      );
+    });
+  }, [requests, search]);
+
+  const dashboardStats = useMemo(() => {
+    const total = requests.length;
+    const pendingPayments = requests.filter(
+      (r) => r.contact_request_status === "pending" && r.payment_status !== "paid"
+    ).length;
+    const paidAwaitingRelease = requests.filter(
+      (r) => r.payment_status === "paid" && r.contact_request_status === "pending"
+    ).length;
+    const releasedContacts = requests.filter(
+      (r) => r.contact_request_status === "approved"
+    ).length;
+
+    return {
+      total,
+      pendingPayments,
+      paidAwaitingRelease,
+      releasedContacts,
+    };
+  }, [requests]);
+
   if (loading) {
     return <div style={{ padding: 30 }}>Loading...</div>;
   }
@@ -367,19 +499,6 @@ export default function AdminPage() {
     );
   }
 
-  const filteredRequests = requests.filter((request) => {
-    const q = search.toLowerCase().trim();
-    if (!q) return true;
-
-    return (
-      request.id.toLowerCase().includes(q) ||
-      (request.client_name || "").toLowerCase().includes(q) ||
-      (request.client_email || "").toLowerCase().includes(q) ||
-      (request.client_phone || "").toLowerCase().includes(q) ||
-      request.user_input.toLowerCase().includes(q)
-    );
-  });
-
   return (
     <main style={pageStyle}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
@@ -401,6 +520,28 @@ export default function AdminPage() {
           </div>
         </div>
 
+        <div style={statsGridStyle}>
+          <div style={statCardStyle}>
+            <div style={statLabelStyle}>Total requests</div>
+            <div style={statValueStyle}>{dashboardStats.total}</div>
+          </div>
+
+          <div style={statCardStyle}>
+            <div style={statLabelStyle}>Pending payment</div>
+            <div style={statValueStyle}>{dashboardStats.pendingPayments}</div>
+          </div>
+
+          <div style={statCardStyle}>
+            <div style={statLabelStyle}>Paid awaiting release</div>
+            <div style={statValueStyle}>{dashboardStats.paidAwaitingRelease}</div>
+          </div>
+
+          <div style={statCardStyle}>
+            <div style={statLabelStyle}>Released contacts</div>
+            <div style={statValueStyle}>{dashboardStats.releasedContacts}</div>
+          </div>
+        </div>
+
         <div style={searchCardStyle}>
           <input
             value={search}
@@ -415,6 +556,7 @@ export default function AdminPage() {
         ) : (
           filteredRequests.map((request) => {
             const quotes = quotesMap[request.id] || [];
+            const stage = getRequestStage(request, quotes.length);
 
             return (
               <section key={request.id} style={requestCardStyle}>
@@ -435,6 +577,15 @@ export default function AdminPage() {
                     </span>
                     <span style={contactPillStyle}>
                       Contact: {request.contact_request_status || "none"}
+                    </span>
+                    <span
+                      style={{
+                        ...stagePillStyle,
+                        background: stage.background,
+                        color: stage.color,
+                      }}
+                    >
+                      {stage.label}
                     </span>
                   </div>
                 </div>
@@ -487,11 +638,11 @@ export default function AdminPage() {
                 </div>
 
                 {request.ai_output != null && (
-  <div style={contentBoxStyle}>
-    <strong>AI sourcing spec</strong>
-    <p style={preWrapText}>{formatAiOutput(request.ai_output)}</p>
-  </div>
-)}
+                  <div style={contentBoxStyle}>
+                    <strong>AI sourcing spec</strong>
+                    <p style={preWrapText}>{formatAiOutput(request.ai_output)}</p>
+                  </div>
+                )}
 
                 <div style={{ marginTop: 16 }}>
                   <strong style={{ color: "#0f172a" }}>Internal note</strong>
@@ -504,60 +655,81 @@ export default function AdminPage() {
                   />
                 </div>
 
-                <div style={{ marginTop: 16, display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <button
-                    onClick={() => updateRequestStatus(request.id, "submitted")}
-                    style={smallButtonStyle}
-                  >
-                    Mark Submitted
-                  </button>
-                  <button
-                    onClick={() => updateRequestStatus(request.id, "quoted")}
-                    style={smallButtonStyle}
-                  >
-                    Mark Quoted
-                  </button>
-                  <button
-                    onClick={() => updateRequestStatus(request.id, "completed")}
-                    style={smallButtonStyle}
-                  >
-                    Mark Completed
-                  </button>
+                <div style={actionSectionStyle}>
+                  <div style={actionGroupStyle}>
+                    <button
+                      onClick={() => updateRequestStatus(request.id, "submitted")}
+                      style={smallButtonStyle}
+                    >
+                      Mark Submitted
+                    </button>
+                    <button
+                      onClick={() => updateRequestStatus(request.id, "quoted")}
+                      style={smallButtonStyle}
+                    >
+                      Mark Quoted
+                    </button>
+                    <button
+                      onClick={() => updateRequestStatus(request.id, "completed")}
+                      style={smallButtonStyle}
+                    >
+                      Mark Completed
+                    </button>
+                  </div>
 
-                  {request.contact_request_status === "pending" && (
-                    <>
+                  <div style={actionGroupStyle}>
+                    <button
+                      onClick={() => updatePaymentStatus(request.id, "paid")}
+                      style={approveButtonStyle}
+                    >
+                      Mark Paid
+                    </button>
+                    <button
+                      onClick={() => updatePaymentStatus(request.id, "unpaid")}
+                      style={smallButtonStyle}
+                    >
+                      Mark Unpaid
+                    </button>
+                  </div>
+
+                  <div style={actionGroupStyle}>
+                    {request.contact_request_status === "pending" && (
+                      <>
+                        <button
+                          onClick={() =>
+                            approveContactRelease(request.id, request.payment_status)
+                          }
+                          style={approveButtonStyle}
+                        >
+                          Approve Contact Release
+                        </button>
+                        <button
+                          onClick={() => rejectContactRelease(request.id)}
+                          style={dangerButtonStyle}
+                        >
+                          Reject
+                        </button>
+                      </>
+                    )}
+
+                    {request.contact_request_status === "approved" && (
                       <button
-                        onClick={() =>
-                          approveContactRelease(request.id, request.payment_status)
-                        }
-                        style={approveButtonStyle}
-                      >
-                        Approve Contact Release
-                      </button>
-                      <button
-                        onClick={() => rejectContactRelease(request.id)}
+                        onClick={() => revokeContactAccess(request.id)}
                         style={dangerButtonStyle}
                       >
-                        Reject
+                        Revoke Contact Access
                       </button>
-                    </>
-                  )}
+                    )}
+                  </div>
 
-                  {request.contact_request_status === "approved" && (
+                  <div style={actionGroupStyle}>
                     <button
-                      onClick={() => rejectContactRelease(request.id)}
+                      onClick={() => deleteRequest(request.id)}
                       style={dangerButtonStyle}
                     >
-                      Revoke Contact Access
+                      Delete Request
                     </button>
-                  )}
-
-                  <button
-                    onClick={() => deleteRequest(request.id)}
-                    style={dangerButtonStyle}
-                  >
-                    Delete Request
-                  </button>
+                  </div>
                 </div>
 
                 <div style={quotesSectionStyle}>
@@ -763,6 +935,36 @@ const topBarStyle: React.CSSProperties = {
   marginBottom: 18,
 };
 
+const statsGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: 12,
+  marginBottom: 18,
+};
+
+const statCardStyle: React.CSSProperties = {
+  background: "white",
+  border: "1px solid #e5e7eb",
+  borderRadius: 18,
+  padding: 16,
+  boxShadow: "0 8px 24px rgba(0,0,0,0.04)",
+};
+
+const statLabelStyle: React.CSSProperties = {
+  color: "#64748b",
+  fontSize: 13,
+  fontWeight: 700,
+  textTransform: "uppercase",
+  letterSpacing: 0.3,
+};
+
+const statValueStyle: React.CSSProperties = {
+  marginTop: 8,
+  fontSize: 28,
+  fontWeight: 800,
+  color: "#0f172a",
+};
+
 const searchCardStyle: React.CSSProperties = {
   background: "white",
   border: "1px solid #e5e7eb",
@@ -813,6 +1015,13 @@ const contactPillStyle: React.CSSProperties = {
   fontWeight: 700,
 };
 
+const stagePillStyle: React.CSSProperties = {
+  borderRadius: 999,
+  padding: "8px 12px",
+  fontSize: 12,
+  fontWeight: 700,
+};
+
 const metaTextStyle: React.CSSProperties = {
   color: "#64748b",
   fontSize: 14,
@@ -825,6 +1034,19 @@ const contentBoxStyle: React.CSSProperties = {
   background: "#f8fafc",
   borderRadius: 16,
   padding: 14,
+};
+
+const actionSectionStyle: React.CSSProperties = {
+  marginTop: 18,
+  display: "flex",
+  flexDirection: "column",
+  gap: 10,
+};
+
+const actionGroupStyle: React.CSSProperties = {
+  display: "flex",
+  gap: 10,
+  flexWrap: "wrap",
 };
 
 const quotesSectionStyle: React.CSSProperties = {
