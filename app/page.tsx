@@ -10,7 +10,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const PAYSTACK_PUBLIC_KEY = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "";
-const WHATSAPP_LINK = "https://wa.me/2348130630046";
+const WHATSAPP_NUMBER = "2348130630046";
 const SUPPORT_EMAIL = "support@weinly.com";
 
 type FabricRequest = {
@@ -102,6 +102,10 @@ function getStageTone(request: FabricRequest, quoteCount: number) {
   };
 }
 
+function buildWhatsappLink(message: string) {
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
+
 export default function HomePage() {
   const [description, setDescription] = useState("");
   const [clientName, setClientName] = useState("");
@@ -111,6 +115,8 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [lookupLoading, setLookupLoading] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const [requestId, setRequestId] = useState("");
   const [lookupId, setLookupId] = useState("");
@@ -120,6 +126,16 @@ export default function HomePage() {
 
   const [lookupRequest, setLookupRequest] = useState<FabricRequest | null>(null);
   const [lookupQuotes, setLookupQuotes] = useState<Quote[]>([]);
+
+  useEffect(() => {
+    function checkMobile() {
+      setIsMobile(window.innerWidth < 880);
+    }
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   async function generateAISpec(userInput: string) {
     try {
@@ -431,42 +447,78 @@ export default function HomePage() {
     return getStageTone(activeRequest, activeQuotes.length);
   }, [activeRequest, activeQuotes.length]);
 
+  const genericSupportLink = buildWhatsappLink(
+    "Hello Weinly, I need help with fabric sourcing."
+  );
+
   return (
     <main style={pageStyle}>
       <div style={containerStyle}>
         <header style={navWrapperStyle}>
           <div style={navBarStyle}>
-            <a href="/" style={brandStyle}>
-              <span style={brandBadgeStyle}>W</span>
-              <span>Weinly</span>
-            </a>
+            <div style={navTopRowStyle}>
+              <a href="/" style={brandStyle}>
+                <span style={brandBadgeStyle}>W</span>
+                <span>Weinly</span>
+              </a>
 
-            <nav style={navLinksStyle}>
-              <a href="/" style={navLinkStyle}>
-                Home
-              </a>
-              <a href="#how-it-works" style={navLinkStyle}>
-                How it works
-              </a>
-              <a href="/history" style={navLinkStyle}>
-                History
-              </a>
-              <a href="#pricing" style={navLinkStyle}>
-                Pricing
-              </a>
-              <a
-                href={WHATSAPP_LINK}
-                target="_blank"
-                rel="noreferrer"
-                style={navLinkStyle}
+              {isMobile && (
+                <button
+                  type="button"
+                  onClick={() => setMobileMenuOpen((prev) => !prev)}
+                  style={menuButtonStyle}
+                >
+                  {mobileMenuOpen ? "Close" : "Menu"}
+                </button>
+              )}
+            </div>
+
+            <div
+              style={{
+                ...navContentWrapStyle,
+                display: isMobile ? (mobileMenuOpen ? "flex" : "none") : "flex",
+              }}
+            >
+              <nav
+                style={{
+                  ...navLinksStyle,
+                  flexDirection: isMobile ? "column" : "row",
+                  alignItems: isMobile ? "flex-start" : "center",
+                  width: isMobile ? "100%" : "auto",
+                }}
               >
-                WhatsApp Support
-              </a>
-            </nav>
+                <a href="/" style={navLinkStyle}>
+                  Home
+                </a>
+                <a href="#how-it-works" style={navLinkStyle}>
+                  How it works
+                </a>
+                <a href="/history" style={navLinkStyle}>
+                  History
+                </a>
+                <a href="#pricing" style={navLinkStyle}>
+                  Pricing
+                </a>
+                <a
+                  href={genericSupportLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={navLinkStyle}
+                >
+                  WhatsApp Support
+                </a>
+              </nav>
 
-            <a href="#submit-request" style={navCtaStyle}>
-              Submit Request
-            </a>
+              <a
+                href="#submit-request"
+                style={{
+                  ...navCtaStyle,
+                  width: isMobile ? "100%" : "auto",
+                }}
+              >
+                Submit Request
+              </a>
+            </div>
           </div>
         </header>
 
@@ -595,7 +647,7 @@ export default function HomePage() {
               </button>
 
               <a
-                href={WHATSAPP_LINK}
+                href={genericSupportLink}
                 target="_blank"
                 rel="noreferrer"
                 style={whatsAppButtonStyle}
@@ -635,7 +687,7 @@ export default function HomePage() {
                 View your previous requests
               </a>
               <a
-                href={WHATSAPP_LINK}
+                href={genericSupportLink}
                 target="_blank"
                 rel="noreferrer"
                 style={supportInlineLinkStyle}
@@ -851,14 +903,17 @@ export default function HomePage() {
 
               {activeQuotes.length === 0 ? (
                 <div style={emptyStateStyle}>
-                  No quotes yet. Your request has been received and is waiting for
-                  supplier pricing.
+                  We are currently sourcing suppliers for this request. Quotes will appear
+                  here shortly.
                 </div>
               ) : (
                 activeQuotes.map((quote) => {
                   const isReleased = !!quote.is_contact_released;
                   const contactStatus = activeRequest.contact_request_status || "none";
                   const paymentStatus = activeRequest.payment_status || "unpaid";
+                  const requestSupportLink = buildWhatsappLink(
+                    `Hello Weinly, I need help with request ID: ${activeRequest.id}`
+                  );
 
                   return (
                     <div key={quote.id} style={quoteCardStyle}>
@@ -929,7 +984,7 @@ export default function HomePage() {
                             </button>
 
                             <a
-                              href={WHATSAPP_LINK}
+                              href={requestSupportLink}
                               target="_blank"
                               rel="noreferrer"
                               style={secondaryActionLinkStyle}
@@ -945,7 +1000,7 @@ export default function HomePage() {
                         paymentStatus === "unpaid" && (
                           <div style={paymentBoxStyle}>
                             <h4 style={{ margin: "0 0 10px 0", color: "#0f172a" }}>
-                              Unlock supplier contact
+                              Unlock verified supplier contact now
                             </h4>
 
                             <div style={instructionCardStyle}>
@@ -971,9 +1026,19 @@ export default function HomePage() {
                                 marginBottom: 0,
                               }}
                             >
-                              Pay securely to unlock supplier contact. After successful
-                              payment, your request will be marked paid automatically.
+                              Get direct access to supplier phone, WeChat, and contact
+                              person. Avoid middlemen and negotiate better deals instantly.
                             </p>
+
+                            <div
+                              style={{
+                                marginTop: 8,
+                                fontSize: 13,
+                                color: "#64748b",
+                              }}
+                            >
+                              Trusted by fabric buyers sourcing from China to Africa.
+                            </div>
 
                             <div
                               style={{
@@ -996,7 +1061,7 @@ export default function HomePage() {
                               </button>
 
                               <a
-                                href={WHATSAPP_LINK}
+                                href={requestSupportLink}
                                 target="_blank"
                                 rel="noreferrer"
                                 style={whatsAppButtonStyle}
@@ -1066,7 +1131,9 @@ export default function HomePage() {
 
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <a
-                  href={WHATSAPP_LINK}
+                  href={buildWhatsappLink(
+                    `Hello Weinly, I need help with request ID: ${activeRequest.id}`
+                  )}
                   target="_blank"
                   rel="noreferrer"
                   style={whatsAppButtonStyle}
@@ -1110,7 +1177,7 @@ export default function HomePage() {
                 <div style={footerHeadingStyle}>Support</div>
                 <div style={footerLinksWrapStyle}>
                   <a
-                    href={WHATSAPP_LINK}
+                    href={genericSupportLink}
                     target="_blank"
                     rel="noreferrer"
                     style={footerLinkStyle}
@@ -1133,7 +1200,7 @@ export default function HomePage() {
 const pageStyle: React.CSSProperties = {
   minHeight: "100vh",
   background: "#f8fafc",
-  padding: "24px 16px 40px",
+  padding: "16px 12px 36px",
   fontFamily:
     'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
 };
@@ -1148,16 +1215,26 @@ const navWrapperStyle: React.CSSProperties = {
 };
 
 const navBarStyle: React.CSSProperties = {
-  background: "rgba(255,255,255,0.9)",
+  background: "rgba(255,255,255,0.95)",
   border: "1px solid #e5e7eb",
   borderRadius: 22,
   padding: "14px 18px",
+  boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
+};
+
+const navTopRowStyle: React.CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
   gap: 16,
+};
+
+const navContentWrapStyle: React.CSSProperties = {
+  marginTop: 14,
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 16,
   flexWrap: "wrap",
-  boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
 };
 
 const brandStyle: React.CSSProperties = {
@@ -1187,7 +1264,6 @@ const navLinksStyle: React.CSSProperties = {
   display: "flex",
   gap: 18,
   flexWrap: "wrap",
-  alignItems: "center",
 };
 
 const navLinkStyle: React.CSSProperties = {
@@ -1207,6 +1283,16 @@ const navCtaStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
+};
+
+const menuButtonStyle: React.CSSProperties = {
+  background: "#e2e8f0",
+  color: "#0f172a",
+  border: "none",
+  borderRadius: 12,
+  padding: "10px 14px",
+  fontWeight: 700,
+  cursor: "pointer",
 };
 
 const heroCardStyle: React.CSSProperties = {
@@ -1230,8 +1316,8 @@ const badgeStyle: React.CSSProperties = {
 };
 
 const heroTitleStyle: React.CSSProperties = {
-  fontSize: 40,
-  lineHeight: 1.1,
+  fontSize: "clamp(2rem, 6vw, 3.4rem)",
+  lineHeight: 1.05,
   margin: "0 0 12px 0",
   color: "#0f172a",
 };
@@ -1372,7 +1458,7 @@ const pricingHeaderStyle: React.CSSProperties = {
 
 const pricingTitleStyle: React.CSSProperties = {
   margin: "0 0 10px 0",
-  fontSize: 30,
+  fontSize: "clamp(1.8rem, 4vw, 2.4rem)",
   color: "#0f172a",
 };
 
@@ -1460,7 +1546,7 @@ const cardStyle: React.CSSProperties = {
 
 const sectionTitle: React.CSSProperties = {
   margin: "0 0 8px 0",
-  fontSize: 26,
+  fontSize: "clamp(1.4rem, 3.8vw, 2rem)",
   color: "#0f172a",
 };
 
