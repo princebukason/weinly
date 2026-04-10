@@ -13,7 +13,6 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const PAYSTACK_PUBLIC_KEY = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "";
 const WHATSAPP_NUMBER = "2348130630046";
-const SUPPORT_EMAIL = "support@weinly.com";
 
 type FabricRequest = {
   id: string;
@@ -117,8 +116,6 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [lookupLoading, setLookupLoading] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
 
   const [requestId, setRequestId] = useState("");
   const [lookupId, setLookupId] = useState("");
@@ -128,16 +125,6 @@ export default function HomePage() {
 
   const [lookupRequest, setLookupRequest] = useState<FabricRequest | null>(null);
   const [lookupQuotes, setLookupQuotes] = useState<Quote[]>([]);
-
-  useEffect(() => {
-    function checkMobile() {
-      setIsMobile(window.innerWidth < 880);
-    }
-
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
 
   async function generateAISpec(userInput: string) {
     try {
@@ -456,73 +443,7 @@ export default function HomePage() {
   return (
     <main style={pageStyle}>
       <div style={containerStyle}>
-        <header style={navWrapperStyle}>
-          <div style={navBarStyle}>
-            <div style={navTopRowStyle}>
-              <a href="/" style={brandStyle}>
-                <span style={brandBadgeStyle}>W</span>
-                <span>Weinly</span>
-              </a>
-
-              {isMobile && (
-                <button
-                  type="button"
-                  onClick={() => setMobileMenuOpen((prev) => !prev)}
-                  style={menuButtonStyle}
-                >
-                  {mobileMenuOpen ? "Close" : "Menu"}
-                </button>
-              )}
-            </div>
-
-            <div
-              style={{
-                ...navContentWrapStyle,
-                display: isMobile ? (mobileMenuOpen ? "flex" : "none") : "flex",
-              }}
-            >
-              <nav
-                style={{
-                  ...navLinksStyle,
-                  flexDirection: isMobile ? "column" : "row",
-                  alignItems: isMobile ? "flex-start" : "center",
-                  width: isMobile ? "100%" : "auto",
-                }}
-              >
-                <a href="/" style={navLinkStyle}>
-                  Home
-                </a>
-                <a href="#how-it-works" style={navLinkStyle}>
-                  How it works
-                </a>
-                <a href="/history" style={navLinkStyle}>
-                  History
-                </a>
-                <a href="#pricing" style={navLinkStyle}>
-                  Pricing
-                </a>
-                <a
-                  href={genericSupportLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={navLinkStyle}
-                >
-                  WhatsApp Support
-                </a>
-              </nav>
-
-              <a
-                href="#submit-request"
-                style={{
-                  ...navCtaStyle,
-                  width: isMobile ? "100%" : "auto",
-                }}
-              >
-                Submit Request
-              </a>
-            </div>
-          </div>
-        </header>
+        <SiteHeader />
 
         <section style={heroCardStyle}>
           <div style={{ marginBottom: 22 }}>
@@ -758,6 +679,69 @@ export default function HomePage() {
                 <li style={pricingListItemStyle}>Request support</li>
                 <li style={pricingListItemStyle}>Buyer assistance</li>
               </ul>
+            </div>
+          </div>
+        </section>
+
+        <section style={trustSectionStyle}>
+          <div style={faqHeaderStyle}>
+            <div style={badgeStyle}>FAQ & TRUST</div>
+            <h2 style={faqTitleStyle}>Why buyers trust Weinly</h2>
+            <p style={faqSubtitleStyle}>
+              Clear answers for buyers who want confidence before submitting requests or paying to unlock supplier contact.
+            </p>
+          </div>
+
+          <div style={trustGridStyle}>
+            <div style={trustCardStyle}>
+              <h3 style={trustCardTitleStyle}>Quote preview before payment</h3>
+              <p style={trustCardTextStyle}>
+                Buyers can review supplier quote previews first before paying to unlock direct supplier contact.
+              </p>
+            </div>
+
+            <div style={trustCardStyle}>
+              <h3 style={trustCardTitleStyle}>Protected supplier access</h3>
+              <p style={trustCardTextStyle}>
+                Supplier contact details stay protected until the proper request and approval flow is completed.
+              </p>
+            </div>
+
+            <div style={trustCardStyle}>
+              <h3 style={trustCardTitleStyle}>Built for China fabric sourcing</h3>
+              <p style={trustCardTextStyle}>
+                Weinly is designed for buyers sourcing fabrics from China who want a simpler and more trusted process.
+              </p>
+            </div>
+          </div>
+
+          <div style={faqGridStyle}>
+            <div style={faqCardStyle}>
+              <h3 style={faqQuestionStyle}>Do I pay before seeing quotes?</h3>
+              <p style={faqAnswerStyle}>
+                No. You submit your request first. Quote previews come before payment for direct supplier access.
+              </p>
+            </div>
+
+            <div style={faqCardStyle}>
+              <h3 style={faqQuestionStyle}>What does the unlock fee cover?</h3>
+              <p style={faqAnswerStyle}>
+                It covers access to direct supplier details such as phone number, WeChat, email, and contact person when available.
+              </p>
+            </div>
+
+            <div style={faqCardStyle}>
+              <h3 style={faqQuestionStyle}>Why are supplier contacts protected?</h3>
+              <p style={faqAnswerStyle}>
+                This helps keep the sourcing process controlled, serious, and more trustworthy for both buyers and suppliers.
+              </p>
+            </div>
+
+            <div style={faqCardStyle}>
+              <h3 style={faqQuestionStyle}>Can I get help before paying?</h3>
+              <p style={faqAnswerStyle}>
+                Yes. You can chat with Weinly support on WhatsApp if you need help with quotes, payment, or your request.
+              </p>
             </div>
           </div>
         </section>
@@ -1150,50 +1134,7 @@ export default function HomePage() {
           </section>
         )}
 
-        <footer style={footerStyle}>
-          <div style={footerTopStyle}>
-            <div>
-              <div style={footerBrandStyle}>Weinly</div>
-              <p style={footerTextStyle}>
-                Built for fabric buyers sourcing from China.
-              </p>
-            </div>
-
-            <div style={footerGridStyle}>
-              <div>
-                <div style={footerHeadingStyle}>Navigation</div>
-                <div style={footerLinksWrapStyle}>
-                  <a href="/history" style={footerLinkStyle}>
-                    History
-                  </a>
-                  <a href="#pricing" style={footerLinkStyle}>
-                    Pricing
-                  </a>
-                  <a href="#how-it-works" style={footerLinkStyle}>
-                    How it works
-                  </a>
-                </div>
-              </div>
-
-              <div>
-                <div style={footerHeadingStyle}>Support</div>
-                <div style={footerLinksWrapStyle}>
-                  <a
-                    href={genericSupportLink}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={footerLinkStyle}
-                  >
-                    WhatsApp
-                  </a>
-                  <a href={`mailto:${SUPPORT_EMAIL}`} style={footerLinkStyle}>
-                    {SUPPORT_EMAIL}
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </footer>
+        <SiteFooter />
       </div>
     </main>
   );
@@ -1210,91 +1151,6 @@ const pageStyle: React.CSSProperties = {
 const containerStyle: React.CSSProperties = {
   maxWidth: 1100,
   margin: "0 auto",
-};
-
-const navWrapperStyle: React.CSSProperties = {
-  marginBottom: 18,
-};
-
-const navBarStyle: React.CSSProperties = {
-  background: "rgba(255,255,255,0.95)",
-  border: "1px solid #e5e7eb",
-  borderRadius: 22,
-  padding: "14px 18px",
-  boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
-};
-
-const navTopRowStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: 16,
-};
-
-const navContentWrapStyle: React.CSSProperties = {
-  marginTop: 14,
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: 16,
-  flexWrap: "wrap",
-};
-
-const brandStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 10,
-  textDecoration: "none",
-  color: "#0f172a",
-  fontWeight: 800,
-  fontSize: 20,
-};
-
-const brandBadgeStyle: React.CSSProperties = {
-  width: 34,
-  height: 34,
-  borderRadius: 999,
-  background: "#0f172a",
-  color: "white",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontSize: 14,
-  fontWeight: 800,
-};
-
-const navLinksStyle: React.CSSProperties = {
-  display: "flex",
-  gap: 18,
-  flexWrap: "wrap",
-};
-
-const navLinkStyle: React.CSSProperties = {
-  color: "#475569",
-  textDecoration: "none",
-  fontWeight: 600,
-  fontSize: 14,
-};
-
-const navCtaStyle: React.CSSProperties = {
-  background: "#0f172a",
-  color: "white",
-  textDecoration: "none",
-  borderRadius: 12,
-  padding: "12px 16px",
-  fontWeight: 700,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
-
-const menuButtonStyle: React.CSSProperties = {
-  background: "#e2e8f0",
-  color: "#0f172a",
-  border: "none",
-  borderRadius: 12,
-  padding: "10px 14px",
-  fontWeight: 700,
-  cursor: "pointer",
 };
 
 const heroCardStyle: React.CSSProperties = {
@@ -1535,6 +1391,83 @@ const pricingListStyle: React.CSSProperties = {
 const pricingListItemStyle: React.CSSProperties = {
   marginBottom: 8,
   lineHeight: 1.6,
+};
+
+const trustSectionStyle: React.CSSProperties = {
+  background: "white",
+  border: "1px solid #e5e7eb",
+  borderRadius: 24,
+  padding: 24,
+  boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
+  marginBottom: 24,
+};
+
+const faqHeaderStyle: React.CSSProperties = {
+  marginBottom: 20,
+};
+
+const faqTitleStyle: React.CSSProperties = {
+  margin: "0 0 10px 0",
+  fontSize: "clamp(1.5rem, 4vw, 2.2rem)",
+  color: "#0f172a",
+};
+
+const faqSubtitleStyle: React.CSSProperties = {
+  margin: 0,
+  color: "#64748b",
+  lineHeight: 1.7,
+  maxWidth: 760,
+};
+
+const trustGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: 12,
+  marginBottom: 18,
+};
+
+const trustCardStyle: React.CSSProperties = {
+  border: "1px solid #e2e8f0",
+  background: "#f8fafc",
+  borderRadius: 18,
+  padding: 16,
+};
+
+const trustCardTitleStyle: React.CSSProperties = {
+  margin: "0 0 8px 0",
+  color: "#0f172a",
+  fontSize: 18,
+};
+
+const trustCardTextStyle: React.CSSProperties = {
+  margin: 0,
+  color: "#475569",
+  lineHeight: 1.7,
+};
+
+const faqGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+  gap: 12,
+};
+
+const faqCardStyle: React.CSSProperties = {
+  border: "1px solid #e2e8f0",
+  background: "#ffffff",
+  borderRadius: 18,
+  padding: 16,
+};
+
+const faqQuestionStyle: React.CSSProperties = {
+  margin: "0 0 8px 0",
+  color: "#0f172a",
+  fontSize: 17,
+};
+
+const faqAnswerStyle: React.CSSProperties = {
+  margin: 0,
+  color: "#475569",
+  lineHeight: 1.7,
 };
 
 const cardStyle: React.CSSProperties = {
@@ -1795,60 +1728,6 @@ const emptyStateStyle: React.CSSProperties = {
   borderRadius: 16,
   padding: 18,
   color: "#64748b",
-};
-
-const footerStyle: React.CSSProperties = {
-  marginTop: 8,
-  background: "white",
-  border: "1px solid #e5e7eb",
-  borderRadius: 24,
-  padding: 24,
-  boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
-};
-
-const footerTopStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 24,
-  flexWrap: "wrap",
-};
-
-const footerBrandStyle: React.CSSProperties = {
-  fontSize: 24,
-  fontWeight: 800,
-  color: "#0f172a",
-};
-
-const footerTextStyle: React.CSSProperties = {
-  margin: "8px 0 0 0",
-  color: "#64748b",
-  lineHeight: 1.7,
-  maxWidth: 320,
-};
-
-const footerGridStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-  gap: 24,
-  minWidth: 320,
-};
-
-const footerHeadingStyle: React.CSSProperties = {
-  color: "#0f172a",
-  fontWeight: 700,
-  marginBottom: 10,
-};
-
-const footerLinksWrapStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 10,
-};
-
-const footerLinkStyle: React.CSSProperties = {
-  color: "#475569",
-  textDecoration: "none",
-  fontWeight: 600,
 };
 
 const darkButtonStyle: React.CSSProperties = {
