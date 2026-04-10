@@ -10,6 +10,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const PAYSTACK_PUBLIC_KEY = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "";
+const WHATSAPP_LINK = "https://wa.me/2348130630046";
 
 type FabricRequest = {
   id: string;
@@ -57,6 +58,47 @@ function formatAiOutput(aiOutput: unknown) {
   }
 
   return String(aiOutput);
+}
+
+function getRequestStageLabel(request: FabricRequest, quoteCount: number) {
+  if (request.contact_request_status === "approved") return "Supplier contact released";
+  if (request.payment_status === "paid") return "Payment received";
+  if (quoteCount > 0) return "Quotes available";
+  if (request.status === "completed") return "Completed";
+  if (request.status === "quoted") return "Quoted";
+  return "Submitted";
+}
+
+function getStageTone(request: FabricRequest, quoteCount: number) {
+  if (request.contact_request_status === "approved") {
+    return {
+      background: "#dcfce7",
+      color: "#166534",
+      label: "Access unlocked",
+    };
+  }
+
+  if (request.payment_status === "paid") {
+    return {
+      background: "#ede9fe",
+      color: "#6d28d9",
+      label: "Paid",
+    };
+  }
+
+  if (quoteCount > 0) {
+    return {
+      background: "#dbeafe",
+      color: "#1d4ed8",
+      label: "Quotes ready",
+    };
+  }
+
+  return {
+    background: "#fef3c7",
+    color: "#92400e",
+    label: "In progress",
+  };
 }
 
 export default function HomePage() {
@@ -186,6 +228,7 @@ export default function HomePage() {
       if (error) throw error;
 
       setSubmittedRequest(data as FabricRequest);
+      setSubmittedQuotes([]);
       setRequestId(data.id);
       setLookupId(data.id);
     } catch (error) {
@@ -376,6 +419,11 @@ export default function HomePage() {
     return lookupRequest ? lookupQuotes : submittedQuotes;
   }, [lookupRequest, lookupQuotes, submittedQuotes]);
 
+  const activeStage = useMemo(() => {
+    if (!activeRequest) return null;
+    return getStageTone(activeRequest, activeQuotes.length);
+  }, [activeRequest, activeQuotes.length]);
+
   return (
     <main style={pageStyle}>
       <div style={containerStyle}>
@@ -417,6 +465,43 @@ export default function HomePage() {
             </div>
           </div>
 
+          <div style={howItWorksBoxStyle}>
+            <strong style={{ color: "#0f172a", display: "block", marginBottom: 10 }}>
+              How Weinly works
+            </strong>
+            <div style={stepsGridStyle}>
+              <div style={stepCardStyle}>
+                <div style={stepNumberStyle}>1</div>
+                <div>
+                  <strong style={stepTitleStyle}>Submit your request</strong>
+                  <div style={stepTextStyle}>
+                    Describe the fabric you want in simple words.
+                  </div>
+                </div>
+              </div>
+
+              <div style={stepCardStyle}>
+                <div style={stepNumberStyle}>2</div>
+                <div>
+                  <strong style={stepTitleStyle}>Get quote previews</strong>
+                  <div style={stepTextStyle}>
+                    See price, MOQ, lead time, and supplier notes.
+                  </div>
+                </div>
+              </div>
+
+              <div style={stepCardStyle}>
+                <div style={stepNumberStyle}>3</div>
+                <div>
+                  <strong style={stepTitleStyle}>Unlock supplier contact</strong>
+                  <div style={stepTextStyle}>
+                    Pay securely and access direct supplier details after approval.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <form onSubmit={handleSubmit}>
             <div style={formTopGridStyle}>
               <input
@@ -453,17 +538,28 @@ export default function HomePage() {
               }}
             />
 
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                ...darkButtonStyle,
-                opacity: loading ? 0.7 : 1,
-                cursor: loading ? "not-allowed" : "pointer",
-              }}
-            >
-              {loading ? "Submitting..." : "Submit fabric request"}
-            </button>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  ...darkButtonStyle,
+                  opacity: loading ? 0.7 : 1,
+                  cursor: loading ? "not-allowed" : "pointer",
+                }}
+              >
+                {loading ? "Submitting..." : "Submit fabric request"}
+              </button>
+
+              <a
+                href={WHATSAPP_LINK}
+                target="_blank"
+                rel="noreferrer"
+                style={whatsAppButtonStyle}
+              >
+                Chat on WhatsApp
+              </a>
+            </div>
           </form>
 
           <div style={trackerCardStyle}>
@@ -491,9 +587,17 @@ export default function HomePage() {
               </button>
             </div>
 
-            <div style={{ marginTop: 12 }}>
+            <div style={{ marginTop: 12, display: "flex", gap: 16, flexWrap: "wrap" }}>
               <a href="/history" style={historyLinkStyle}>
                 View your previous requests
+              </a>
+              <a
+                href={WHATSAPP_LINK}
+                target="_blank"
+                rel="noreferrer"
+                style={supportInlineLinkStyle}
+              >
+                Need help? Chat support
               </a>
             </div>
           </div>
@@ -502,9 +606,11 @@ export default function HomePage() {
         {submittedRequest && (
           <section style={cardStyle}>
             <h2 style={sectionTitle}>Request submitted successfully</h2>
-            <p style={mutedText}>Save this request ID so you can track supplier quotes later.</p>
+            <p style={mutedText}>
+              Save this request ID so you can track supplier quotes later.
+            </p>
 
-            <div style={infoBoxStyle}>
+            <div style={successBoxStyle}>
               <div style={{ marginBottom: 6 }}>
                 <strong>Request ID:</strong> {submittedRequest.id}
               </div>
@@ -514,27 +620,58 @@ export default function HomePage() {
             </div>
 
             {submittedRequest.ai_output != null && (
-  <div style={specBoxStyle}>
-    <h3 style={smallTitle}>AI sourcing spec</h3>
-    <p style={preWrapText}>{formatAiOutput(submittedRequest.ai_output)}</p>
-  </div>
-)}
+              <div style={specBoxStyle}>
+                <h3 style={smallTitle}>AI sourcing spec</h3>
+                <p style={preWrapText}>{formatAiOutput(submittedRequest.ai_output)}</p>
+              </div>
+            )}
+
+            <div style={nextStepBoxStyle}>
+              <strong style={{ color: "#0f172a" }}>What happens next?</strong>
+              <p style={{ ...mutedText, marginTop: 8 }}>
+                Weinly will review your request, add supplier quotes, and update your
+                tracker. Use your request ID to check progress anytime.
+              </p>
+            </div>
           </section>
         )}
 
-        {activeRequest && (
+        {activeRequest && activeStage && (
           <section style={cardStyle}>
             <div style={requestHeaderRowStyle}>
               <div>
                 <h2 style={sectionTitle}>Request tracker</h2>
                 <p style={mutedText}>
-                  Follow your request, review quotes, pay for supplier access, and unlock supplier contact after approval.
+                  Follow your request, review quotes, pay for supplier access, and
+                  unlock supplier contact after approval.
                 </p>
               </div>
 
-              <div style={infoPillStyle}>
-                Contact request: <strong>{activeRequest.contact_request_status || "none"}</strong>
+              <div
+                style={{
+                  ...infoPillStyle,
+                  background: activeStage.background,
+                  color: activeStage.color,
+                }}
+              >
+                {activeStage.label}
               </div>
+            </div>
+
+            <div style={timelineBoxStyle}>
+              <strong style={{ color: "#0f172a" }}>Current stage</strong>
+              <div style={timelineTitleStyle}>
+                {getRequestStageLabel(activeRequest, activeQuotes.length)}
+              </div>
+              <p style={timelineTextStyle}>
+                {activeRequest.contact_request_status === "approved"
+                  ? "Your supplier contact access has been approved. You can now view the released contact details below."
+                  : activeRequest.payment_status === "paid"
+                  ? "Your payment has been received. If supplier contact is not yet visible, approval may still be pending."
+                  : activeQuotes.length > 0
+                  ? "Your quote preview is ready. Supplier contacts stay protected until access is approved."
+                  : "Your request has been received and is being processed."}
+              </p>
             </div>
 
             <div style={infoGridStyle}>
@@ -559,24 +696,58 @@ export default function HomePage() {
               </div>
             </div>
 
+            <div style={infoGridStyle}>
+              <div style={infoBoxStyle}>
+                <strong>Contact request</strong>
+                <div style={smallMuted}>
+                  {activeRequest.contact_request_status || "none"}
+                </div>
+              </div>
+
+              <div style={infoBoxStyle}>
+                <strong>Access fee</strong>
+                <div style={smallMuted}>{activeRequest.contact_access_fee || "—"}</div>
+              </div>
+
+              <div style={infoBoxStyle}>
+                <strong>Payment reference</strong>
+                <div style={smallMuted}>{activeRequest.payment_reference || "—"}</div>
+              </div>
+
+              <div style={infoBoxStyle}>
+                <strong>Paid at</strong>
+                <div style={smallMuted}>
+                  {activeRequest.paid_at
+                    ? new Date(activeRequest.paid_at).toLocaleString()
+                    : "—"}
+                </div>
+              </div>
+            </div>
+
             <div style={specBoxStyle}>
               <h3 style={smallTitle}>Fabric request</h3>
               <p style={preWrapText}>{activeRequest.user_input}</p>
             </div>
 
             {activeRequest.ai_output != null && (
-  <div style={specBoxStyle}>
-    <h3 style={smallTitle}>AI sourcing spec</h3>
-    <p style={preWrapText}>{formatAiOutput(activeRequest.ai_output)}</p>
-  </div>
-)}
+              <div style={specBoxStyle}>
+                <h3 style={smallTitle}>AI sourcing spec</h3>
+                <p style={preWrapText}>{formatAiOutput(activeRequest.ai_output)}</p>
+              </div>
+            )}
 
             <div style={{ marginTop: 22 }}>
-              <h3 style={smallTitle}>Supplier quotes</h3>
+              <div style={quotesHeaderRowStyle}>
+                <h3 style={smallTitle}>Supplier quotes</h3>
+                <span style={quoteCountBadgeStyle}>
+                  {activeQuotes.length} {activeQuotes.length === 1 ? "quote" : "quotes"}
+                </span>
+              </div>
 
               {activeQuotes.length === 0 ? (
                 <div style={emptyStateStyle}>
-                  No quotes yet. Your request has been received and is waiting for supplier pricing.
+                  No quotes yet. Your request has been received and is waiting for
+                  supplier pricing.
                 </div>
               ) : (
                 activeQuotes.map((quote) => {
@@ -624,10 +795,16 @@ export default function HomePage() {
                           <strong>Lead time</strong>
                           <div style={smallMuted}>{quote.lead_time || "Not added yet"}</div>
                         </div>
+                        <div style={miniBoxStyle}>
+                          <strong>Supplier region</strong>
+                          <div style={smallMuted}>
+                            {quote.supplier_region || "Not added yet"}
+                          </div>
+                        </div>
                       </div>
 
                       {quote.note && (
-                        <div style={{ marginTop: 12 }}>
+                        <div style={quoteNoteBoxStyle}>
                           <strong style={{ color: "#0f172a" }}>Supplier note</strong>
                           <p style={{ ...preWrapText, marginTop: 6 }}>{quote.note}</p>
                         </div>
@@ -638,12 +815,23 @@ export default function HomePage() {
                           <p style={{ margin: "0 0 10px 0", color: "#334155" }}>
                             Supplier contact is protected. Click proceed to request access.
                           </p>
-                          <button
-                            onClick={() => requestSupplierContact(activeRequest.id)}
-                            style={darkButtonStyle}
-                          >
-                            Proceed
-                          </button>
+                          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                            <button
+                              onClick={() => requestSupplierContact(activeRequest.id)}
+                              style={darkButtonStyle}
+                            >
+                              Proceed
+                            </button>
+
+                            <a
+                              href={WHATSAPP_LINK}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={secondaryActionLinkStyle}
+                            >
+                              Ask support first
+                            </a>
+                          </div>
                         </div>
                       )}
 
@@ -670,22 +858,40 @@ export default function HomePage() {
                               </div>
                             </div>
 
-                            <p style={{ color: "#475569", lineHeight: 1.7, marginTop: 12 }}>
-                              Pay securely to unlock supplier contact. After successful payment,
-                              your request will be marked paid automatically.
-                            </p>
-
-                            <button
-                              onClick={() => startPaystackCheckout(activeRequest)}
-                              disabled={paymentLoading}
+                            <p
                               style={{
-                                ...darkButtonStyle,
-                                opacity: paymentLoading ? 0.7 : 1,
-                                cursor: paymentLoading ? "not-allowed" : "pointer",
+                                color: "#475569",
+                                lineHeight: 1.7,
+                                marginTop: 12,
+                                marginBottom: 0,
                               }}
                             >
-                              {paymentLoading ? "Processing..." : "Pay & Unlock Contact"}
-                            </button>
+                              Pay securely to unlock supplier contact. After successful
+                              payment, your request will be marked paid automatically.
+                            </p>
+
+                            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
+                              <button
+                                onClick={() => startPaystackCheckout(activeRequest)}
+                                disabled={paymentLoading}
+                                style={{
+                                  ...darkButtonStyle,
+                                  opacity: paymentLoading ? 0.7 : 1,
+                                  cursor: paymentLoading ? "not-allowed" : "pointer",
+                                }}
+                              >
+                                {paymentLoading ? "Processing..." : "Pay & Unlock Contact"}
+                              </button>
+
+                              <a
+                                href={WHATSAPP_LINK}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={whatsAppButtonStyle}
+                              >
+                                Need help?
+                              </a>
+                            </div>
                           </div>
                         )}
 
@@ -693,13 +899,15 @@ export default function HomePage() {
                         contactStatus === "pending" &&
                         paymentStatus === "paid" && (
                           <div style={pendingBoxStyle}>
-                            Payment confirmed. Awaiting admin approval for supplier contact release.
+                            Payment confirmed. Awaiting admin approval for supplier contact
+                            release.
                           </div>
                         )}
 
                       {!isReleased && contactStatus === "rejected" && (
                         <div style={rejectedBoxStyle}>
-                          Contact release has not been approved yet. Reach support if you need managed sourcing help.
+                          Contact release has not been approved yet. Reach support if you
+                          need managed sourcing help.
                         </div>
                       )}
 
@@ -733,6 +941,30 @@ export default function HomePage() {
                   );
                 })
               )}
+            </div>
+
+            <div style={supportBoxStyle}>
+              <div>
+                <strong style={{ color: "#0f172a" }}>Need help with this request?</strong>
+                <p style={{ ...mutedText, marginTop: 8 }}>
+                  Chat with Weinly support for guidance on your request, payment, or
+                  supplier contact release.
+                </p>
+              </div>
+
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <a
+                  href={WHATSAPP_LINK}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={whatsAppButtonStyle}
+                >
+                  Chat on WhatsApp
+                </a>
+                <a href="/history" style={secondaryActionLinkStyle}>
+                  View full history
+                </a>
+              </div>
             </div>
           </section>
         )}
@@ -814,6 +1046,55 @@ const featureTextStyle: React.CSSProperties = {
   fontSize: 14,
 };
 
+const howItWorksBoxStyle: React.CSSProperties = {
+  marginBottom: 20,
+  padding: 16,
+  borderRadius: 16,
+  background: "#f8fafc",
+  border: "1px solid #e2e8f0",
+};
+
+const stepsGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: 12,
+};
+
+const stepCardStyle: React.CSSProperties = {
+  display: "flex",
+  gap: 12,
+  alignItems: "flex-start",
+  background: "white",
+  border: "1px solid #e2e8f0",
+  borderRadius: 14,
+  padding: 14,
+};
+
+const stepNumberStyle: React.CSSProperties = {
+  minWidth: 28,
+  height: 28,
+  borderRadius: 999,
+  background: "#0f172a",
+  color: "white",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontWeight: 800,
+  fontSize: 13,
+};
+
+const stepTitleStyle: React.CSSProperties = {
+  display: "block",
+  color: "#0f172a",
+  marginBottom: 4,
+};
+
+const stepTextStyle: React.CSSProperties = {
+  color: "#64748b",
+  fontSize: 14,
+  lineHeight: 1.6,
+};
+
 const formTopGridStyle: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
@@ -831,6 +1112,12 @@ const trackerCardStyle: React.CSSProperties = {
 
 const historyLinkStyle: React.CSSProperties = {
   color: "#2563eb",
+  fontWeight: 700,
+  textDecoration: "none",
+};
+
+const supportInlineLinkStyle: React.CSSProperties = {
+  color: "#16a34a",
   fontWeight: 700,
   textDecoration: "none",
 };
@@ -889,12 +1176,50 @@ const specBoxStyle: React.CSSProperties = {
   padding: 16,
 };
 
+const successBoxStyle: React.CSSProperties = {
+  marginTop: 16,
+  border: "1px solid #bbf7d0",
+  background: "#f0fdf4",
+  borderRadius: 16,
+  padding: 16,
+  color: "#166534",
+};
+
+const nextStepBoxStyle: React.CSSProperties = {
+  marginTop: 16,
+  border: "1px solid #e2e8f0",
+  background: "#f8fafc",
+  borderRadius: 16,
+  padding: 16,
+};
+
 const requestHeaderRowStyle: React.CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   gap: 16,
   flexWrap: "wrap",
   marginBottom: 18,
+};
+
+const timelineBoxStyle: React.CSSProperties = {
+  marginBottom: 16,
+  border: "1px solid #e2e8f0",
+  background: "#f8fafc",
+  borderRadius: 16,
+  padding: 16,
+};
+
+const timelineTitleStyle: React.CSSProperties = {
+  marginTop: 8,
+  fontSize: 18,
+  fontWeight: 800,
+  color: "#0f172a",
+};
+
+const timelineTextStyle: React.CSSProperties = {
+  margin: "8px 0 0 0",
+  color: "#475569",
+  lineHeight: 1.7,
 };
 
 const infoGridStyle: React.CSSProperties = {
@@ -921,13 +1246,29 @@ const smallMuted: React.CSSProperties = {
 };
 
 const infoPillStyle: React.CSSProperties = {
-  background: "#eff6ff",
-  color: "#1d4ed8",
   borderRadius: 999,
   padding: "10px 14px",
   fontSize: 14,
-  fontWeight: 600,
+  fontWeight: 700,
   alignSelf: "center",
+};
+
+const quotesHeaderRowStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 12,
+  flexWrap: "wrap",
+  marginBottom: 10,
+};
+
+const quoteCountBadgeStyle: React.CSSProperties = {
+  borderRadius: 999,
+  padding: "8px 12px",
+  background: "#eff6ff",
+  color: "#1d4ed8",
+  fontSize: 12,
+  fontWeight: 700,
 };
 
 const quoteCardStyle: React.CSSProperties = {
@@ -959,6 +1300,14 @@ const miniBoxStyle: React.CSSProperties = {
   borderRadius: 14,
   padding: 12,
   color: "#0f172a",
+};
+
+const quoteNoteBoxStyle: React.CSSProperties = {
+  marginTop: 12,
+  border: "1px solid #e2e8f0",
+  background: "#f8fafc",
+  borderRadius: 14,
+  padding: 12,
 };
 
 const protectedBoxStyle: React.CSSProperties = {
@@ -1024,6 +1373,19 @@ const releasedBoxStyle: React.CSSProperties = {
   border: "1px solid #86efac",
 };
 
+const supportBoxStyle: React.CSSProperties = {
+  marginTop: 18,
+  padding: 16,
+  borderRadius: 16,
+  background: "#f8fafc",
+  border: "1px solid #e2e8f0",
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 16,
+  flexWrap: "wrap",
+  alignItems: "center",
+};
+
 const emptyStateStyle: React.CSSProperties = {
   border: "1px dashed #cbd5e1",
   background: "#f8fafc",
@@ -1040,6 +1402,10 @@ const darkButtonStyle: React.CSSProperties = {
   padding: "12px 16px",
   fontWeight: 700,
   cursor: "pointer",
+  textDecoration: "none",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
 };
 
 const blueButtonStyle: React.CSSProperties = {
@@ -1050,4 +1416,30 @@ const blueButtonStyle: React.CSSProperties = {
   padding: "12px 16px",
   fontWeight: 700,
   cursor: "pointer",
+};
+
+const whatsAppButtonStyle: React.CSSProperties = {
+  background: "#16a34a",
+  color: "white",
+  border: "none",
+  borderRadius: 12,
+  padding: "12px 16px",
+  fontWeight: 700,
+  cursor: "pointer",
+  textDecoration: "none",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
+
+const secondaryActionLinkStyle: React.CSSProperties = {
+  background: "#e2e8f0",
+  color: "#0f172a",
+  borderRadius: 12,
+  padding: "12px 16px",
+  fontWeight: 700,
+  textDecoration: "none",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
 };
