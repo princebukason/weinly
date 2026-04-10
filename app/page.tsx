@@ -11,6 +11,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const PAYSTACK_PUBLIC_KEY = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "";
 const WHATSAPP_LINK = "https://wa.me/2348130630046";
+const SUPPORT_EMAIL = "support@weinly.com";
 
 type FabricRequest = {
   id: string;
@@ -231,6 +232,8 @@ export default function HomePage() {
       setSubmittedQuotes([]);
       setRequestId(data.id);
       setLookupId(data.id);
+
+      document.getElementById("request-result")?.scrollIntoView({ behavior: "smooth" });
     } catch (error) {
       console.error(error);
       alert("Something went wrong while submitting your request.");
@@ -263,6 +266,10 @@ export default function HomePage() {
 
       setLookupRequest(request);
       setLookupQuotes(quotes);
+
+      setTimeout(() => {
+        document.getElementById("request-tracker")?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
     } catch (error) {
       console.error(error);
       alert("Failed to fetch request.");
@@ -427,6 +434,42 @@ export default function HomePage() {
   return (
     <main style={pageStyle}>
       <div style={containerStyle}>
+        <header style={navWrapperStyle}>
+          <div style={navBarStyle}>
+            <a href="/" style={brandStyle}>
+              <span style={brandBadgeStyle}>W</span>
+              <span>Weinly</span>
+            </a>
+
+            <nav style={navLinksStyle}>
+              <a href="/" style={navLinkStyle}>
+                Home
+              </a>
+              <a href="#how-it-works" style={navLinkStyle}>
+                How it works
+              </a>
+              <a href="/history" style={navLinkStyle}>
+                History
+              </a>
+              <a href="#pricing" style={navLinkStyle}>
+                Pricing
+              </a>
+              <a
+                href={WHATSAPP_LINK}
+                target="_blank"
+                rel="noreferrer"
+                style={navLinkStyle}
+              >
+                WhatsApp Support
+              </a>
+            </nav>
+
+            <a href="#submit-request" style={navCtaStyle}>
+              Submit Request
+            </a>
+          </div>
+        </header>
+
         <section style={heroCardStyle}>
           <div style={{ marginBottom: 22 }}>
             <div style={badgeStyle}>WEINLY</div>
@@ -465,7 +508,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div style={howItWorksBoxStyle}>
+          <div id="how-it-works" style={howItWorksBoxStyle}>
             <strong style={{ color: "#0f172a", display: "block", marginBottom: 10 }}>
               How Weinly works
             </strong>
@@ -502,7 +545,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit}>
+          <form id="submit-request" onSubmit={handleSubmit}>
             <div style={formTopGridStyle}>
               <input
                 value={clientName}
@@ -603,8 +646,70 @@ export default function HomePage() {
           </div>
         </section>
 
+        <section id="pricing" style={pricingSectionStyle}>
+          <div style={pricingHeaderStyle}>
+            <div style={badgeStyle}>PRICING</div>
+            <h2 style={pricingTitleStyle}>Simple and clear pricing</h2>
+            <p style={pricingSubtitleStyle}>
+              Weinly is designed to let buyers start easily, review supplier quotes,
+              and only pay when they want direct supplier contact.
+            </p>
+          </div>
+
+          <div style={pricingGridStyle}>
+            <div style={pricingCardStyle}>
+              <div style={pricingCardTopStyle}>
+                <div style={pricingPlanStyle}>Request Submission</div>
+                <div style={pricingAmountStyle}>Free</div>
+              </div>
+              <p style={pricingTextStyle}>
+                Submit your fabric sourcing request and receive a structured sourcing
+                flow inside Weinly.
+              </p>
+              <ul style={pricingListStyle}>
+                <li style={pricingListItemStyle}>Fabric request submission</li>
+                <li style={pricingListItemStyle}>AI sourcing spec formatting</li>
+                <li style={pricingListItemStyle}>Request tracking</li>
+              </ul>
+            </div>
+
+            <div style={featuredPricingCardStyle}>
+              <div style={featuredBadgeStyle}>Most important</div>
+              <div style={pricingCardTopStyle}>
+                <div style={pricingPlanStyle}>Supplier Contact Unlock</div>
+                <div style={pricingAmountStyle}>₦3000</div>
+              </div>
+              <p style={pricingTextStyle}>
+                When quotes are ready, pay to unlock direct supplier contact after
+                approval.
+              </p>
+              <ul style={pricingListStyle}>
+                <li style={pricingListItemStyle}>Supplier quote preview first</li>
+                <li style={pricingListItemStyle}>Phone, WeChat, email, contact person</li>
+                <li style={pricingListItemStyle}>Controlled release process</li>
+              </ul>
+            </div>
+
+            <div style={pricingCardStyle}>
+              <div style={pricingCardTopStyle}>
+                <div style={pricingPlanStyle}>Support</div>
+                <div style={pricingAmountStyle}>Chat us</div>
+              </div>
+              <p style={pricingTextStyle}>
+                Need help before paying or want managed sourcing support? Reach out on
+                WhatsApp.
+              </p>
+              <ul style={pricingListStyle}>
+                <li style={pricingListItemStyle}>Pre-payment guidance</li>
+                <li style={pricingListItemStyle}>Request support</li>
+                <li style={pricingListItemStyle}>Buyer assistance</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
         {submittedRequest && (
-          <section style={cardStyle}>
+          <section id="request-result" style={cardStyle}>
             <h2 style={sectionTitle}>Request submitted successfully</h2>
             <p style={mutedText}>
               Save this request ID so you can track supplier quotes later.
@@ -637,7 +742,7 @@ export default function HomePage() {
         )}
 
         {activeRequest && activeStage && (
-          <section style={cardStyle}>
+          <section id="request-tracker" style={cardStyle}>
             <div style={requestHeaderRowStyle}>
               <div>
                 <h2 style={sectionTitle}>Request tracker</h2>
@@ -870,7 +975,14 @@ export default function HomePage() {
                               payment, your request will be marked paid automatically.
                             </p>
 
-                            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                gap: 10,
+                                flexWrap: "wrap",
+                                marginTop: 14,
+                              }}
+                            >
                               <button
                                 onClick={() => startPaystackCheckout(activeRequest)}
                                 disabled={paymentLoading}
@@ -968,6 +1080,51 @@ export default function HomePage() {
             </div>
           </section>
         )}
+
+        <footer style={footerStyle}>
+          <div style={footerTopStyle}>
+            <div>
+              <div style={footerBrandStyle}>Weinly</div>
+              <p style={footerTextStyle}>
+                Built for fabric buyers sourcing from China.
+              </p>
+            </div>
+
+            <div style={footerGridStyle}>
+              <div>
+                <div style={footerHeadingStyle}>Navigation</div>
+                <div style={footerLinksWrapStyle}>
+                  <a href="/history" style={footerLinkStyle}>
+                    History
+                  </a>
+                  <a href="#pricing" style={footerLinkStyle}>
+                    Pricing
+                  </a>
+                  <a href="#how-it-works" style={footerLinkStyle}>
+                    How it works
+                  </a>
+                </div>
+              </div>
+
+              <div>
+                <div style={footerHeadingStyle}>Support</div>
+                <div style={footerLinksWrapStyle}>
+                  <a
+                    href={WHATSAPP_LINK}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={footerLinkStyle}
+                  >
+                    WhatsApp
+                  </a>
+                  <a href={`mailto:${SUPPORT_EMAIL}`} style={footerLinkStyle}>
+                    {SUPPORT_EMAIL}
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </footer>
       </div>
     </main>
   );
@@ -976,14 +1133,80 @@ export default function HomePage() {
 const pageStyle: React.CSSProperties = {
   minHeight: "100vh",
   background: "#f8fafc",
-  padding: "40px 16px",
+  padding: "24px 16px 40px",
   fontFamily:
     'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
 };
 
 const containerStyle: React.CSSProperties = {
-  maxWidth: 980,
+  maxWidth: 1100,
   margin: "0 auto",
+};
+
+const navWrapperStyle: React.CSSProperties = {
+  marginBottom: 18,
+};
+
+const navBarStyle: React.CSSProperties = {
+  background: "rgba(255,255,255,0.9)",
+  border: "1px solid #e5e7eb",
+  borderRadius: 22,
+  padding: "14px 18px",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 16,
+  flexWrap: "wrap",
+  boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
+};
+
+const brandStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 10,
+  textDecoration: "none",
+  color: "#0f172a",
+  fontWeight: 800,
+  fontSize: 20,
+};
+
+const brandBadgeStyle: React.CSSProperties = {
+  width: 34,
+  height: 34,
+  borderRadius: 999,
+  background: "#0f172a",
+  color: "white",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: 14,
+  fontWeight: 800,
+};
+
+const navLinksStyle: React.CSSProperties = {
+  display: "flex",
+  gap: 18,
+  flexWrap: "wrap",
+  alignItems: "center",
+};
+
+const navLinkStyle: React.CSSProperties = {
+  color: "#475569",
+  textDecoration: "none",
+  fontWeight: 600,
+  fontSize: 14,
+};
+
+const navCtaStyle: React.CSSProperties = {
+  background: "#0f172a",
+  color: "white",
+  textDecoration: "none",
+  borderRadius: 12,
+  padding: "12px 16px",
+  fontWeight: 700,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
 };
 
 const heroCardStyle: React.CSSProperties = {
@@ -1132,6 +1355,98 @@ const inputStyle: React.CSSProperties = {
   fontSize: 15,
   outline: "none",
   boxSizing: "border-box",
+};
+
+const pricingSectionStyle: React.CSSProperties = {
+  background: "white",
+  border: "1px solid #e5e7eb",
+  borderRadius: 24,
+  padding: 28,
+  boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
+  marginBottom: 24,
+};
+
+const pricingHeaderStyle: React.CSSProperties = {
+  marginBottom: 20,
+};
+
+const pricingTitleStyle: React.CSSProperties = {
+  margin: "0 0 10px 0",
+  fontSize: 30,
+  color: "#0f172a",
+};
+
+const pricingSubtitleStyle: React.CSSProperties = {
+  margin: 0,
+  color: "#64748b",
+  lineHeight: 1.7,
+  maxWidth: 760,
+};
+
+const pricingGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+  gap: 14,
+};
+
+const pricingCardStyle: React.CSSProperties = {
+  border: "1px solid #e2e8f0",
+  background: "#f8fafc",
+  borderRadius: 20,
+  padding: 18,
+};
+
+const featuredPricingCardStyle: React.CSSProperties = {
+  border: "1px solid #bfdbfe",
+  background: "#eff6ff",
+  borderRadius: 20,
+  padding: 18,
+  position: "relative",
+};
+
+const featuredBadgeStyle: React.CSSProperties = {
+  display: "inline-block",
+  marginBottom: 12,
+  padding: "6px 10px",
+  borderRadius: 999,
+  background: "#1d4ed8",
+  color: "white",
+  fontSize: 12,
+  fontWeight: 700,
+};
+
+const pricingCardTopStyle: React.CSSProperties = {
+  marginBottom: 12,
+};
+
+const pricingPlanStyle: React.CSSProperties = {
+  color: "#0f172a",
+  fontWeight: 700,
+  fontSize: 18,
+};
+
+const pricingAmountStyle: React.CSSProperties = {
+  marginTop: 8,
+  color: "#0f172a",
+  fontSize: 28,
+  fontWeight: 800,
+};
+
+const pricingTextStyle: React.CSSProperties = {
+  margin: 0,
+  color: "#475569",
+  lineHeight: 1.7,
+};
+
+const pricingListStyle: React.CSSProperties = {
+  margin: "14px 0 0 0",
+  paddingLeft: 18,
+  color: "#334155",
+};
+
+const pricingListItemStyle: React.CSSProperties = {
+  marginBottom: 8,
+  lineHeight: 1.6,
 };
 
 const cardStyle: React.CSSProperties = {
@@ -1392,6 +1707,60 @@ const emptyStateStyle: React.CSSProperties = {
   borderRadius: 16,
   padding: 18,
   color: "#64748b",
+};
+
+const footerStyle: React.CSSProperties = {
+  marginTop: 8,
+  background: "white",
+  border: "1px solid #e5e7eb",
+  borderRadius: 24,
+  padding: 24,
+  boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
+};
+
+const footerTopStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 24,
+  flexWrap: "wrap",
+};
+
+const footerBrandStyle: React.CSSProperties = {
+  fontSize: 24,
+  fontWeight: 800,
+  color: "#0f172a",
+};
+
+const footerTextStyle: React.CSSProperties = {
+  margin: "8px 0 0 0",
+  color: "#64748b",
+  lineHeight: 1.7,
+  maxWidth: 320,
+};
+
+const footerGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: 24,
+  minWidth: 320,
+};
+
+const footerHeadingStyle: React.CSSProperties = {
+  color: "#0f172a",
+  fontWeight: 700,
+  marginBottom: 10,
+};
+
+const footerLinksWrapStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 10,
+};
+
+const footerLinkStyle: React.CSSProperties = {
+  color: "#475569",
+  textDecoration: "none",
+  fontWeight: 600,
 };
 
 const darkButtonStyle: React.CSSProperties = {
