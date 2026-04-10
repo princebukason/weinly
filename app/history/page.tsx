@@ -188,12 +188,12 @@ export default function HistoryPage() {
                   <p style={preWrapText}>{request.user_input}</p>
                 </div>
 
-                {request.ai_output && (
-                  <div style={contentBoxStyle}>
-                    <strong>AI sourcing spec</strong>
-                    <p style={preWrapText}>{formatAiOutput(request.ai_output)}</p>
-                  </div>
-                )}
+                {request.ai_output != null && (
+  <div style={contentBoxStyle}>
+    <strong>AI sourcing spec</strong>
+    <p style={preWrapText}>{formatAiOutput(request.ai_output)}</p>
+  </div>
+)}
 
                 <div style={footerRowStyle}>
                   <div style={smallMuted}>

@@ -513,12 +513,12 @@ export default function HomePage() {
               </div>
             </div>
 
-            {submittedRequest.ai_output && (
-              <div style={specBoxStyle}>
-                <h3 style={smallTitle}>AI sourcing spec</h3>
-                <p style={preWrapText}>{formatAiOutput(submittedRequest.ai_output)}</p>
-              </div>
-            )}
+            {submittedRequest.ai_output != null && (
+  <div style={specBoxStyle}>
+    <h3 style={smallTitle}>AI sourcing spec</h3>
+    <p style={preWrapText}>{formatAiOutput(submittedRequest.ai_output)}</p>
+  </div>
+)}
           </section>
         )}
 
@@ -564,12 +564,12 @@ export default function HomePage() {
               <p style={preWrapText}>{activeRequest.user_input}</p>
             </div>
 
-            {activeRequest.ai_output && (
-              <div style={specBoxStyle}>
-                <h3 style={smallTitle}>AI sourcing spec</h3>
-                <p style={preWrapText}>{formatAiOutput(activeRequest.ai_output)}</p>
-              </div>
-            )}
+            {activeRequest.ai_output != null && (
+  <div style={specBoxStyle}>
+    <h3 style={smallTitle}>AI sourcing spec</h3>
+    <p style={preWrapText}>{formatAiOutput(activeRequest.ai_output)}</p>
+  </div>
+)}
 
             <div style={{ marginTop: 22 }}>
               <h3 style={smallTitle}>Supplier quotes</h3>

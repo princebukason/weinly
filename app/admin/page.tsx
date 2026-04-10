@@ -486,12 +486,12 @@ export default function AdminPage() {
                   <p style={preWrapText}>{request.user_input}</p>
                 </div>
 
-                {request.ai_output && (
-                  <div style={contentBoxStyle}>
-                    <strong>AI sourcing spec</strong>
-                    <p style={preWrapText}>{formatAiOutput(request.ai_output)}</p>
-                  </div>
-                )}
+                {request.ai_output != null && (
+  <div style={contentBoxStyle}>
+    <strong>AI sourcing spec</strong>
+    <p style={preWrapText}>{formatAiOutput(request.ai_output)}</p>
+  </div>
+)}
 
                 <div style={{ marginTop: 16 }}>
                   <strong style={{ color: "#0f172a" }}>Internal note</strong>
