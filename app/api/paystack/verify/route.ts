@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || "";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { reference, requestId, expectedAmount } = body as {
-      reference?: string;
-      requestId?: string;
-      expectedAmount?: number;
-    };
+    const reference = String(body.reference || "").trim();
+    const requestId = String(body.requestId || "").trim();
+    const expectedAmount = Number(body.expectedAmount || 0);
 
     if (!reference || !requestId || !expectedAmount) {
       return NextResponse.json(
@@ -22,76 +21,95 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const secretKey = process.env.PAYSTACK_SECRET_KEY;
-    if (!secretKey) {
+    if (!PAYSTACK_SECRET_KEY) {
       return NextResponse.json(
         { error: "Missing PAYSTACK_SECRET_KEY." },
         { status: 500 }
       );
     }
 
-    const verifyRes = await fetch(
-      `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+    const paystackRes = await fetch(
+      `https://api.paystack.co/transaction/verify/${reference}`,
       {
         method: "GET",
         headers: {
-          Authorization: `Bearer ${secretKey}`,
+          Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+          "Content-Type": "application/json",
         },
+        cache: "no-store",
       }
     );
 
-    const verifyData = await verifyRes.json();
+    const paystackData = await paystackRes.json();
 
-    if (!verifyRes.ok || !verifyData?.status || !verifyData?.data) {
+    if (!paystackRes.ok || !paystackData?.status || !paystackData?.data) {
       return NextResponse.json(
-        { error: verifyData?.message || "Failed to verify transaction." },
+        { error: "Unable to verify payment with Paystack." },
         { status: 400 }
       );
     }
 
-    const transaction = verifyData.data;
-    const statusOk = transaction.status === "success";
-    const amountOk = Number(transaction.amount) === Number(expectedAmount);
+    const payment = paystackData.data;
+    const paidAmount = Number(payment.amount || 0);
+    const paidStatus = payment.status;
 
-    if (!statusOk || !amountOk) {
+    if (paidStatus !== "success") {
       return NextResponse.json(
-        {
-          error: "Transaction not valid for fulfillment.",
-          statusOk,
-          amountOk,
-        },
+        { error: "Payment is not successful." },
         { status: 400 }
       );
     }
 
-    const { error: updateError } = await supabase
+    if (paidAmount !== expectedAmount) {
+      return NextResponse.json(
+        { error: "Payment amount does not match expected amount." },
+        { status: 400 }
+      );
+    }
+
+    const nowIso = new Date().toISOString();
+
+    const { error: requestUpdateError } = await supabase
       .from("fabric_requests")
       .update({
         payment_status: "paid",
-        payment_reference: transaction.reference,
-        paid_at: transaction.paid_at || new Date().toISOString(),
+        payment_reference: reference,
+        paid_at: nowIso,
+        contact_request_status: "approved",
       })
       .eq("id", requestId);
 
-    if (updateError) {
-      console.error("Supabase update error:", updateError);
+    if (requestUpdateError) {
+      console.error("Request update error:", requestUpdateError);
       return NextResponse.json(
-        { error: "Payment verified, but failed to update request." },
+        { error: "Failed to update request payment state." },
+        { status: 500 }
+      );
+    }
+
+    const { error: quoteUpdateError } = await supabase
+      .from("quotes")
+      .update({
+        is_contact_released: true,
+      })
+      .eq("request_id", requestId);
+
+    if (quoteUpdateError) {
+      console.error("Quote update error:", quoteUpdateError);
+      return NextResponse.json(
+        { error: "Payment verified, but failed to release supplier contact." },
         { status: 500 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      reference: transaction.reference,
-      paid_at: transaction.paid_at,
-      channel: transaction.channel,
-      amount: transaction.amount,
+      message: "Payment verified and supplier contact released.",
     });
   } catch (error) {
-    console.error("Paystack verify error:", error);
+    console.error("Verify route error:", error);
     return NextResponse.json(
-      { error: "Something went wrong while verifying payment." },
+      { error: "Internal server error." },
       { status: 500 }
     );
   }
