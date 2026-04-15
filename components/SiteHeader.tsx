@@ -7,9 +7,7 @@ type SiteHeaderProps = {
   showSubmitButton?: boolean;
 };
 
-export default function SiteHeader({
-  showSubmitButton = true,
-}: SiteHeaderProps) {
+export default function SiteHeader({ showSubmitButton = true }: SiteHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -22,13 +20,12 @@ export default function SiteHeader({
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  const genericSupportLink = buildWhatsappLink(
-    "Hello Weinly, I need help with fabric sourcing."
-  );
+  const genericSupportLink = buildWhatsappLink("Hello Weinly, I need help with fabric sourcing.");
 
   return (
     <header style={navWrapperStyle}>
       <div style={navBarStyle}>
+
         <div style={navTopRowStyle}>
           <a href="/" style={brandStyle}>
             <span style={brandBadgeStyle}>W</span>
@@ -39,53 +36,28 @@ export default function SiteHeader({
             <button
               type="button"
               onClick={() => setMobileMenuOpen((prev) => !prev)}
-              style={menuButtonStyle}
-            >
+              style={menuButtonStyle}>
               {mobileMenuOpen ? "Close" : "Menu"}
             </button>
           )}
         </div>
 
-        <div
-          style={{
-            ...navContentWrapStyle,
-            display: isMobile ? (mobileMenuOpen ? "flex" : "none") : "flex",
-          }}
-        >
-          <nav
-            style={{
-              ...navLinksStyle,
-              flexDirection: isMobile ? "column" : "row",
-              alignItems: isMobile ? "flex-start" : "center",
-              width: isMobile ? "100%" : "auto",
-            }}
-          >
+        <div style={{ ...navContentWrapStyle, display: isMobile ? (mobileMenuOpen ? "flex" : "none") : "flex" }}>
+          <nav style={{ ...navLinksStyle, flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "center", width: isMobile ? "100%" : "auto" }}>
             <a href="/" style={navLinkStyle}>Home</a>
             <a href="/#how-it-works" style={navLinkStyle}>How it works</a>
             <a href="/history" style={navLinkStyle}>History</a>
             <a href="/#pricing" style={navLinkStyle}>Pricing</a>
-            
-              href={genericSupportLink}
-              target="_blank"
-              rel="noreferrer"
-              style={navLinkStyle}
-            >
-              WhatsApp Support
-            </a>
+            <a href={genericSupportLink} target="_blank" rel="noreferrer" style={navLinkStyle}>WhatsApp Support</a>
           </nav>
 
           {showSubmitButton && (
-            
-              href="/#submit-request"
-              style={{
-                ...navCtaStyle,
-                width: isMobile ? "100%" : "auto",
-              }}
-            >
+            <a href="/#submit-request" style={{ ...navCtaStyle, width: isMobile ? "100%" : "auto" }}>
               Submit Request
             </a>
           )}
         </div>
+
       </div>
     </header>
   );

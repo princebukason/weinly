@@ -1,18 +1,16 @@
+"use client";
+
 import { buildWhatsappLink, SUPPORT_EMAIL } from "@/lib/config";
 
 export default function SiteFooter() {
-  const genericSupportLink = buildWhatsappLink(
-    "Hello Weinly, I need help with fabric sourcing."
-  );
+  const genericSupportLink = buildWhatsappLink("Hello Weinly, I need help with fabric sourcing.");
 
   return (
     <footer style={footerStyle}>
       <div style={footerTopStyle}>
         <div>
           <div style={footerBrandStyle}>Weinly</div>
-          <p style={footerTextStyle}>
-            Built for fabric buyers sourcing from China.
-          </p>
+          <p style={footerTextStyle}>Built for fabric buyers sourcing from China.</p>
         </div>
 
         <div style={footerGridStyle}>
@@ -28,17 +26,8 @@ export default function SiteFooter() {
           <div>
             <div style={footerHeadingStyle}>Support</div>
             <div style={footerLinksWrapStyle}>
-              
-                href={genericSupportLink}
-                target="_blank"
-                rel="noreferrer"
-                style={footerLinkStyle}
-              >
-                WhatsApp
-              </a>
-              <a href={`mailto:${SUPPORT_EMAIL}`} style={footerLinkStyle}>
-                {SUPPORT_EMAIL}
-              </a>
+              <a href={genericSupportLink} target="_blank" rel="noreferrer" style={footerLinkStyle}>WhatsApp</a>
+              <a href={`mailto:${SUPPORT_EMAIL}`} style={footerLinkStyle}>{SUPPORT_EMAIL}</a>
             </div>
           </div>
         </div>
