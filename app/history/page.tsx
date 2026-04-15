@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { createClient } from "@supabase/supabase-js";
+import SiteHeader from "@/components/SiteHeader";
+import SiteFooter from "@/components/SiteFooter";
+import { buildWhatsappLink } from "@/lib/config";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-const WHATSAPP_NUMBER = "2348130630046";
-const SUPPORT_EMAIL = "support@weinly.com";
 
 type FabricRequest = {
   id: string;
@@ -45,1124 +45,409 @@ type Quote = {
 
 function formatAiOutput(aiOutput: unknown) {
   if (!aiOutput) return "—";
-
   if (typeof aiOutput === "string") return aiOutput;
-
   if (typeof aiOutput === "object") {
     return Object.entries(aiOutput as Record<string, unknown>)
       .map(([key, value]) => `${key.replace(/_/g, " ")}: ${String(value ?? "")}`)
       .join("\n");
   }
-
   return String(aiOutput);
 }
 
-function getRequestStageLabel(request: FabricRequest, quoteCount: number) {
+function getStageLabel(request: FabricRequest, quoteCount: number) {
   if (request.contact_request_status === "approved") return "Supplier contact released";
-  if (request.payment_status === "paid") return "Payment received";
+  if (request.payment_status === "paid") return "Payment received — pending approval";
   if (quoteCount > 0) return "Quotes available";
   if (request.status === "completed") return "Completed";
-  if (request.status === "quoted") return "Quoted";
-  return "Submitted";
+  return "Submitted — being processed";
 }
 
-function getStageTone(request: FabricRequest, quoteCount: number) {
-  if (request.contact_request_status === "approved") {
-    return {
-      background: "#dcfce7",
-      color: "#166534",
-      label: "Access unlocked",
-    };
-  }
-
-  if (request.payment_status === "paid") {
-    return {
-      background: "#ede9fe",
-      color: "#6d28d9",
-      label: "Paid",
-    };
-  }
-
-  if (quoteCount > 0) {
-    return {
-      background: "#dbeafe",
-      color: "#1d4ed8",
-      label: "Quotes ready",
-    };
-  }
-
-  return {
-    background: "#fef3c7",
-    color: "#92400e",
-    label: "In progress",
-  };
-}
-
-function buildWhatsappLink(message: string) {
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+function getStagePill(request: FabricRequest, quoteCount: number) {
+  if (request.contact_request_status === "approved")
+    return { cls: "bg-emerald-900/60 text-emerald-300 border border-emerald-500/30", label: "Access unlocked" };
+  if (request.payment_status === "paid")
+    return { cls: "bg-violet-900/60 text-violet-300 border border-violet-500/30", label: "Paid — awaiting approval" };
+  if (quoteCount > 0)
+    return { cls: "bg-blue-900/60 text-blue-300 border border-blue-500/30", label: "Quotes ready" };
+  return { cls: "bg-amber-900/60 text-amber-300 border border-amber-500/30", label: "In progress" };
 }
 
 export default function HistoryPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
   const [requests, setRequests] = useState<FabricRequest[]>([]);
   const [quotesMap, setQuotesMap] = useState<Record<string, Quote[]>>({});
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    function checkMobile() {
-      setIsMobile(window.innerWidth < 880);
-    }
-
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
 
   async function searchHistory(e: React.FormEvent) {
     e.preventDefault();
-
-    if (!email.trim() && !phone.trim()) {
-      alert("Enter your email or phone number.");
-      return;
-    }
-
+    if (!email.trim() && !phone.trim()) { alert("Enter your email or phone number."); return; }
     setLoading(true);
     setRequests([]);
     setQuotesMap({});
-
+    setSearched(false);
     try {
-      let query = supabase
-        .from("fabric_requests")
-        .select("*")
-        .order("created_at", { ascending: false });
-
+      let query = supabase.from("fabric_requests").select("*").order("created_at", { ascending: false });
       if (email.trim() && phone.trim()) {
-        query = query.or(
-          `client_email.eq.${email.trim()},client_phone.eq.${phone.trim()}`
-        );
+        query = query.or(`client_email.eq.${email.trim()},client_phone.eq.${phone.trim()}`);
       } else if (email.trim()) {
         query = query.eq("client_email", email.trim());
-      } else if (phone.trim()) {
+      } else {
         query = query.eq("client_phone", phone.trim());
       }
-
       const { data, error } = await query;
-
       if (error) throw error;
-
       const requestList = (data || []) as FabricRequest[];
       setRequests(requestList);
-
-      const requestIds = requestList.map((item) => item.id);
-
-      if (requestIds.length > 0) {
+      setSearched(true);
+      const ids = requestList.map((r) => r.id);
+      if (ids.length > 0) {
         const { data: quoteData, error: quoteError } = await supabase
-          .from("quotes")
-          .select("*")
-          .in("request_id", requestIds)
-          .order("id", { ascending: false });
-
+          .from("quotes").select("*").in("request_id", ids).order("id", { ascending: false });
         if (quoteError) throw quoteError;
-
         const grouped: Record<string, Quote[]> = {};
-
-        (quoteData || []).forEach((quote) => {
-          const q = quote as Quote;
-          if (!grouped[q.request_id]) grouped[q.request_id] = [];
-          grouped[q.request_id].push(q);
+        (quoteData || []).forEach((q) => {
+          const quote = q as Quote;
+          if (!grouped[quote.request_id]) grouped[quote.request_id] = [];
+          grouped[quote.request_id].push(quote);
         });
-
         setQuotesMap(grouped);
       }
-    } catch (error) {
-      console.error(error);
-      alert("Failed to load request history.");
-    } finally {
-      setLoading(false);
-    }
+    } catch { alert("Failed to load request history."); }
+    finally { setLoading(false); }
   }
 
-  const genericSupportLink = buildWhatsappLink(
-    "Hello Weinly, I need help with my request history."
-  );
+  const genericSupportLink = buildWhatsappLink("Hello Weinly, I need help with my request history.");
 
   return (
-    <main style={pageStyle}>
-      <div style={containerStyle}>
-        <header style={navWrapperStyle}>
-          <div style={navBarStyle}>
-            <div style={navTopRowStyle}>
-              <a href="/" style={brandStyle}>
-                <span style={brandBadgeStyle}>W</span>
-                <span>Weinly</span>
-              </a>
+    <main className="min-h-screen bg-[#0a0f1e] px-3 py-3 md:px-4 md:py-4 font-sans">
+      <div className="max-w-5xl mx-auto flex flex-col gap-3">
+        <SiteHeader />
 
-              {isMobile && (
+        {/* ── HEADER ── */}
+        <section className="relative overflow-hidden bg-gradient-to-br from-[#0f172a] via-[#1a1040] to-[#0c1a3a] border border-indigo-500/15 rounded-3xl p-6 md:p-10 shadow-2xl shadow-indigo-500/10">
+          <div className="absolute top-0 right-0 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+          <div className="relative z-10">
+            <div className="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/25 rounded-full px-4 py-1.5 mb-4">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400" />
+              <span className="text-indigo-300 text-xs font-semibold">Request history</span>
+            </div>
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-white leading-tight tracking-tight mb-3">
+              Your sourcing{" "}
+              <span className="bg-gradient-to-r from-indigo-400 via-sky-400 to-emerald-400 bg-clip-text text-transparent">
+                history
+              </span>
+            </h1>
+            <p className="text-slate-400 text-base leading-relaxed max-w-xl mb-8">
+              Enter the same email or phone number you used when submitting your request to view all your previous sourcing requests and quotes.
+            </p>
+
+            <form onSubmit={searchHistory} className="flex flex-col gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-slate-400 text-xs font-bold uppercase tracking-wider">Email address</label>
+                  <input
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    type="email"
+                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-indigo-500 focus:bg-indigo-500/5 transition-all"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-slate-400 text-xs font-bold uppercase tracking-wider">WhatsApp / phone</label>
+                  <input
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+234 800 000 0000"
+                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-indigo-500 focus:bg-indigo-500/5 transition-all"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 flex-wrap">
                 <button
-                  type="button"
-                  onClick={() => setMobileMenuOpen((prev) => !prev)}
-                  style={menuButtonStyle}
-                >
-                  {mobileMenuOpen ? "Close" : "Menu"}
+                  type="submit"
+                  disabled={loading}
+                  className="bg-gradient-to-r from-indigo-500 to-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl shadow-lg shadow-indigo-500/25 border-0 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
+                  {loading ? "Searching..." : "Search history →"}
                 </button>
+                <a href="/" className="bg-white/6 border border-white/10 text-slate-400 font-semibold text-sm px-6 py-3 rounded-xl no-underline hover:bg-white/10 transition-all flex items-center">
+                  ← Back to home
+                </a>
+                <a href={genericSupportLink} target="_blank" rel="noreferrer" className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-semibold text-sm px-6 py-3 rounded-xl no-underline hover:bg-emerald-500/15 transition-all flex items-center">
+                  WhatsApp support
+                </a>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        {/* ── RESULTS ── */}
+        {searched && (
+          <section className="bg-[#111827] border border-white/7 rounded-3xl p-5 md:p-8">
+            <div className="flex justify-between items-center gap-4 flex-wrap mb-6">
+              <div>
+                <h2 className="text-xl md:text-2xl font-black text-white tracking-tight mb-1">Your requests</h2>
+                <p className="text-slate-500 text-sm m-0">{requests.length === 0 ? "No requests found" : `${requests.length} request${requests.length === 1 ? "" : "s"} found`}</p>
+              </div>
+              {requests.length > 0 && (
+                <span className="bg-indigo-500/15 text-indigo-400 text-xs font-bold px-4 py-2 rounded-full">{requests.length} {requests.length === 1 ? "result" : "results"}</span>
               )}
             </div>
 
-            <div
-              style={{
-                ...navContentWrapStyle,
-                display: isMobile ? (mobileMenuOpen ? "flex" : "none") : "flex",
-              }}
-            >
-              <nav
-                style={{
-                  ...navLinksStyle,
-                  flexDirection: isMobile ? "column" : "row",
-                  alignItems: isMobile ? "flex-start" : "center",
-                  width: isMobile ? "100%" : "auto",
-                }}
-              >
-                <a href="/" style={navLinkStyle}>
-                  Home
+            {requests.length === 0 ? (
+              <div className="border border-dashed border-white/10 bg-white/2 rounded-2xl p-12 text-center">
+                <div className="text-5xl mb-4">◎</div>
+                <div className="text-slate-400 font-bold text-lg mb-2">No requests found</div>
+                <p className="text-slate-600 text-sm leading-relaxed max-w-sm mx-auto mb-6">
+                  We couldn't find any requests matching that email or phone. Make sure you use the same details you submitted with.
+                </p>
+                <a href="/" className="bg-gradient-to-r from-indigo-500 to-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl no-underline inline-flex items-center shadow-lg shadow-indigo-500/25">
+                  Submit a new request →
                 </a>
-                <a href="/#how-it-works" style={navLinkStyle}>
-                  How it works
-                </a>
-                <a href="/history" style={navLinkStyle}>
-                  History
-                </a>
-                <a href="/#pricing" style={navLinkStyle}>
-                  Pricing
-                </a>
-                <a
-                  href={genericSupportLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={navLinkStyle}
-                >
-                  WhatsApp Support
-                </a>
-              </nav>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-5">
+                {requests.map((request) => {
+                  const quotes = quotesMap[request.id] || [];
+                  const pill = getStagePill(request, quotes.length);
+                  const supportLink = buildWhatsappLink(`Hello Weinly, I need help with request ID: ${request.id}`);
 
-              <a
-                href="/#submit-request"
-                style={{
-                  ...navCtaStyle,
-                  width: isMobile ? "100%" : "auto",
-                }}
-              >
-                Submit Request
-              </a>
-            </div>
-          </div>
-        </header>
+                  return (
+                    <div key={request.id} className="bg-white/3 border border-white/7 rounded-2xl p-5 flex flex-col gap-4">
 
-        <section style={cardStyle}>
-          <div style={badgeStyle}>WEINLY HISTORY</div>
-
-          <h1 style={titleStyle}>View your previous requests</h1>
-          <p style={subtitleStyle}>
-            Enter the same email or phone number you used when submitting your request.
-          </p>
-
-          <form onSubmit={searchHistory}>
-            <div style={formGridStyle}>
-              <input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Your email"
-                type="email"
-                style={inputStyle}
-              />
-              <input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Your phone / WhatsApp"
-                style={inputStyle}
-              />
-            </div>
-
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
-              <button
-                type="submit"
-                disabled={loading}
-                style={{
-                  ...darkButtonStyle,
-                  opacity: loading ? 0.7 : 1,
-                  cursor: loading ? "not-allowed" : "pointer",
-                }}
-              >
-                {loading ? "Searching..." : "Search history"}
-              </button>
-
-              <a href="/" style={linkButtonStyle}>
-                Back to home
-              </a>
-            </div>
-          </form>
-        </section>
-
-        <section style={cardStyle}>
-          <h2 style={sectionTitle}>Your requests</h2>
-
-          {requests.length === 0 ? (
-            <div style={emptyStateStyle}>
-              No request history yet. Search using your email or phone number.
-            </div>
-          ) : (
-            requests.map((request) => {
-              const quotes = quotesMap[request.id] || [];
-              const stage = getStageTone(request, quotes.length);
-              const requestSupportLink = buildWhatsappLink(
-                `Hello Weinly, I need help with request ID: ${request.id}`
-              );
-
-              return (
-                <div key={request.id} style={requestCardStyle}>
-                  <div style={requestHeaderStyle}>
-                    <div>
-                      <h3 style={{ margin: 0, color: "#0f172a" }}>
-                        Request ID: {request.id}
-                      </h3>
-                      <div style={metaTextStyle}>
-                        Created: {new Date(request.created_at).toLocaleString()}
-                      </div>
-                    </div>
-
-                    <div style={pillWrapStyle}>
-                      <span style={statusPillStyle}>
-                        Status: {request.status || "submitted"}
-                      </span>
-                      <span style={paymentPillStyle}>
-                        Payment: {request.payment_status || "unpaid"}
-                      </span>
-                      <span
-                        style={{
-                          ...stagePillStyle,
-                          background: stage.background,
-                          color: stage.color,
-                        }}
-                      >
-                        {stage.label}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div style={timelineBoxStyle}>
-                    <strong style={{ color: "#0f172a" }}>Current stage</strong>
-                    <div style={timelineTitleStyle}>
-                      {getRequestStageLabel(request, quotes.length)}
-                    </div>
-                    <p style={timelineTextStyle}>
-                      {request.contact_request_status === "approved"
-                        ? "Your supplier contact access has been approved. You can now view the released contact details below."
-                        : request.payment_status === "paid"
-                        ? "Your payment has been received. Admin review or contact release may still be pending."
-                        : quotes.length > 0
-                        ? "Your quote preview is ready. Supplier contacts stay protected until access is approved."
-                        : "Your request has been received and is being processed."}
-                    </p>
-                  </div>
-
-                  <div style={infoGridStyle}>
-                    <div style={miniCardStyle}>
-                      <strong>Buyer</strong>
-                      <div style={smallMuted}>{request.client_name || "Not provided"}</div>
-                    </div>
-                    <div style={miniCardStyle}>
-                      <strong>Email</strong>
-                      <div style={smallMuted}>{request.client_email || "—"}</div>
-                    </div>
-                    <div style={miniCardStyle}>
-                      <strong>Phone</strong>
-                      <div style={smallMuted}>{request.client_phone || "—"}</div>
-                    </div>
-                    <div style={miniCardStyle}>
-                      <strong>Total quotes</strong>
-                      <div style={smallMuted}>{quotes.length}</div>
-                    </div>
-                  </div>
-
-                  <div style={infoGridStyle}>
-                    <div style={miniCardStyle}>
-                      <strong>Contact request</strong>
-                      <div style={smallMuted}>
-                        {request.contact_request_status || "none"}
-                      </div>
-                    </div>
-                    <div style={miniCardStyle}>
-                      <strong>Access fee</strong>
-                      <div style={smallMuted}>{request.contact_access_fee || "—"}</div>
-                    </div>
-                    <div style={miniCardStyle}>
-                      <strong>Payment reference</strong>
-                      <div style={smallMuted}>{request.payment_reference || "—"}</div>
-                    </div>
-                    <div style={miniCardStyle}>
-                      <strong>Paid at</strong>
-                      <div style={smallMuted}>
-                        {request.paid_at
-                          ? new Date(request.paid_at).toLocaleString()
-                          : "—"}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={contentBoxStyle}>
-                    <strong>Fabric request</strong>
-                    <p style={preWrapText}>{request.user_input}</p>
-                  </div>
-
-                  {request.ai_output != null && (
-                    <div style={contentBoxStyle}>
-                      <strong>AI sourcing spec</strong>
-                      <p style={preWrapText}>{formatAiOutput(request.ai_output)}</p>
-                    </div>
-                  )}
-
-                  <div style={quotesSectionStyle}>
-                    <div style={sectionRowStyle}>
-                      <h4 style={quotesTitleStyle}>Supplier quote preview</h4>
-                      <span style={quoteCountBadgeStyle}>
-                        {quotes.length} {quotes.length === 1 ? "quote" : "quotes"}
-                      </span>
-                    </div>
-
-                    {quotes.length === 0 ? (
-                      <div style={emptyStateStyle}>
-                        We are currently sourcing suppliers for this request. Quotes will appear here shortly.
-                      </div>
-                    ) : (
-                      quotes.map((quote) => (
-                        <div key={quote.id} style={quoteCardStyle}>
-                          <div style={quoteTopRowStyle}>
-                            <div>
-                              <strong style={{ color: "#0f172a", fontSize: 16 }}>
-                                {quote.supplier_name}
-                              </strong>
-                              <div style={smallMuted}>
-                                {quote.supplier_region || "Region not added"}
-                              </div>
-                            </div>
-
-                            <span
-                              style={{
-                                ...releaseBadgeStyle,
-                                background: quote.is_contact_released
-                                  ? "#dcfce7"
-                                  : "#eff6ff",
-                                color: quote.is_contact_released
-                                  ? "#166534"
-                                  : "#1d4ed8",
-                              }}
-                            >
-                              {quote.is_contact_released
-                                ? "Contact unlocked"
-                                : "Contact protected"}
-                            </span>
-                          </div>
-
-                          <div style={infoGridStyle}>
-                            <div style={miniCardStyle}>
-                              <strong>Price</strong>
-                              <div style={smallMuted}>{quote.price || "—"}</div>
-                            </div>
-                            <div style={miniCardStyle}>
-                              <strong>MOQ</strong>
-                              <div style={smallMuted}>{quote.moq || "—"}</div>
-                            </div>
-                            <div style={miniCardStyle}>
-                              <strong>Lead time</strong>
-                              <div style={smallMuted}>{quote.lead_time || "—"}</div>
-                            </div>
-                            <div style={miniCardStyle}>
-                              <strong>Supplier region</strong>
-                              <div style={smallMuted}>{quote.supplier_region || "—"}</div>
-                            </div>
-                          </div>
-
-                          {quote.note && (
-                            <div style={contentBoxInnerStyle}>
-                              <strong>Supplier note</strong>
-                              <p style={preWrapText}>{quote.note}</p>
-                            </div>
-                          )}
-
-                          {quote.is_contact_released ? (
-                            <div style={unlockedBoxStyle}>
-                              <strong style={{ color: "#166534" }}>
-                                Supplier contact details
-                              </strong>
-
-                              <div style={infoGridStyle}>
-                                <div style={miniCardStyle}>
-                                  <strong>Contact name</strong>
-                                  <div style={smallMuted}>
-                                    {quote.contact_name || "—"}
-                                  </div>
-                                </div>
-                                <div style={miniCardStyle}>
-                                  <strong>Phone</strong>
-                                  <div style={smallMuted}>
-                                    {quote.contact_phone || "—"}
-                                  </div>
-                                </div>
-                                <div style={miniCardStyle}>
-                                  <strong>WeChat</strong>
-                                  <div style={smallMuted}>
-                                    {quote.contact_wechat || "—"}
-                                  </div>
-                                </div>
-                                <div style={miniCardStyle}>
-                                  <strong>Email</strong>
-                                  <div style={smallMuted}>
-                                    {quote.contact_email || "—"}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ) : (
-                            <div style={lockedBoxStyle}>
-                              <strong style={{ color: "#1d4ed8" }}>
-                                Supplier contact is protected
-                              </strong>
-                              <p style={lockedTextStyle}>
-                                You can preview pricing, MOQ, lead time, and supplier
-                                notes here. Direct supplier contact details are only shown
-                                after access is approved.
-                              </p>
-                            </div>
-                          )}
+                      {/* Request header */}
+                      <div className="flex justify-between gap-3 flex-wrap items-start">
+                        <div>
+                          <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Request ID</div>
+                          <div className="text-white font-bold text-sm break-all mb-1">{request.id}</div>
+                          <div className="text-slate-600 text-xs">Created: {new Date(request.created_at).toLocaleString()}</div>
                         </div>
-                      ))
-                    )}
-                  </div>
+                        <div className="flex gap-2 flex-wrap">
+                          <span className="bg-blue-900/50 text-blue-300 border border-blue-500/25 text-xs font-bold px-3 py-1.5 rounded-full">
+                            {request.status || "submitted"}
+                          </span>
+                          <span className="bg-amber-900/50 text-amber-300 border border-amber-500/25 text-xs font-bold px-3 py-1.5 rounded-full">
+                            {request.payment_status || "unpaid"}
+                          </span>
+                          <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${pill.cls}`}>{pill.label}</span>
+                        </div>
+                      </div>
 
-                  {quotes.length > 0 && request.contact_request_status !== "approved" && (
-                    <div style={unlockBoxStyle}>
-                      <div>
-                        <h4 style={unlockTitleStyle}>Unlock verified supplier contact now</h4>
-                        <p style={unlockTextStyle}>
-                          Get direct access to supplier phone, WeChat, and contact person. Avoid middlemen and negotiate better deals instantly.
+                      {/* Stage box */}
+                      <div className="bg-white/4 border border-white/7 rounded-xl p-4">
+                        <div className="text-white font-bold text-sm mb-1">{getStageLabel(request, quotes.length)}</div>
+                        <p className="text-slate-500 text-xs leading-relaxed m-0">
+                          {request.contact_request_status === "approved"
+                            ? "Your supplier contact access has been approved. Direct contact details are visible below."
+                            : request.payment_status === "paid"
+                            ? "Payment received. Admin is reviewing — contact will be released shortly."
+                            : quotes.length > 0
+                            ? "Quote preview is ready. Go to the tracker to proceed with unlocking supplier contact."
+                            : "Request received and being matched to verified suppliers."}
                         </p>
-                        <div style={{ marginTop: 8, fontSize: 13, color: "#64748b" }}>
-                          Trusted by fabric buyers sourcing from China to Africa.
-                        </div>
                       </div>
 
-                      <div style={unlockMetaWrapStyle}>
-                        <div style={unlockMetaCardStyle}>
-                          <div style={unlockMetaLabelStyle}>Access fee</div>
-                          <div style={unlockMetaValueStyle}>
-                            {request.contact_access_fee || "Contact support"}
+                      {/* Info grid */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+                        {[
+                          { label: "Buyer", value: request.client_name || "—" },
+                          { label: "Email", value: request.client_email || "—" },
+                          { label: "Phone", value: request.client_phone || "—" },
+                          { label: "Total quotes", value: String(quotes.length) },
+                          { label: "Contact status", value: request.contact_request_status || "none" },
+                          { label: "Access fee", value: request.contact_access_fee || "—" },
+                          { label: "Reference", value: request.payment_reference || "—" },
+                          { label: "Paid at", value: request.paid_at ? new Date(request.paid_at).toLocaleString() : "—" },
+                        ].map((info) => (
+                          <div key={info.label} className="bg-white/4 border border-white/7 rounded-xl p-3">
+                            <div className="text-slate-600 text-xs font-bold uppercase tracking-wider mb-1">{info.label}</div>
+                            <div className="text-slate-300 text-xs leading-relaxed break-words">{info.value}</div>
                           </div>
-                        </div>
-
-                        <div style={unlockMetaCardStyle}>
-                          <div style={unlockMetaLabelStyle}>Request status</div>
-                          <div style={unlockMetaValueStyle}>
-                            {request.contact_request_status || "not requested"}
-                          </div>
-                        </div>
+                        ))}
                       </div>
 
-                      <div style={unlockActionRowStyle}>
-                        <a href={`/?requestId=${request.id}`} style={darkButtonStyle}>
-                          Open this request
-                        </a>
+                      {/* Fabric request */}
+                      <div className="bg-white/4 border border-white/7 rounded-xl p-4">
+                        <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">Fabric request</div>
+                        <p className="text-slate-400 text-sm leading-relaxed m-0 whitespace-pre-wrap">{request.user_input}</p>
+                      </div>
 
-                        <a
-                          href={requestSupportLink}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={whatsAppButtonStyle}
-                        >
-                          Chat on WhatsApp
+                      {/* AI spec */}
+                      {request.ai_output != null && (
+                        <div className="bg-white/4 border border-white/7 rounded-xl p-4">
+                          <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">AI sourcing spec</div>
+                          <p className="text-slate-400 text-sm leading-relaxed m-0 whitespace-pre-wrap">{formatAiOutput(request.ai_output)}</p>
+                        </div>
+                      )}
+
+                      {/* Quotes */}
+                      <div className="flex flex-col gap-3">
+                        <div className="flex justify-between items-center">
+                          <h3 className="text-white font-bold text-base m-0">Supplier quotes</h3>
+                          <span className="bg-indigo-500/15 text-indigo-400 text-xs font-bold px-3 py-1.5 rounded-full">{quotes.length} {quotes.length === 1 ? "quote" : "quotes"}</span>
+                        </div>
+
+                        {quotes.length === 0 ? (
+                          <div className="border border-dashed border-white/10 bg-white/2 rounded-xl p-6 text-center">
+                            <p className="text-slate-600 text-sm m-0">Quotes will appear here once suppliers have been matched.</p>
+                          </div>
+                        ) : (
+                          quotes.map((quote) => (
+                            <div key={quote.id} className="bg-white/4 border border-white/7 rounded-xl p-4 flex flex-col gap-3">
+                              <div className="flex justify-between gap-3 flex-wrap items-start">
+                                <div>
+                                  <div className="text-white font-bold text-base mb-1">{quote.supplier_name || "Verified Supplier"}</div>
+                                  <div className="text-slate-500 text-xs">{quote.supplier_region || "China"} · Verified partner</div>
+                                </div>
+                                <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${quote.is_contact_released ? "bg-emerald-900/60 text-emerald-300 border border-emerald-500/30" : "bg-blue-900/60 text-blue-300 border border-blue-500/30"}`}>
+                                  {quote.is_contact_released ? "Contact released" : "Protected"}
+                                </span>
+                              </div>
+
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                {[
+                                  { label: "Price", value: quote.price || "—" },
+                                  { label: "MOQ", value: quote.moq || "—" },
+                                  { label: "Lead time", value: quote.lead_time || "—" },
+                                  { label: "Region", value: quote.supplier_region || "—" },
+                                ].map((s) => (
+                                  <div key={s.label} className="bg-white/4 border border-white/7 rounded-lg p-2.5">
+                                    <div className="text-slate-600 text-xs font-bold uppercase tracking-wider mb-1">{s.label}</div>
+                                    <div className="text-white font-semibold text-sm">{s.value}</div>
+                                  </div>
+                                ))}
+                              </div>
+
+                              {quote.note && (
+                                <div className="bg-white/4 border border-white/7 rounded-lg p-3">
+                                  <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1.5">Supplier note</div>
+                                  <p className="text-slate-400 text-sm leading-relaxed m-0 whitespace-pre-wrap">{quote.note}</p>
+                                </div>
+                              )}
+
+                              {quote.is_contact_released ? (
+                                <div className="bg-emerald-500/6 border border-emerald-500/20 rounded-xl p-4">
+                                  <div className="flex items-center gap-2 mb-3">
+                                    <span className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black text-xs">✓</span>
+                                    <div className="text-emerald-300 font-bold text-sm">Supplier contact details</div>
+                                  </div>
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                    {[
+                                      { label: "Contact name", value: quote.contact_name || "—" },
+                                      { label: "Phone", value: quote.contact_phone || "—" },
+                                      { label: "WeChat", value: quote.contact_wechat || "—" },
+                                      { label: "Email", value: quote.contact_email || "—" },
+                                    ].map((c) => (
+                                      <div key={c.label} className="bg-emerald-500/8 border border-emerald-500/15 rounded-lg p-2.5">
+                                        <div className="text-emerald-600 text-xs font-bold uppercase tracking-wider mb-1">{c.label}</div>
+                                        <div className="text-emerald-300 font-semibold text-sm break-words">{c.value}</div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="bg-blue-500/6 border border-dashed border-blue-500/25 rounded-xl p-4">
+                                  <div className="text-blue-300 font-bold text-sm mb-1">Supplier contact is protected</div>
+                                  <p className="text-slate-500 text-xs leading-relaxed m-0">You can preview pricing, MOQ and lead time here. Direct supplier contact is only shown after access is approved and payment is complete.</p>
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+
+                      {/* Unlock CTA */}
+                      {quotes.length > 0 && request.contact_request_status !== "approved" && (
+                        <div className="bg-indigo-500/6 border border-indigo-500/20 rounded-2xl p-5">
+                          <h4 className="text-white font-bold text-base mb-2 m-0">Ready to unlock supplier contact?</h4>
+                          <p className="text-slate-500 text-sm leading-relaxed mb-4 m-0">
+                            Get direct access to supplier phone, WeChat and contact person. Pay ₦10,000 to unlock after approval.
+                          </p>
+                          <div className="grid grid-cols-2 gap-2.5 mb-4">
+                            <div className="bg-indigo-500/8 border border-indigo-500/15 rounded-xl p-3">
+                              <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Access fee</div>
+                              <div className="text-white font-bold text-sm">{request.contact_access_fee || "₦10,000"}</div>
+                            </div>
+                            <div className="bg-indigo-500/8 border border-indigo-500/15 rounded-xl p-3">
+                              <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Contact status</div>
+                              <div className="text-white font-bold text-sm">{request.contact_request_status || "not requested"}</div>
+                            </div>
+                          </div>
+                          <div className="flex gap-3 flex-wrap">
+                            <a href={`/?requestId=${request.id}`} className="bg-gradient-to-r from-indigo-500 to-indigo-700 text-white font-bold text-sm px-5 py-2.5 rounded-xl no-underline shadow-lg shadow-indigo-500/25 flex items-center">
+                              Open request & unlock →
+                            </a>
+                            <a href={supportLink} target="_blank" rel="noreferrer" className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-semibold text-sm px-5 py-2.5 rounded-xl no-underline flex items-center hover:bg-emerald-500/15 transition-all">
+                              Chat on WhatsApp
+                            </a>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Footer row */}
+                      <div className="flex justify-between items-center gap-3 flex-wrap pt-2 border-t border-white/6">
+                        <p className="text-slate-600 text-xs m-0">Need help? Contact Weinly support on WhatsApp.</p>
+                        <a href={`/?requestId=${request.id}`} className="text-indigo-400 text-sm font-bold no-underline hover:text-indigo-300 transition-colors">
+                          Track this request →
                         </a>
                       </div>
                     </div>
-                  )}
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        )}
 
-                  <div style={footerRowStyle}>
-                    <div style={smallMuted}>
-                      Need help with this request? Contact Weinly support on WhatsApp.
-                    </div>
-                    <a href={`/?requestId=${request.id}`} style={trackLinkStyle}>
-                      Track this request
-                    </a>
-                  </div>
-                </div>
-              );
-            })
-          )}
+        {/* ── TRUST / FAQ ── */}
+        <section className="bg-[#111827] border border-white/7 rounded-3xl p-6 md:p-10">
+          <span className="inline-block bg-indigo-500/12 text-indigo-400 text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-3">Why Weinly</span>
+          <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight mb-2">Why buyers trust Weinly</h2>
+          <p className="text-slate-500 text-sm leading-relaxed mb-8 m-0">Clear answers for buyers who want confidence before requesting quotes or paying to unlock supplier contact.</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {[
+              { title: "Quote preview first", text: "See price, MOQ, lead time and supplier notes before paying anything for direct contact.", accent: "from-indigo-500 to-indigo-600" },
+              { title: "Protected supplier access", text: "Supplier contact details are released only after the proper access flow is completed.", accent: "from-emerald-500 to-emerald-600" },
+              { title: "Built for China sourcing", text: "Designed for buyers sourcing fabrics from China, especially for the African market.", accent: "from-amber-500 to-amber-600" },
+            ].map((t) => (
+              <div key={t.title} className="bg-white/4 border border-white/7 rounded-2xl p-5">
+                <div className={`w-full h-1 rounded-full bg-gradient-to-r ${t.accent} mb-4`} />
+                <h3 className="text-white font-bold text-sm mb-2 m-0">{t.title}</h3>
+                <p className="text-slate-500 text-xs leading-relaxed m-0">{t.text}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+            {[
+              { q: "Do I need to pay before getting quotes?", a: "No. The request flow starts first. You can review quote previews before paying to unlock direct supplier contact." },
+              { q: "What does the unlock fee cover?", a: "The fee covers access to direct supplier details — contact name, phone number, WeChat and email when available." },
+              { q: "Why are supplier contacts protected?", a: "This keeps the sourcing process controlled and helps maintain quality, trust and proper buyer flow inside Weinly." },
+              { q: "What if I need help with my request?", a: "Contact Weinly support on WhatsApp anytime for help with history, quotes, payment or supplier access." },
+            ].map((faq) => (
+              <div key={faq.q} className="bg-white/4 border border-white/7 rounded-2xl p-5">
+                <h3 className="text-white font-bold text-sm mb-2 m-0">{faq.q}</h3>
+                <p className="text-slate-500 text-xs leading-relaxed m-0">{faq.a}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-indigo-500/6 border border-indigo-500/20 rounded-2xl p-5 flex flex-col md:flex-row justify-between gap-4 items-start md:items-center">
+            <div>
+              <h3 className="text-white font-bold text-base mb-1 m-0">Still need help?</h3>
+              <p className="text-slate-500 text-sm m-0">Chat with Weinly support for help finding your request, understanding quotes or unlocking supplier contact.</p>
+            </div>
+            <a href={genericSupportLink} target="_blank" rel="noreferrer" className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-sm px-6 py-3 rounded-xl no-underline hover:bg-emerald-500/15 transition-all flex items-center shrink-0">
+              Chat on WhatsApp →
+            </a>
+          </div>
         </section>
 
-        <footer style={footerStyle}>
-          <div style={footerTopStyle}>
-            <div>
-              <div style={footerBrandStyle}>Weinly</div>
-              <p style={footerTextStyle}>
-                Built for fabric buyers sourcing from China.
-              </p>
-            </div>
-
-            <div style={footerGridStyle}>
-              <div>
-                <div style={footerHeadingStyle}>Navigation</div>
-                <div style={footerLinksWrapStyle}>
-                  <a href="/history" style={footerLinkStyle}>
-                    History
-                  </a>
-                  <a href="/#pricing" style={footerLinkStyle}>
-                    Pricing
-                  </a>
-                  <a href="/#how-it-works" style={footerLinkStyle}>
-                    How it works
-                  </a>
-                </div>
-              </div>
-
-              <div>
-                <div style={footerHeadingStyle}>Support</div>
-                <div style={footerLinksWrapStyle}>
-                  <a
-                    href={genericSupportLink}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={footerLinkStyle}
-                  >
-                    WhatsApp
-                  </a>
-                  <a href={`mailto:${SUPPORT_EMAIL}`} style={footerLinkStyle}>
-                    {SUPPORT_EMAIL}
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </footer>
+        <SiteFooter />
       </div>
     </main>
   );
 }
-
-const pageStyle: React.CSSProperties = {
-  minHeight: "100vh",
-  background: "#f8fafc",
-  padding: "16px 12px 36px",
-  fontFamily:
-    'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-};
-
-const containerStyle: React.CSSProperties = {
-  maxWidth: 1100,
-  margin: "0 auto",
-};
-
-const navWrapperStyle: React.CSSProperties = {
-  marginBottom: 18,
-};
-
-const navBarStyle: React.CSSProperties = {
-  background: "rgba(255,255,255,0.95)",
-  border: "1px solid #e5e7eb",
-  borderRadius: 22,
-  padding: "14px 18px",
-  boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
-};
-
-const navTopRowStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: 16,
-};
-
-const navContentWrapStyle: React.CSSProperties = {
-  marginTop: 14,
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: 16,
-  flexWrap: "wrap",
-};
-
-const brandStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 10,
-  textDecoration: "none",
-  color: "#0f172a",
-  fontWeight: 800,
-  fontSize: 20,
-};
-
-const brandBadgeStyle: React.CSSProperties = {
-  width: 34,
-  height: 34,
-  borderRadius: 999,
-  background: "#0f172a",
-  color: "white",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontSize: 14,
-  fontWeight: 800,
-};
-
-const navLinksStyle: React.CSSProperties = {
-  display: "flex",
-  gap: 18,
-  flexWrap: "wrap",
-};
-
-const navLinkStyle: React.CSSProperties = {
-  color: "#475569",
-  textDecoration: "none",
-  fontWeight: 600,
-  fontSize: 14,
-};
-
-const navCtaStyle: React.CSSProperties = {
-  background: "#0f172a",
-  color: "white",
-  textDecoration: "none",
-  borderRadius: 12,
-  padding: "12px 16px",
-  fontWeight: 700,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
-
-const menuButtonStyle: React.CSSProperties = {
-  background: "#e2e8f0",
-  color: "#0f172a",
-  border: "none",
-  borderRadius: 12,
-  padding: "10px 14px",
-  fontWeight: 700,
-  cursor: "pointer",
-};
-
-const cardStyle: React.CSSProperties = {
-  background: "white",
-  border: "1px solid #e5e7eb",
-  borderRadius: 24,
-  padding: 24,
-  boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
-  marginBottom: 24,
-};
-
-const badgeStyle: React.CSSProperties = {
-  display: "inline-block",
-  padding: "8px 12px",
-  borderRadius: 999,
-  background: "#eff6ff",
-  color: "#1d4ed8",
-  fontSize: 13,
-  fontWeight: 700,
-  marginBottom: 14,
-};
-
-const titleStyle: React.CSSProperties = {
-  margin: "0 0 10px 0",
-  fontSize: "clamp(2rem, 6vw, 3rem)",
-  lineHeight: 1.1,
-  color: "#0f172a",
-};
-
-const subtitleStyle: React.CSSProperties = {
-  margin: "0 0 18px 0",
-  color: "#475569",
-  lineHeight: 1.7,
-};
-
-const formGridStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-  gap: 12,
-};
-
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "14px 16px",
-  borderRadius: 14,
-  border: "1px solid #cbd5e1",
-  background: "white",
-  color: "#0f172a",
-  fontSize: 15,
-  outline: "none",
-  boxSizing: "border-box",
-};
-
-const darkButtonStyle: React.CSSProperties = {
-  background: "#0f172a",
-  color: "white",
-  border: "none",
-  borderRadius: 12,
-  padding: "12px 16px",
-  fontWeight: 700,
-  cursor: "pointer",
-  textDecoration: "none",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
-
-const linkButtonStyle: React.CSSProperties = {
-  background: "#e2e8f0",
-  color: "#0f172a",
-  borderRadius: 12,
-  padding: "12px 16px",
-  fontWeight: 700,
-  textDecoration: "none",
-};
-
-const whatsAppButtonStyle: React.CSSProperties = {
-  background: "#16a34a",
-  color: "white",
-  border: "none",
-  borderRadius: 12,
-  padding: "12px 16px",
-  fontWeight: 700,
-  cursor: "pointer",
-  textDecoration: "none",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
-
-const sectionTitle: React.CSSProperties = {
-  margin: "0 0 12px 0",
-  fontSize: "clamp(1.4rem, 3.8vw, 2rem)",
-  color: "#0f172a",
-};
-
-const emptyStateStyle: React.CSSProperties = {
-  border: "1px dashed #cbd5e1",
-  background: "#f8fafc",
-  borderRadius: 16,
-  padding: 18,
-  color: "#64748b",
-};
-
-const requestCardStyle: React.CSSProperties = {
-  border: "1px solid #e2e8f0",
-  borderRadius: 18,
-  padding: 18,
-  background: "#ffffff",
-  marginBottom: 14,
-};
-
-const requestHeaderStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 12,
-  flexWrap: "wrap",
-  marginBottom: 10,
-};
-
-const pillWrapStyle: React.CSSProperties = {
-  display: "flex",
-  gap: 10,
-  flexWrap: "wrap",
-};
-
-const statusPillStyle: React.CSSProperties = {
-  background: "#eff6ff",
-  color: "#1d4ed8",
-  borderRadius: 999,
-  padding: "8px 12px",
-  fontSize: 12,
-  fontWeight: 700,
-};
-
-const paymentPillStyle: React.CSSProperties = {
-  background: "#fef3c7",
-  color: "#92400e",
-  borderRadius: 999,
-  padding: "8px 12px",
-  fontSize: 12,
-  fontWeight: 700,
-};
-
-const stagePillStyle: React.CSSProperties = {
-  borderRadius: 999,
-  padding: "8px 12px",
-  fontSize: 12,
-  fontWeight: 700,
-};
-
-const metaTextStyle: React.CSSProperties = {
-  color: "#64748b",
-  fontSize: 14,
-  lineHeight: 1.6,
-  marginTop: 6,
-};
-
-const timelineBoxStyle: React.CSSProperties = {
-  marginTop: 14,
-  border: "1px solid #e2e8f0",
-  background: "#f8fafc",
-  borderRadius: 16,
-  padding: 16,
-};
-
-const timelineTitleStyle: React.CSSProperties = {
-  marginTop: 8,
-  fontSize: 18,
-  fontWeight: 800,
-  color: "#0f172a",
-};
-
-const timelineTextStyle: React.CSSProperties = {
-  margin: "8px 0 0 0",
-  color: "#475569",
-  lineHeight: 1.7,
-};
-
-const infoGridStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-  gap: 10,
-  marginTop: 12,
-};
-
-const miniCardStyle: React.CSSProperties = {
-  border: "1px solid #e2e8f0",
-  background: "#f8fafc",
-  borderRadius: 14,
-  padding: 12,
-  color: "#0f172a",
-};
-
-const smallMuted: React.CSSProperties = {
-  color: "#64748b",
-  marginTop: 6,
-  fontSize: 14,
-  lineHeight: 1.6,
-  wordBreak: "break-word",
-};
-
-const contentBoxStyle: React.CSSProperties = {
-  marginTop: 14,
-  border: "1px solid #e2e8f0",
-  background: "#f8fafc",
-  borderRadius: 16,
-  padding: 14,
-};
-
-const contentBoxInnerStyle: React.CSSProperties = {
-  marginTop: 12,
-  border: "1px solid #e2e8f0",
-  background: "#f8fafc",
-  borderRadius: 14,
-  padding: 12,
-};
-
-const preWrapText: React.CSSProperties = {
-  margin: "6px 0 0 0",
-  color: "#334155",
-  whiteSpace: "pre-wrap",
-  lineHeight: 1.7,
-};
-
-const quotesSectionStyle: React.CSSProperties = {
-  marginTop: 18,
-};
-
-const sectionRowStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: 10,
-  flexWrap: "wrap",
-  marginBottom: 10,
-};
-
-const quotesTitleStyle: React.CSSProperties = {
-  margin: 0,
-  color: "#0f172a",
-  fontSize: 18,
-};
-
-const quoteCountBadgeStyle: React.CSSProperties = {
-  borderRadius: 999,
-  padding: "8px 12px",
-  background: "#eff6ff",
-  color: "#1d4ed8",
-  fontSize: 12,
-  fontWeight: 700,
-};
-
-const quoteCardStyle: React.CSSProperties = {
-  border: "1px solid #e2e8f0",
-  borderRadius: 16,
-  padding: 14,
-  background: "white",
-  marginBottom: 12,
-};
-
-const quoteTopRowStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 12,
-  flexWrap: "wrap",
-  alignItems: "flex-start",
-};
-
-const releaseBadgeStyle: React.CSSProperties = {
-  borderRadius: 999,
-  padding: "8px 12px",
-  fontSize: 12,
-  fontWeight: 700,
-};
-
-const lockedBoxStyle: React.CSSProperties = {
-  marginTop: 12,
-  border: "1px dashed #93c5fd",
-  background: "#eff6ff",
-  borderRadius: 14,
-  padding: 14,
-};
-
-const unlockedBoxStyle: React.CSSProperties = {
-  marginTop: 12,
-  border: "1px solid #bbf7d0",
-  background: "#f0fdf4",
-  borderRadius: 14,
-  padding: 14,
-};
-
-const lockedTextStyle: React.CSSProperties = {
-  margin: "8px 0 0 0",
-  color: "#475569",
-  lineHeight: 1.7,
-};
-
-const unlockBoxStyle: React.CSSProperties = {
-  marginTop: 18,
-  border: "1px solid #dbeafe",
-  background: "#f8fbff",
-  borderRadius: 18,
-  padding: 16,
-};
-
-const unlockTitleStyle: React.CSSProperties = {
-  margin: "0 0 8px 0",
-  color: "#0f172a",
-  fontSize: 18,
-};
-
-const unlockTextStyle: React.CSSProperties = {
-  margin: 0,
-  color: "#475569",
-  lineHeight: 1.7,
-};
-
-const unlockMetaWrapStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-  gap: 10,
-  marginTop: 14,
-};
-
-const unlockMetaCardStyle: React.CSSProperties = {
-  border: "1px solid #dbeafe",
-  background: "white",
-  borderRadius: 14,
-  padding: 12,
-};
-
-const unlockMetaLabelStyle: React.CSSProperties = {
-  fontSize: 12,
-  fontWeight: 700,
-  color: "#64748b",
-  textTransform: "uppercase",
-  letterSpacing: 0.3,
-};
-
-const unlockMetaValueStyle: React.CSSProperties = {
-  marginTop: 6,
-  color: "#0f172a",
-  fontWeight: 700,
-};
-
-const unlockActionRowStyle: React.CSSProperties = {
-  marginTop: 14,
-  display: "flex",
-  gap: 10,
-  flexWrap: "wrap",
-};
-
-const footerRowStyle: React.CSSProperties = {
-  marginTop: 14,
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 12,
-  flexWrap: "wrap",
-  alignItems: "center",
-};
-
-const trackLinkStyle: React.CSSProperties = {
-  color: "#2563eb",
-  fontWeight: 700,
-  textDecoration: "none",
-};
-
-const footerStyle: React.CSSProperties = {
-  marginTop: 8,
-  background: "white",
-  border: "1px solid #e5e7eb",
-  borderRadius: 24,
-  padding: 24,
-  boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
-};
-
-const footerTopStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 24,
-  flexWrap: "wrap",
-};
-
-const footerBrandStyle: React.CSSProperties = {
-  fontSize: 24,
-  fontWeight: 800,
-  color: "#0f172a",
-};
-
-const footerTextStyle: React.CSSProperties = {
-  margin: "8px 0 0 0",
-  color: "#64748b",
-  lineHeight: 1.7,
-  maxWidth: 320,
-};
-
-const footerGridStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-  gap: 24,
-  minWidth: 320,
-};
-
-const footerHeadingStyle: React.CSSProperties = {
-  color: "#0f172a",
-  fontWeight: 700,
-  marginBottom: 10,
-};
-
-const footerLinksWrapStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 10,
-};
-
-const footerLinkStyle: React.CSSProperties = {
-  color: "#475569",
-  textDecoration: "none",
-  fontWeight: 600,
-};
