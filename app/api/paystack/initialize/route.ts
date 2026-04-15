@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         email,
-        amount, // lower denomination
+        amount,
         currency: "NGN",
         reference: `weinly_${requestId}_${Date.now()}`,
         metadata: {

@@ -1,9 +1,4 @@
-const WHATSAPP_NUMBER = "2348130630046";
-const SUPPORT_EMAIL = "support@weinly.com";
-
-function buildWhatsappLink(message: string) {
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-}
+import { buildWhatsappLink, SUPPORT_EMAIL } from "@/lib/config";
 
 export default function SiteFooter() {
   const genericSupportLink = buildWhatsappLink(
@@ -33,7 +28,7 @@ export default function SiteFooter() {
           <div>
             <div style={footerHeadingStyle}>Support</div>
             <div style={footerLinksWrapStyle}>
-              <a
+              
                 href={genericSupportLink}
                 target="_blank"
                 rel="noreferrer"

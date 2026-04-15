@@ -1,12 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-const WHATSAPP_NUMBER = "2348130630046";
-
-function buildWhatsappLink(message: string) {
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-}
+import { buildWhatsappLink } from "@/lib/config";
 
 type SiteHeaderProps = {
   showSubmitButton?: boolean;
@@ -22,7 +17,6 @@ export default function SiteHeader({
     function checkMobile() {
       setIsMobile(window.innerWidth < 880);
     }
-
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
@@ -70,7 +64,7 @@ export default function SiteHeader({
             <a href="/#how-it-works" style={navLinkStyle}>How it works</a>
             <a href="/history" style={navLinkStyle}>History</a>
             <a href="/#pricing" style={navLinkStyle}>Pricing</a>
-            <a
+            
               href={genericSupportLink}
               target="_blank"
               rel="noreferrer"
@@ -81,7 +75,7 @@ export default function SiteHeader({
           </nav>
 
           {showSubmitButton && (
-            <a
+            
               href="/#submit-request"
               style={{
                 ...navCtaStyle,

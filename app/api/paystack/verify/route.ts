@@ -69,13 +69,15 @@ export async function POST(req: NextRequest) {
 
     const nowIso = new Date().toISOString();
 
+    // FIXED: contact_request_status stays "pending" — admin must approve
+    // contact release manually in Supabase or via the admin dashboard we will build
     const { error: requestUpdateError } = await supabase
       .from("fabric_requests")
       .update({
         payment_status: "paid",
         payment_reference: reference,
         paid_at: nowIso,
-        contact_request_status: "approved",
+        contact_request_status: "pending",
       })
       .eq("id", requestId);
 
@@ -87,24 +89,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { error: quoteUpdateError } = await supabase
-      .from("quotes")
-      .update({
-        is_contact_released: true,
-      })
-      .eq("request_id", requestId);
-
-    if (quoteUpdateError) {
-      console.error("Quote update error:", quoteUpdateError);
-      return NextResponse.json(
-        { error: "Payment verified, but failed to release supplier contact." },
-        { status: 500 }
-      );
-    }
+    // FIXED: removed auto-release of supplier contacts
+    // Contacts are only released when admin sets is_contact_released = true
+    // This will be done via the admin dashboard (Sprint 3)
 
     return NextResponse.json({
       success: true,
-      message: "Payment verified and supplier contact released.",
+      message: "Payment verified. Supplier contact release is pending admin approval.",
     });
   } catch (error) {
     console.error("Verify route error:", error);
