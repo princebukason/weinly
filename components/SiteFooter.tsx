@@ -6,86 +6,63 @@ export default function SiteFooter() {
   const genericSupportLink = buildWhatsappLink("Hello Weinly, I need help with fabric sourcing.");
 
   return (
-    <footer style={footerStyle}>
-      <div style={footerTopStyle}>
-        <div>
-          <div style={footerBrandStyle}>Weinly</div>
-          <p style={footerTextStyle}>Built for fabric buyers sourcing from China.</p>
+    <footer className="bg-[#0d1424] border border-white/8 rounded-2xl p-6 mt-2">
+      <div className="flex flex-col md:flex-row justify-between gap-8">
+
+        {/* Brand */}
+        <div className="max-w-xs">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-white font-black text-xs">W</span>
+            <span className="text-white font-black text-lg">Weinly</span>
+          </div>
+          <p className="text-slate-500 text-sm leading-relaxed">
+            AI-powered fabric sourcing platform connecting buyers to verified Chinese suppliers.
+          </p>
+          <div className="flex items-center gap-2 mt-4">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" />
+            <span className="text-emerald-400 text-xs font-semibold">Platform active</span>
+          </div>
         </div>
 
-        <div style={footerGridStyle}>
+        {/* Links */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
           <div>
-            <div style={footerHeadingStyle}>Navigation</div>
-            <div style={footerLinksWrapStyle}>
-              <a href="/history" style={footerLinkStyle}>History</a>
-              <a href="/#pricing" style={footerLinkStyle}>Pricing</a>
-              <a href="/#how-it-works" style={footerLinkStyle}>How it works</a>
+            <div className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-3">Navigate</div>
+            <div className="flex flex-col gap-2">
+              <a href="/history" className="text-slate-500 hover:text-white text-sm font-medium transition-colors no-underline">History</a>
+              <a href="/#pricing" className="text-slate-500 hover:text-white text-sm font-medium transition-colors no-underline">Pricing</a>
+              <a href="/#how-it-works" className="text-slate-500 hover:text-white text-sm font-medium transition-colors no-underline">How it works</a>
             </div>
           </div>
 
           <div>
-            <div style={footerHeadingStyle}>Support</div>
-            <div style={footerLinksWrapStyle}>
-              <a href={genericSupportLink} target="_blank" rel="noreferrer" style={footerLinkStyle}>WhatsApp</a>
-              <a href={`mailto:${SUPPORT_EMAIL}`} style={footerLinkStyle}>{SUPPORT_EMAIL}</a>
+            <div className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-3">Support</div>
+            <div className="flex flex-col gap-2">
+              <a href={genericSupportLink} target="_blank" rel="noreferrer" className="text-emerald-500 hover:text-emerald-400 text-sm font-medium transition-colors no-underline">WhatsApp</a>
+              <a href={`mailto:${SUPPORT_EMAIL}`} className="text-slate-500 hover:text-white text-sm font-medium transition-colors no-underline">{SUPPORT_EMAIL}</a>
             </div>
           </div>
+
+          <div>
+            <div className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-3">Platform</div>
+            <div className="flex flex-col gap-2">
+              <span className="text-slate-500 text-sm">China · Nigeria</span>
+              <span className="text-slate-500 text-sm">Fabric sourcing</span>
+              <span className="text-slate-500 text-sm">B2B marketplace</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom bar */}
+      <div className="mt-8 pt-6 border-t border-white/6 flex flex-col md:flex-row justify-between items-center gap-3">
+        <p className="text-slate-600 text-xs">© 2025 Weinly. Built for fabric buyers sourcing from China.</p>
+        <div className="flex items-center gap-4">
+          <span className="text-slate-600 text-xs">Powered by AI</span>
+          <span className="text-slate-600 text-xs">·</span>
+          <span className="text-slate-600 text-xs">Secured by Paystack</span>
         </div>
       </div>
     </footer>
   );
 }
-
-const footerStyle: React.CSSProperties = {
-  marginTop: 8,
-  background: "white",
-  border: "1px solid #e5e7eb",
-  borderRadius: 24,
-  padding: 24,
-  boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
-};
-
-const footerTopStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 24,
-  flexWrap: "wrap",
-};
-
-const footerBrandStyle: React.CSSProperties = {
-  fontSize: 24,
-  fontWeight: 800,
-  color: "#0f172a",
-};
-
-const footerTextStyle: React.CSSProperties = {
-  margin: "8px 0 0 0",
-  color: "#64748b",
-  lineHeight: 1.7,
-  maxWidth: 320,
-};
-
-const footerGridStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-  gap: 24,
-  minWidth: 320,
-};
-
-const footerHeadingStyle: React.CSSProperties = {
-  color: "#0f172a",
-  fontWeight: 700,
-  marginBottom: 10,
-};
-
-const footerLinksWrapStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 10,
-};
-
-const footerLinkStyle: React.CSSProperties = {
-  color: "#475569",
-  textDecoration: "none",
-  fontWeight: 600,
-};

@@ -2,12 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || "";
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
 export async function POST(req: NextRequest) {
+  // FIXED: create client inside the function, not at module level
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    return NextResponse.json(
+      { error: "Missing Supabase configuration." },
+      { status: 500 }
+    );
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+
   try {
     const body = await req.json();
     const reference = String(body.reference || "").trim();
@@ -69,8 +78,6 @@ export async function POST(req: NextRequest) {
 
     const nowIso = new Date().toISOString();
 
-    // FIXED: contact_request_status stays "pending" — admin must approve
-    // contact release manually in Supabase or via the admin dashboard we will build
     const { error: requestUpdateError } = await supabase
       .from("fabric_requests")
       .update({
@@ -88,10 +95,6 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
-
-    // FIXED: removed auto-release of supplier contacts
-    // Contacts are only released when admin sets is_contact_released = true
-    // This will be done via the admin dashboard (Sprint 3)
 
     return NextResponse.json({
       success: true,

@@ -9,141 +9,80 @@ type SiteHeaderProps = {
 
 export default function SiteHeader({ showSubmitButton = true }: SiteHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    function checkMobile() {
-      setIsMobile(window.innerWidth < 880);
-    }
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
-
   const genericSupportLink = buildWhatsappLink("Hello Weinly, I need help with fabric sourcing.");
 
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileMenuOpen]);
+
   return (
-    <header style={navWrapperStyle}>
-      <div style={navBarStyle}>
+    <header className="mb-3">
+      <nav className="bg-[#0d1424] border border-white/8 rounded-2xl px-4 py-3 flex items-center justify-between gap-4 shadow-lg">
 
-        <div style={navTopRowStyle}>
-          <a href="/" style={brandStyle}>
-            <span style={brandBadgeStyle}>W</span>
-            <span>Weinly</span>
-          </a>
+        {/* Brand */}
+        <a href="/" className="flex items-center gap-2 no-underline shrink-0">
+          <span className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-white font-black text-sm shadow-lg shadow-indigo-500/30">W</span>
+          <span className="text-white font-black text-xl tracking-tight">Weinly</span>
+        </a>
 
-          {isMobile && (
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen((prev) => !prev)}
-              style={menuButtonStyle}>
-              {mobileMenuOpen ? "Close" : "Menu"}
-            </button>
-          )}
+        {/* Desktop nav */}
+        <div className="hidden md:flex items-center gap-6">
+          <a href="/" className="text-slate-400 hover:text-white text-sm font-semibold transition-colors">Home</a>
+          <a href="/#how-it-works" className="text-slate-400 hover:text-white text-sm font-semibold transition-colors">How it works</a>
+          <a href="/history" className="text-slate-400 hover:text-white text-sm font-semibold transition-colors">History</a>
+          <a href="/#pricing" className="text-slate-400 hover:text-white text-sm font-semibold transition-colors">Pricing</a>
+          <a href={genericSupportLink} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-white text-sm font-semibold transition-colors">WhatsApp</a>
         </div>
 
-        <div style={{ ...navContentWrapStyle, display: isMobile ? (mobileMenuOpen ? "flex" : "none") : "flex" }}>
-          <nav style={{ ...navLinksStyle, flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "center", width: isMobile ? "100%" : "auto" }}>
-            <a href="/" style={navLinkStyle}>Home</a>
-            <a href="/#how-it-works" style={navLinkStyle}>How it works</a>
-            <a href="/history" style={navLinkStyle}>History</a>
-            <a href="/#pricing" style={navLinkStyle}>Pricing</a>
-            <a href={genericSupportLink} target="_blank" rel="noreferrer" style={navLinkStyle}>WhatsApp Support</a>
-          </nav>
-
+        {/* Desktop CTA */}
+        <div className="hidden md:flex items-center gap-3">
           {showSubmitButton && (
-            <a href="/#submit-request" style={{ ...navCtaStyle, width: isMobile ? "100%" : "auto" }}>
+            <a href="/#main-tabs" className="bg-gradient-to-r from-indigo-500 to-indigo-700 text-white text-sm font-bold px-4 py-2.5 rounded-xl no-underline hover:shadow-lg hover:shadow-indigo-500/30 transition-all">
               Submit Request
             </a>
           )}
         </div>
 
-      </div>
+        {/* Mobile menu button */}
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen((prev) => !prev)}
+          className="md:hidden flex flex-col gap-1.5 p-2 rounded-lg bg-white/5 border border-white/8"
+          aria-label="Toggle menu">
+          <span className={`block w-5 h-0.5 bg-slate-300 transition-all duration-300 ${mobileMenuOpen ? "rotate-45 translate-y-2" : ""}`} />
+          <span className={`block w-5 h-0.5 bg-slate-300 transition-all duration-300 ${mobileMenuOpen ? "opacity-0" : ""}`} />
+          <span className={`block w-5 h-0.5 bg-slate-300 transition-all duration-300 ${mobileMenuOpen ? "-rotate-45 -translate-y-2" : ""}`} />
+        </button>
+      </nav>
+
+      {/* Mobile dropdown */}
+      {mobileMenuOpen && (
+        <div className="md:hidden mt-2 bg-[#0d1424] border border-white/8 rounded-2xl p-4 flex flex-col gap-1 shadow-xl">
+          {[
+            { href: "/", label: "Home" },
+            { href: "/#how-it-works", label: "How it works" },
+            { href: "/history", label: "History" },
+            { href: "/#pricing", label: "Pricing" },
+          ].map((link) => (
+            <a key={link.href} href={link.href} onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white hover:bg-white/5 font-semibold text-sm px-4 py-3 rounded-xl transition-all no-underline">
+              {link.label}
+            </a>
+          ))}
+          <a href={genericSupportLink} target="_blank" rel="noreferrer" onClick={() => setMobileMenuOpen(false)} className="text-emerald-400 hover:text-emerald-300 hover:bg-white/5 font-semibold text-sm px-4 py-3 rounded-xl transition-all no-underline">
+            WhatsApp Support
+          </a>
+          {showSubmitButton && (
+            <a href="/#main-tabs" onClick={() => setMobileMenuOpen(false)} className="mt-2 bg-gradient-to-r from-indigo-500 to-indigo-700 text-white font-bold text-sm px-4 py-3 rounded-xl text-center no-underline shadow-lg shadow-indigo-500/20">
+              Submit Request
+            </a>
+          )}
+        </div>
+      )}
     </header>
   );
 }
-
-const navWrapperStyle: React.CSSProperties = {
-  marginBottom: 18,
-};
-
-const navBarStyle: React.CSSProperties = {
-  background: "rgba(255,255,255,0.95)",
-  border: "1px solid #e5e7eb",
-  borderRadius: 22,
-  padding: "14px 18px",
-  boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
-};
-
-const navTopRowStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: 16,
-};
-
-const navContentWrapStyle: React.CSSProperties = {
-  marginTop: 14,
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: 16,
-  flexWrap: "wrap",
-};
-
-const brandStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 10,
-  textDecoration: "none",
-  color: "#0f172a",
-  fontWeight: 800,
-  fontSize: 20,
-};
-
-const brandBadgeStyle: React.CSSProperties = {
-  width: 34,
-  height: 34,
-  borderRadius: 999,
-  background: "#0f172a",
-  color: "white",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontSize: 14,
-  fontWeight: 800,
-};
-
-const navLinksStyle: React.CSSProperties = {
-  display: "flex",
-  gap: 18,
-  flexWrap: "wrap",
-};
-
-const navLinkStyle: React.CSSProperties = {
-  color: "#475569",
-  textDecoration: "none",
-  fontWeight: 600,
-  fontSize: 14,
-};
-
-const navCtaStyle: React.CSSProperties = {
-  background: "#0f172a",
-  color: "white",
-  textDecoration: "none",
-  borderRadius: 12,
-  padding: "12px 16px",
-  fontWeight: 700,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
-
-const menuButtonStyle: React.CSSProperties = {
-  background: "#e2e8f0",
-  color: "#0f172a",
-  border: "none",
-  borderRadius: 12,
-  padding: "10px 14px",
-  fontWeight: 700,
-  cursor: "pointer",
-};
