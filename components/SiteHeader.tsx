@@ -37,6 +37,7 @@ export default function SiteHeader({ showSubmitButton = true }: SiteHeaderProps)
           <a href="/history" className="text-slate-400 hover:text-white text-sm font-semibold transition-colors">History</a>
           <a href="/#pricing" className="text-slate-400 hover:text-white text-sm font-semibold transition-colors">Pricing</a>
           <a href={genericSupportLink} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-white text-sm font-semibold transition-colors">WhatsApp</a>
+          <a href="/dashboard" className="text-slate-400 hover:text-white text-sm font-semibold transition-colors">Dashboard</a>
         </div>
 
         {/* Desktop CTA */}
@@ -68,6 +69,7 @@ export default function SiteHeader({ showSubmitButton = true }: SiteHeaderProps)
             { href: "/#how-it-works", label: "How it works" },
             { href: "/history", label: "History" },
             { href: "/#pricing", label: "Pricing" },
+            { href: "/dashboard", label: "Dashboard" },
           ].map((link) => (
             <a key={link.href} href={link.href} onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white hover:bg-white/5 font-semibold text-sm px-4 py-3 rounded-xl transition-all no-underline">
               {link.label}
