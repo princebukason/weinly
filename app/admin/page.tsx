@@ -7,7 +7,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "";
+const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "weinlyadmin123";
 
 type FabricRequest = {
   id: string;
@@ -43,6 +43,28 @@ type Quote = {
   is_contact_released: boolean | null;
 };
 
+type SupplierProfile = {
+  id: string;
+  user_id: string;
+  company_name: string;
+  contact_name: string | null;
+  email: string | null;
+  phone: string | null;
+  wechat: string | null;
+  region: string | null;
+  is_active: boolean | null;
+  created_at: string;
+};
+
+type SupplierInvite = {
+  id: string;
+  code: string;
+  email: string | null;
+  used: boolean;
+  used_at: string | null;
+  created_at: string;
+};
+
 type NewQuoteForm = {
   supplier_name: string;
   price: string;
@@ -57,138 +79,84 @@ type NewQuoteForm = {
 };
 
 const emptyQuoteForm: NewQuoteForm = {
-  supplier_name: "",
-  price: "",
-  moq: "",
-  note: "",
-  contact_name: "",
-  contact_phone: "",
-  contact_wechat: "",
-  contact_email: "",
-  supplier_region: "",
-  lead_time: "",
+  supplier_name: "", price: "", moq: "", note: "",
+  contact_name: "", contact_phone: "", contact_wechat: "",
+  contact_email: "", supplier_region: "", lead_time: "",
 };
 
 function formatAiOutput(aiOutput: unknown) {
   if (!aiOutput) return "—";
-
   if (typeof aiOutput === "string") return aiOutput;
-
   if (typeof aiOutput === "object") {
     return Object.entries(aiOutput as Record<string, unknown>)
       .map(([key, value]) => `${key.replace(/_/g, " ")}: ${String(value ?? "")}`)
       .join("\n");
   }
-
   return String(aiOutput);
 }
 
-function getRequestStage(request: FabricRequest, quoteCount: number) {
-  if (request.contact_request_status === "approved") {
-    return {
-      label: "Contact released",
-      background: "#dcfce7",
-      color: "#166534",
-    };
-  }
-
-  if (request.payment_status === "paid" && request.contact_request_status === "pending") {
-    return {
-      label: "Paid - awaiting release",
-      background: "#ede9fe",
-      color: "#6d28d9",
-    };
-  }
-
-  if (quoteCount > 0) {
-    return {
-      label: "Quotes ready",
-      background: "#dbeafe",
-      color: "#1d4ed8",
-    };
-  }
-
-  return {
-    label: "In progress",
-    background: "#fef3c7",
-    color: "#92400e",
-  };
+function getStagePill(request: FabricRequest, quoteCount: number) {
+  if (request.contact_request_status === "approved") return { cls: "bg-emerald-900/60 text-emerald-300 border border-emerald-500/30", label: "Contact released" };
+  if (request.payment_status === "paid" && request.contact_request_status === "pending") return { cls: "bg-violet-900/60 text-violet-300 border border-violet-500/30", label: "Paid — needs approval" };
+  if (request.payment_status === "paid") return { cls: "bg-violet-900/60 text-violet-300 border border-violet-500/30", label: "Paid" };
+  if (quoteCount > 0) return { cls: "bg-blue-900/60 text-blue-300 border border-blue-500/30", label: "Quotes ready" };
+  return { cls: "bg-amber-900/60 text-amber-300 border border-amber-500/30", label: "In progress" };
 }
 
 export default function AdminPage() {
-  const [password, setPassword] = useState("");
   const [authenticated, setAuthenticated] = useState(false);
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"requests" | "suppliers" | "invites">("requests");
+
   const [requests, setRequests] = useState<FabricRequest[]>([]);
   const [quotesMap, setQuotesMap] = useState<Record<string, Quote[]>>({});
+  const [suppliers, setSuppliers] = useState<SupplierProfile[]>([]);
+  const [invites, setInvites] = useState<SupplierInvite[]>([]);
   const [search, setSearch] = useState("");
   const [newQuotes, setNewQuotes] = useState<Record<string, NewQuoteForm>>({});
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const [newInviteCode, setNewInviteCode] = useState("");
+  const [newInviteEmail, setNewInviteEmail] = useState("");
+  const [creatingInvite, setCreatingInvite] = useState(false);
 
   useEffect(() => {
-    const saved =
-      typeof window !== "undefined"
-        ? localStorage.getItem("weinly_admin_auth")
-        : null;
-
-    if (saved === "true") {
-      setAuthenticated(true);
-    }
-
-    setLoading(false);
+    const stored = localStorage.getItem("weinly_admin_auth");
+    if (stored === "true") { setAuthenticated(true); fetchAll(); }
+    else setLoading(false);
   }, []);
 
-  useEffect(() => {
-    if (authenticated) {
-      fetchRequests();
-    }
-  }, [authenticated]);
-
-  async function fetchRequests() {
+  async function fetchAll() {
+    setLoading(true);
     try {
-      const { data: requestData, error: reqError } = await supabase
-        .from("fabric_requests")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const [reqRes, quotesRes, suppliersRes, invitesRes] = await Promise.all([
+        supabase.from("fabric_requests").select("*").order("created_at", { ascending: false }),
+        supabase.from("quotes").select("*").order("id", { ascending: false }),
+        supabase.from("supplier_profiles").select("*").order("created_at", { ascending: false }),
+        supabase.from("supplier_invites").select("*").order("created_at", { ascending: false }),
+      ]);
 
-      if (reqError) throw reqError;
-
-      const allRequests = (requestData || []) as FabricRequest[];
-      setRequests(allRequests);
-
-      const ids = allRequests.map((r) => r.id);
-
-      if (ids.length === 0) {
-        setQuotesMap({});
-        return;
-      }
-
-      const { data: quoteData, error: quoteError } = await supabase
-        .from("quotes")
-        .select("*")
-        .in("request_id", ids)
-        .order("id", { ascending: false });
-
-      if (quoteError) throw quoteError;
+      setRequests((reqRes.data || []) as FabricRequest[]);
 
       const grouped: Record<string, Quote[]> = {};
-
-      (quoteData || []).forEach((quote) => {
-        const q = quote as Quote;
-        if (!grouped[q.request_id]) grouped[q.request_id] = [];
-        grouped[q.request_id].push(q);
+      (quotesRes.data || []).forEach((q) => {
+        const quote = q as Quote;
+        if (!grouped[quote.request_id]) grouped[quote.request_id] = [];
+        grouped[quote.request_id].push(quote);
       });
-
       setQuotesMap(grouped);
-    } catch (error) {
-      console.error(error);
-      alert("Failed to load admin data.");
-    }
+      setSuppliers((suppliersRes.data || []) as SupplierProfile[]);
+      setInvites((invitesRes.data || []) as SupplierInvite[]);
+    } catch { alert("Failed to load admin data."); }
+    finally { setLoading(false); }
   }
 
   function handleLogin() {
     if (password === ADMIN_PASSWORD) {
       setAuthenticated(true);
       localStorage.setItem("weinly_admin_auth", "true");
+      fetchAll();
     } else {
       alert("Wrong password.");
     }
@@ -199,300 +167,184 @@ export default function AdminPage() {
     setAuthenticated(false);
   }
 
-  function updateNewQuoteField(
-    requestId: string,
-    field: keyof NewQuoteForm,
-    value: string
-  ) {
+  function updateNewQuoteField(requestId: string, field: keyof NewQuoteForm, value: string) {
     setNewQuotes((prev) => ({
       ...prev,
-      [requestId]: {
-        ...(prev[requestId] || { ...emptyQuoteForm }),
-        [field]: value,
-      },
+      [requestId]: { ...(prev[requestId] || { ...emptyQuoteForm }), [field]: value },
     }));
   }
 
   async function addQuote(requestId: string) {
     const form = newQuotes[requestId];
-
-    if (!form?.supplier_name?.trim()) {
-      alert("Supplier name is required.");
-      return;
-    }
-
+    if (!form?.supplier_name?.trim()) { alert("Supplier name is required."); return; }
     try {
-      const { error } = await supabase.from("quotes").insert([
-        {
-          request_id: requestId,
-          supplier_name: form.supplier_name.trim(),
-          price: form.price || null,
-          moq: form.moq || null,
-          note: form.note || null,
-          contact_name: form.contact_name || null,
-          contact_phone: form.contact_phone || null,
-          contact_wechat: form.contact_wechat || null,
-          contact_email: form.contact_email || null,
-          supplier_region: form.supplier_region || null,
-          lead_time: form.lead_time || null,
-          is_contact_released: false,
-        },
-      ]);
-
+      const { error } = await supabase.from("quotes").insert([{
+        request_id: requestId,
+        supplier_name: form.supplier_name.trim(),
+        price: form.price || null,
+        moq: form.moq || null,
+        note: form.note || null,
+        contact_name: form.contact_name || null,
+        contact_phone: form.contact_phone || null,
+        contact_wechat: form.contact_wechat || null,
+        contact_email: form.contact_email || null,
+        supplier_region: form.supplier_region || null,
+        lead_time: form.lead_time || null,
+        is_contact_released: false,
+      }]);
       if (error) throw error;
-
-      await supabase
-        .from("fabric_requests")
-        .update({ status: "quoted" })
-        .eq("id", requestId);
-
-      setNewQuotes((prev) => ({
-        ...prev,
-        [requestId]: { ...emptyQuoteForm },
-      }));
-
-      await fetchRequests();
+      await supabase.from("fabric_requests").update({ status: "quoted" }).eq("id", requestId);
+      setNewQuotes((prev) => ({ ...prev, [requestId]: { ...emptyQuoteForm } }));
+      await fetchAll();
       alert("Quote added.");
-    } catch (error) {
-      console.error(error);
-      alert("Failed to add quote.");
-    }
+    } catch { alert("Failed to add quote."); }
   }
 
   async function updateRequestStatus(requestId: string, status: string) {
     try {
-      const { error } = await supabase
-        .from("fabric_requests")
-        .update({ status })
-        .eq("id", requestId);
-
-      if (error) throw error;
-      await fetchRequests();
-    } catch (error) {
-      console.error(error);
-      alert("Failed to update status.");
-    }
+      await supabase.from("fabric_requests").update({ status }).eq("id", requestId);
+      await fetchAll();
+    } catch { alert("Failed to update status."); }
   }
 
-  async function updatePaymentStatus(
-    requestId: string,
-    paymentStatus: "paid" | "unpaid"
-  ) {
+  async function updatePaymentStatus(requestId: string, paymentStatus: "paid" | "unpaid") {
     try {
-      const updatePayload =
+      await supabase.from("fabric_requests").update(
         paymentStatus === "paid"
-          ? {
-              payment_status: "paid",
-              paid_at: new Date().toISOString(),
-            }
-          : {
-              payment_status: "unpaid",
-              paid_at: null,
-            };
-
-      const { error } = await supabase
-        .from("fabric_requests")
-        .update(updatePayload)
-        .eq("id", requestId);
-
-      if (error) throw error;
-
-      await fetchRequests();
+          ? { payment_status: "paid", paid_at: new Date().toISOString() }
+          : { payment_status: "unpaid", paid_at: null }
+      ).eq("id", requestId);
+      await fetchAll();
       alert(`Payment marked as ${paymentStatus}.`);
-    } catch (error) {
-      console.error(error);
-      alert("Failed to update payment status.");
-    }
+    } catch { alert("Failed to update payment status."); }
   }
 
   async function saveInternalNote(requestId: string, note: string) {
     try {
-      const { error } = await supabase
-        .from("fabric_requests")
-        .update({ internal_note: note })
-        .eq("id", requestId);
-
-      if (error) throw error;
-    } catch (error) {
-      console.error(error);
-      alert("Failed to save internal note.");
-    }
+      await supabase.from("fabric_requests").update({ internal_note: note }).eq("id", requestId);
+    } catch { alert("Failed to save note."); }
   }
 
-  async function approveContactRelease(
-    requestId: string,
-    paymentStatus?: string | null
-  ) {
-    if (paymentStatus !== "paid") {
-      alert("Payment must be confirmed before releasing supplier contact.");
-      return;
-    }
-
+  async function approveContactRelease(requestId: string, paymentStatus?: string | null) {
+    if (paymentStatus !== "paid") { alert("Payment must be confirmed before releasing supplier contact."); return; }
     try {
-      const { error: reqError } = await supabase
-        .from("fabric_requests")
-        .update({
-          contact_request_status: "approved",
-        })
-        .eq("id", requestId);
-
-      if (reqError) throw reqError;
-
-      const { error: quoteError } = await supabase
-        .from("quotes")
-        .update({
-          is_contact_released: true,
-        })
-        .eq("request_id", requestId);
-
-      if (quoteError) throw quoteError;
-
-      await fetchRequests();
+      await supabase.from("fabric_requests").update({ contact_request_status: "approved" }).eq("id", requestId);
+      await supabase.from("quotes").update({ is_contact_released: true }).eq("request_id", requestId);
+      await fetchAll();
       alert("Supplier contact approved and released.");
-    } catch (error) {
-      console.error(error);
-      alert("Failed to approve contact release.");
-    }
+    } catch { alert("Failed to approve contact release."); }
   }
 
   async function rejectContactRelease(requestId: string) {
     try {
-      const { error: reqError } = await supabase
-        .from("fabric_requests")
-        .update({
-          contact_request_status: "rejected",
-        })
-        .eq("id", requestId);
-
-      if (reqError) throw reqError;
-
-      const { error: quoteError } = await supabase
-        .from("quotes")
-        .update({
-          is_contact_released: false,
-        })
-        .eq("request_id", requestId);
-
-      if (quoteError) throw quoteError;
-
-      await fetchRequests();
+      await supabase.from("fabric_requests").update({ contact_request_status: "rejected" }).eq("id", requestId);
+      await supabase.from("quotes").update({ is_contact_released: false }).eq("request_id", requestId);
+      await fetchAll();
       alert("Contact request rejected.");
-    } catch (error) {
-      console.error(error);
-      alert("Failed to reject contact release.");
-    }
+    } catch { alert("Failed to reject."); }
   }
 
   async function revokeContactAccess(requestId: string) {
     try {
-      const { error: reqError } = await supabase
-        .from("fabric_requests")
-        .update({
-          contact_request_status: "rejected",
-        })
-        .eq("id", requestId);
-
-      if (reqError) throw reqError;
-
-      const { error: quoteError } = await supabase
-        .from("quotes")
-        .update({
-          is_contact_released: false,
-        })
-        .eq("request_id", requestId);
-
-      if (quoteError) throw quoteError;
-
-      await fetchRequests();
+      await supabase.from("fabric_requests").update({ contact_request_status: "rejected" }).eq("id", requestId);
+      await supabase.from("quotes").update({ is_contact_released: false }).eq("request_id", requestId);
+      await fetchAll();
       alert("Contact access revoked.");
-    } catch (error) {
-      console.error(error);
-      alert("Failed to revoke contact access.");
-    }
+    } catch { alert("Failed to revoke."); }
   }
 
   async function deleteRequest(requestId: string) {
-    const confirmed = window.confirm("Delete this request and all related quotes?");
-    if (!confirmed) return;
-
+    if (!window.confirm("Delete this request and all related quotes?")) return;
     try {
-      const { error: quoteError } = await supabase
-        .from("quotes")
-        .delete()
-        .eq("request_id", requestId);
+      await supabase.from("quotes").delete().eq("request_id", requestId);
+      await supabase.from("fabric_requests").delete().eq("id", requestId);
+      await fetchAll();
+    } catch { alert("Failed to delete request."); }
+  }
 
-      if (quoteError) throw quoteError;
+  async function toggleSupplierActive(supplierId: string, current: boolean) {
+    try {
+      await supabase.from("supplier_profiles").update({ is_active: !current }).eq("id", supplierId);
+      await fetchAll();
+    } catch { alert("Failed to update supplier."); }
+  }
 
-      const { error: reqError } = await supabase
-        .from("fabric_requests")
-        .delete()
-        .eq("id", requestId);
-
-      if (reqError) throw reqError;
-
-      await fetchRequests();
-      alert("Request deleted.");
-    } catch (error) {
-      console.error(error);
-      alert("Failed to delete request.");
+  async function createInvite() {
+    if (!newInviteCode.trim()) { alert("Enter an invite code."); return; }
+    setCreatingInvite(true);
+    try {
+      const { error } = await supabase.from("supplier_invites").insert([{
+        code: newInviteCode.trim().toUpperCase(),
+        email: newInviteEmail.trim() || null,
+      }]);
+      if (error) throw error;
+      setNewInviteCode("");
+      setNewInviteEmail("");
+      await fetchAll();
+      alert("Invite code created.");
+    } catch (err: any) {
+      alert(err.message || "Failed to create invite.");
+    } finally {
+      setCreatingInvite(false);
     }
+  }
+
+  async function deleteInvite(inviteId: string) {
+    if (!window.confirm("Delete this invite code?")) return;
+    try {
+      await supabase.from("supplier_invites").delete().eq("id", inviteId);
+      await fetchAll();
+    } catch { alert("Failed to delete invite."); }
   }
 
   const filteredRequests = useMemo(() => {
     const q = search.toLowerCase().trim();
-
-    return requests.filter((request) => {
-      if (!q) return true;
-
-      return (
-        request.id.toLowerCase().includes(q) ||
-        (request.client_name || "").toLowerCase().includes(q) ||
-        (request.client_email || "").toLowerCase().includes(q) ||
-        (request.client_phone || "").toLowerCase().includes(q) ||
-        request.user_input.toLowerCase().includes(q)
-      );
-    });
+    if (!q) return requests;
+    return requests.filter((r) =>
+      r.id.toLowerCase().includes(q) ||
+      (r.client_name || "").toLowerCase().includes(q) ||
+      (r.client_email || "").toLowerCase().includes(q) ||
+      (r.client_phone || "").toLowerCase().includes(q) ||
+      r.user_input.toLowerCase().includes(q)
+    );
   }, [requests, search]);
 
-  const dashboardStats = useMemo(() => {
-    const total = requests.length;
-    const pendingPayments = requests.filter(
-      (r) => r.contact_request_status === "pending" && r.payment_status !== "paid"
-    ).length;
-    const paidAwaitingRelease = requests.filter(
-      (r) => r.payment_status === "paid" && r.contact_request_status === "pending"
-    ).length;
-    const releasedContacts = requests.filter(
-      (r) => r.contact_request_status === "approved"
-    ).length;
-
-    return {
-      total,
-      pendingPayments,
-      paidAwaitingRelease,
-      releasedContacts,
-    };
-  }, [requests]);
+  const stats = useMemo(() => ({
+    total: requests.length,
+    pendingApproval: requests.filter((r) => r.payment_status === "paid" && r.contact_request_status === "pending").length,
+    released: requests.filter((r) => r.contact_request_status === "approved").length,
+    totalRevenue: requests.filter((r) => r.payment_status === "paid").length * 10000,
+    activeSuppliers: suppliers.filter((s) => s.is_active).length,
+    unusedInvites: invites.filter((i) => !i.used).length,
+  }), [requests, suppliers, invites]);
 
   if (loading) {
-    return <div style={{ padding: 30 }}>Loading...</div>;
+    return (
+      <main className="min-h-screen bg-[#0a0f1e] flex items-center justify-center font-sans">
+        <div className="text-slate-400 text-sm">Loading...</div>
+      </main>
+    );
   }
 
   if (!authenticated) {
     return (
-      <main style={pageStyle}>
-        <div style={loginCardStyle}>
-          <h1 style={{ marginTop: 0 }}>Weinly Admin</h1>
-          <p style={{ color: "#64748b" }}>Enter admin password to continue.</p>
+      <main className="min-h-screen bg-[#0a0f1e] flex items-center justify-center px-4 font-sans">
+        <div className="w-full max-w-sm bg-[#111827] border border-white/7 rounded-3xl p-8 shadow-xl">
+          <div className="flex items-center gap-2 mb-6">
+            <span className="w-9 h-9 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white font-black text-sm">W</span>
+            <span className="text-white font-black text-xl">Weinly Admin</span>
+          </div>
+          <p className="text-slate-500 text-sm mb-4">Enter admin password to continue.</p>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleLogin()}
             placeholder="Admin password"
-            style={inputStyle}
+            className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-red-500 transition-all mb-3"
           />
-          <button onClick={handleLogin} style={darkButtonStyle}>
-            Login
+          <button onClick={handleLogin} className="w-full bg-gradient-to-r from-red-500 to-red-700 text-white font-bold text-sm py-3 rounded-xl border-0 cursor-pointer shadow-lg shadow-red-500/25">
+            Login to Admin
           </button>
         </div>
       </main>
@@ -500,686 +352,404 @@ export default function AdminPage() {
   }
 
   return (
-    <main style={pageStyle}>
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={topBarStyle}>
-          <div>
-            <h1 style={{ margin: 0, color: "#0f172a" }}>Weinly Admin Dashboard</h1>
-            <p style={{ margin: "8px 0 0 0", color: "#64748b" }}>
-              Manage buyer requests, quotes, payments, and supplier contact release.
-            </p>
-          </div>
+    <main className="min-h-screen bg-[#0a0f1e] px-3 py-3 md:px-4 md:py-4 font-sans">
+      <div className="max-w-6xl mx-auto flex flex-col gap-3">
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button onClick={fetchRequests} style={blueButtonStyle}>
+        {/* Header */}
+        <nav className="bg-[#0d1424] border border-white/8 rounded-2xl px-4 py-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="w-9 h-9 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white font-black text-sm shadow-lg shadow-red-500/30">W</span>
+            <div>
+              <span className="text-white font-black text-lg">Weinly Admin</span>
+              <span className="ml-2 bg-red-500/15 text-red-400 text-xs font-bold px-2 py-0.5 rounded-full border border-red-500/25">Admin</span>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={fetchAll} className="bg-white/6 border border-white/10 text-slate-400 font-semibold text-xs px-4 py-2 rounded-xl cursor-pointer hover:bg-white/10 transition-all border-0">
               Refresh
             </button>
-            <button onClick={handleLogout} style={dangerButtonStyle}>
+            <button onClick={handleLogout} className="bg-red-500/10 border border-red-500/20 text-red-400 font-semibold text-xs px-4 py-2 rounded-xl cursor-pointer hover:bg-red-500/15 transition-all border-0">
               Logout
             </button>
           </div>
+        </nav>
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {[
+            { label: "Total requests", value: String(stats.total), color: "text-indigo-400", bg: "bg-indigo-500/8 border-indigo-500/20" },
+            { label: "Needs approval", value: String(stats.pendingApproval), color: "text-violet-400", bg: "bg-violet-500/8 border-violet-500/20" },
+            { label: "Contacts released", value: String(stats.released), color: "text-emerald-400", bg: "bg-emerald-500/8 border-emerald-500/20" },
+            { label: "Total revenue", value: `₦${(stats.totalRevenue).toLocaleString()}`, color: "text-amber-400", bg: "bg-amber-500/8 border-amber-500/20" },
+            { label: "Active suppliers", value: String(stats.activeSuppliers), color: "text-sky-400", bg: "bg-sky-500/8 border-sky-500/20" },
+            { label: "Unused invites", value: String(stats.unusedInvites), color: "text-pink-400", bg: "bg-pink-500/8 border-pink-500/20" },
+          ].map((stat) => (
+            <div key={stat.label} className={`${stat.bg} border rounded-2xl p-3`}>
+              <div className={`text-2xl font-black ${stat.color} mb-0.5`}>{stat.value}</div>
+              <div className="text-slate-600 text-xs font-semibold">{stat.label}</div>
+            </div>
+          ))}
         </div>
 
-        <div style={statsGridStyle}>
-          <div style={statCardStyle}>
-            <div style={statLabelStyle}>Total requests</div>
-            <div style={statValueStyle}>{dashboardStats.total}</div>
+        {/* Tabs */}
+        <div className="bg-[#111827] border border-white/7 rounded-3xl p-4 md:p-6">
+          <div className="flex gap-2 mb-6 bg-white/4 border border-white/7 rounded-2xl p-1.5">
+            {(["requests", "suppliers", "invites"] as const).map((tab) => (
+              <button key={tab} onClick={() => setActiveTab(tab)}
+                className={`flex-1 py-2.5 px-3 rounded-xl text-xs md:text-sm font-bold border-0 cursor-pointer transition-all ${activeTab === tab ? "bg-gradient-to-r from-red-500 to-red-700 text-white shadow-lg shadow-red-500/25" : "text-slate-500 bg-transparent hover:text-slate-300"}`}>
+                {tab === "requests" ? `Requests (${requests.length})` : tab === "suppliers" ? `Suppliers (${suppliers.length})` : `Invites (${invites.length})`}
+              </button>
+            ))}
           </div>
 
-          <div style={statCardStyle}>
-            <div style={statLabelStyle}>Pending payment</div>
-            <div style={statValueStyle}>{dashboardStats.pendingPayments}</div>
-          </div>
+          {/* ── REQUESTS TAB ── */}
+          {activeTab === "requests" && (
+            <div className="flex flex-col gap-4">
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by ID, name, email, phone or request text..."
+                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-red-500 transition-all"
+              />
 
-          <div style={statCardStyle}>
-            <div style={statLabelStyle}>Paid awaiting release</div>
-            <div style={statValueStyle}>{dashboardStats.paidAwaitingRelease}</div>
-          </div>
+              {filteredRequests.length === 0 ? (
+                <div className="border border-dashed border-white/10 rounded-2xl p-10 text-center text-slate-600 text-sm">No requests found.</div>
+              ) : (
+                filteredRequests.map((request) => {
+                  const quotes = quotesMap[request.id] || [];
+                  const pill = getStagePill(request, quotes.length);
+                  const isExpanded = expandedId === request.id;
 
-          <div style={statCardStyle}>
-            <div style={statLabelStyle}>Released contacts</div>
-            <div style={statValueStyle}>{dashboardStats.releasedContacts}</div>
-          </div>
-        </div>
+                  return (
+                    <div key={request.id} className="bg-white/3 border border-white/7 rounded-2xl overflow-hidden">
 
-        <div style={searchCardStyle}>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by request ID, name, email, phone, or request text"
-            style={inputStyle}
-          />
-        </div>
-
-        {filteredRequests.length === 0 ? (
-          <div style={emptyStateStyle}>No requests found.</div>
-        ) : (
-          filteredRequests.map((request) => {
-            const quotes = quotesMap[request.id] || [];
-            const stage = getRequestStage(request, quotes.length);
-
-            return (
-              <section key={request.id} style={requestCardStyle}>
-                <div style={requestHeaderStyle}>
-                  <div>
-                    <h2 style={{ margin: "0 0 8px 0", color: "#0f172a" }}>
-                      {request.client_name || "Unnamed buyer"}
-                    </h2>
-                    <div style={metaTextStyle}>Request ID: {request.id}</div>
-                    <div style={metaTextStyle}>
-                      Created: {new Date(request.created_at).toLocaleString()}
-                    </div>
-                  </div>
-
-                  <div style={pillWrapStyle}>
-                    <span style={statusPillStyle}>
-                      Status: {request.status || "submitted"}
-                    </span>
-                    <span style={contactPillStyle}>
-                      Contact: {request.contact_request_status || "none"}
-                    </span>
-                    <span
-                      style={{
-                        ...stagePillStyle,
-                        background: stage.background,
-                        color: stage.color,
-                      }}
-                    >
-                      {stage.label}
-                    </span>
-                  </div>
-                </div>
-
-                <div style={infoGridStyle}>
-                  <div style={miniCardStyle}>
-                    <strong>Email</strong>
-                    <div style={smallMuted}>{request.client_email || "—"}</div>
-                  </div>
-                  <div style={miniCardStyle}>
-                    <strong>Phone</strong>
-                    <div style={smallMuted}>{request.client_phone || "—"}</div>
-                  </div>
-                  <div style={miniCardStyle}>
-                    <strong>Buyer requested contact</strong>
-                    <div style={smallMuted}>
-                      {request.buyer_requested_contact ? "Yes" : "No"}
-                    </div>
-                  </div>
-                  <div style={miniCardStyle}>
-                    <strong>Total quotes</strong>
-                    <div style={smallMuted}>{quotes.length}</div>
-                  </div>
-                </div>
-
-                <div style={infoGridStyle}>
-                  <div style={miniCardStyle}>
-                    <strong>Payment status</strong>
-                    <div style={smallMuted}>{request.payment_status || "unpaid"}</div>
-                  </div>
-                  <div style={miniCardStyle}>
-                    <strong>Access fee</strong>
-                    <div style={smallMuted}>{request.contact_access_fee || "—"}</div>
-                  </div>
-                  <div style={miniCardStyle}>
-                    <strong>Payment reference</strong>
-                    <div style={smallMuted}>{request.payment_reference || "—"}</div>
-                  </div>
-                  <div style={miniCardStyle}>
-                    <strong>Paid at</strong>
-                    <div style={smallMuted}>
-                      {request.paid_at ? new Date(request.paid_at).toLocaleString() : "—"}
-                    </div>
-                  </div>
-                </div>
-
-                <div style={contentBoxStyle}>
-                  <strong>Fabric request</strong>
-                  <p style={preWrapText}>{request.user_input}</p>
-                </div>
-
-                {request.ai_output != null && (
-                  <div style={contentBoxStyle}>
-                    <strong>AI sourcing spec</strong>
-                    <p style={preWrapText}>{formatAiOutput(request.ai_output)}</p>
-                  </div>
-                )}
-
-                <div style={{ marginTop: 16 }}>
-                  <strong style={{ color: "#0f172a" }}>Internal note</strong>
-                  <textarea
-                    defaultValue={request.internal_note || ""}
-                    onBlur={(e) => saveInternalNote(request.id, e.target.value)}
-                    placeholder="Add internal notes here..."
-                    rows={4}
-                    style={{ ...inputStyle, resize: "vertical", marginTop: 8 }}
-                  />
-                </div>
-
-                <div style={actionSectionStyle}>
-                  <div style={actionGroupStyle}>
-                    <button
-                      onClick={() => updateRequestStatus(request.id, "submitted")}
-                      style={smallButtonStyle}
-                    >
-                      Mark Submitted
-                    </button>
-                    <button
-                      onClick={() => updateRequestStatus(request.id, "quoted")}
-                      style={smallButtonStyle}
-                    >
-                      Mark Quoted
-                    </button>
-                    <button
-                      onClick={() => updateRequestStatus(request.id, "completed")}
-                      style={smallButtonStyle}
-                    >
-                      Mark Completed
-                    </button>
-                  </div>
-
-                  <div style={actionGroupStyle}>
-                    <button
-                      onClick={() => updatePaymentStatus(request.id, "paid")}
-                      style={approveButtonStyle}
-                    >
-                      Mark Paid
-                    </button>
-                    <button
-                      onClick={() => updatePaymentStatus(request.id, "unpaid")}
-                      style={smallButtonStyle}
-                    >
-                      Mark Unpaid
-                    </button>
-                  </div>
-
-                  <div style={actionGroupStyle}>
-                    {request.contact_request_status === "pending" && (
-                      <>
-                        <button
-                          onClick={() =>
-                            approveContactRelease(request.id, request.payment_status)
-                          }
-                          style={approveButtonStyle}
-                        >
-                          Approve Contact Release
-                        </button>
-                        <button
-                          onClick={() => rejectContactRelease(request.id)}
-                          style={dangerButtonStyle}
-                        >
-                          Reject
-                        </button>
-                      </>
-                    )}
-
-                    {request.contact_request_status === "approved" && (
-                      <button
-                        onClick={() => revokeContactAccess(request.id)}
-                        style={dangerButtonStyle}
-                      >
-                        Revoke Contact Access
-                      </button>
-                    )}
-                  </div>
-
-                  <div style={actionGroupStyle}>
-                    <button
-                      onClick={() => deleteRequest(request.id)}
-                      style={dangerButtonStyle}
-                    >
-                      Delete Request
-                    </button>
-                  </div>
-                </div>
-
-                <div style={quotesSectionStyle}>
-                  <h3 style={{ marginTop: 0, color: "#0f172a" }}>Existing quotes</h3>
-
-                  {quotes.length === 0 ? (
-                    <div style={emptyStateStyle}>No quotes added yet.</div>
-                  ) : (
-                    quotes.map((quote) => (
-                      <div key={quote.id} style={quoteCardStyle}>
-                        <div style={quoteHeaderStyle}>
-                          <strong style={{ color: "#0f172a" }}>{quote.supplier_name}</strong>
-                          <span
-                            style={{
-                              background: quote.is_contact_released ? "#dcfce7" : "#eff6ff",
-                              color: quote.is_contact_released ? "#166534" : "#1d4ed8",
-                              borderRadius: 999,
-                              padding: "6px 10px",
-                              fontSize: 12,
-                              fontWeight: 700,
-                            }}
-                          >
-                            {quote.is_contact_released ? "Released" : "Protected"}
-                          </span>
+                      {/* Summary row */}
+                      <div className="p-4 flex justify-between gap-3 flex-wrap items-start cursor-pointer hover:bg-white/2 transition-all" onClick={() => setExpandedId(isExpanded ? null : request.id)}>
+                        <div className="flex flex-col gap-1.5 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-white font-bold text-sm">{request.client_name || "Unnamed buyer"}</span>
+                            <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${pill.cls}`}>{pill.label}</span>
+                            {request.payment_status === "paid" && request.contact_request_status === "pending" && (
+                              <span className="bg-red-500/15 text-red-400 border border-red-500/25 text-xs font-bold px-2.5 py-1 rounded-full animate-pulse">Action needed</span>
+                            )}
+                          </div>
+                          <div className="text-slate-500 text-xs">{request.client_email || "—"} · {new Date(request.created_at).toLocaleDateString()}</div>
+                          <div className="text-slate-600 text-xs font-mono">{request.id}</div>
                         </div>
-
-                        <div style={infoGridStyle}>
-                          <div style={miniCardStyle}>
-                            <strong>Region</strong>
-                            <div style={smallMuted}>{quote.supplier_region || "—"}</div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <div className="text-center">
+                            <div className="text-white font-black text-lg">{quotes.length}</div>
+                            <div className="text-slate-600 text-xs">quotes</div>
                           </div>
-                          <div style={miniCardStyle}>
-                            <strong>Price</strong>
-                            <div style={smallMuted}>{quote.price || "—"}</div>
-                          </div>
-                          <div style={miniCardStyle}>
-                            <strong>MOQ</strong>
-                            <div style={smallMuted}>{quote.moq || "—"}</div>
-                          </div>
-                          <div style={miniCardStyle}>
-                            <strong>Lead time</strong>
-                            <div style={smallMuted}>{quote.lead_time || "—"}</div>
-                          </div>
-                        </div>
-
-                        {quote.note && (
-                          <div style={{ marginTop: 10 }}>
-                            <strong>Note</strong>
-                            <p style={preWrapText}>{quote.note}</p>
-                          </div>
-                        )}
-
-                        <div style={infoGridStyle}>
-                          <div style={miniCardStyle}>
-                            <strong>Contact name</strong>
-                            <div style={smallMuted}>{quote.contact_name || "—"}</div>
-                          </div>
-                          <div style={miniCardStyle}>
-                            <strong>Phone</strong>
-                            <div style={smallMuted}>{quote.contact_phone || "—"}</div>
-                          </div>
-                          <div style={miniCardStyle}>
-                            <strong>WeChat</strong>
-                            <div style={smallMuted}>{quote.contact_wechat || "—"}</div>
-                          </div>
-                          <div style={miniCardStyle}>
-                            <strong>Email</strong>
-                            <div style={smallMuted}>{quote.contact_email || "—"}</div>
-                          </div>
+                          <span className={`text-slate-400 text-lg transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}>↓</span>
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
 
-                <div style={addQuoteCardStyle}>
-                  <h3 style={{ marginTop: 0, color: "#0f172a" }}>Add new quote</h3>
+                      {/* Expanded */}
+                      {isExpanded && (
+                        <div className="border-t border-white/6 p-4 flex flex-col gap-4">
 
-                  <div style={formGridStyle}>
+                          {/* Info grid */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+                            {[
+                              { label: "Email", value: request.client_email || "—" },
+                              { label: "Phone", value: request.client_phone || "—" },
+                              { label: "Status", value: request.status || "submitted" },
+                              { label: "Payment", value: request.payment_status || "unpaid" },
+                              { label: "Contact status", value: request.contact_request_status || "none" },
+                              { label: "Access fee", value: request.contact_access_fee || "—" },
+                              { label: "Reference", value: request.payment_reference || "—" },
+                              { label: "Paid at", value: request.paid_at ? new Date(request.paid_at).toLocaleDateString() : "—" },
+                            ].map((info) => (
+                              <div key={info.label} className="bg-white/4 border border-white/7 rounded-xl p-3">
+                                <div className="text-slate-600 text-xs font-bold uppercase tracking-wider mb-1">{info.label}</div>
+                                <div className="text-slate-300 text-xs break-words">{info.value}</div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Fabric request */}
+                          <div className="bg-white/4 border border-white/7 rounded-xl p-4">
+                            <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">Fabric request</div>
+                            <p className="text-slate-300 text-sm leading-relaxed m-0 whitespace-pre-wrap">{request.user_input}</p>
+                          </div>
+
+                          {/* AI spec */}
+                          {request.ai_output != null && (
+                            <div className="bg-white/4 border border-white/7 rounded-xl p-4">
+                              <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">AI sourcing spec</div>
+                              <p className="text-slate-400 text-sm leading-relaxed m-0 whitespace-pre-wrap">{formatAiOutput(request.ai_output)}</p>
+                            </div>
+                          )}
+
+                          {/* Internal note */}
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-slate-500 text-xs font-bold uppercase tracking-widest">Internal note</label>
+                            <textarea
+                              defaultValue={request.internal_note || ""}
+                              onBlur={(e) => saveInternalNote(request.id, e.target.value)}
+                              placeholder="Add internal notes here..."
+                              rows={3}
+                              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-red-500 transition-all resize-none"
+                            />
+                          </div>
+
+                          {/* Action buttons */}
+                          <div className="flex flex-col gap-3">
+                            <div className="text-slate-500 text-xs font-bold uppercase tracking-widest">Request status</div>
+                            <div className="flex gap-2 flex-wrap">
+                              {["submitted", "quoted", "completed"].map((s) => (
+                                <button key={s} onClick={() => updateRequestStatus(request.id, s)} className={`text-xs font-bold px-4 py-2 rounded-xl border-0 cursor-pointer transition-all ${request.status === s ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30" : "bg-white/6 text-slate-400 hover:bg-white/10"}`}>
+                                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                                </button>
+                              ))}
+                            </div>
+
+                            <div className="text-slate-500 text-xs font-bold uppercase tracking-widest">Payment</div>
+                            <div className="flex gap-2 flex-wrap">
+                              <button onClick={() => updatePaymentStatus(request.id, "paid")} className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-xs px-4 py-2 rounded-xl cursor-pointer hover:bg-emerald-500/15 transition-all border-0">
+                                Mark paid
+                              </button>
+                              <button onClick={() => updatePaymentStatus(request.id, "unpaid")} className="bg-white/6 text-slate-400 font-bold text-xs px-4 py-2 rounded-xl cursor-pointer hover:bg-white/10 transition-all border-0">
+                                Mark unpaid
+                              </button>
+                            </div>
+
+                            <div className="text-slate-500 text-xs font-bold uppercase tracking-widest">Contact release</div>
+                            <div className="flex gap-2 flex-wrap">
+                              {request.contact_request_status === "pending" && (
+                                <>
+                                  <button onClick={() => approveContactRelease(request.id, request.payment_status)} className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-xs px-4 py-2.5 rounded-xl cursor-pointer hover:bg-emerald-500/15 transition-all border-0 shadow-lg shadow-emerald-500/10">
+                                    ✓ Approve & release contact
+                                  </button>
+                                  <button onClick={() => rejectContactRelease(request.id)} className="bg-red-500/10 border border-red-500/20 text-red-400 font-bold text-xs px-4 py-2.5 rounded-xl cursor-pointer hover:bg-red-500/15 transition-all border-0">
+                                    ✕ Reject
+                                  </button>
+                                </>
+                              )}
+                              {request.contact_request_status === "approved" && (
+                                <button onClick={() => revokeContactAccess(request.id)} className="bg-red-500/10 border border-red-500/20 text-red-400 font-bold text-xs px-4 py-2.5 rounded-xl cursor-pointer hover:bg-red-500/15 transition-all border-0">
+                                  Revoke contact access
+                                </button>
+                              )}
+                            </div>
+
+                            <div className="pt-2 border-t border-white/6">
+                              <button onClick={() => deleteRequest(request.id)} className="bg-red-500/8 border border-red-500/15 text-red-500 font-bold text-xs px-4 py-2 rounded-xl cursor-pointer hover:bg-red-500/15 transition-all border-0">
+                                Delete request
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Existing quotes */}
+                          {quotes.length > 0 && (
+                            <div className="flex flex-col gap-3">
+                              <div className="text-slate-500 text-xs font-bold uppercase tracking-widest">Existing quotes ({quotes.length})</div>
+                              {quotes.map((quote) => (
+                                <div key={quote.id} className="bg-white/4 border border-white/7 rounded-xl p-4 flex flex-col gap-3">
+                                  <div className="flex justify-between gap-3 flex-wrap">
+                                    <div className="text-white font-bold text-sm">{quote.supplier_name}</div>
+                                    <span className={`text-xs font-bold px-3 py-1 rounded-full ${quote.is_contact_released ? "bg-emerald-900/60 text-emerald-300 border border-emerald-500/30" : "bg-blue-900/60 text-blue-300 border border-blue-500/30"}`}>
+                                      {quote.is_contact_released ? "Released" : "Protected"}
+                                    </span>
+                                  </div>
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                    {[
+                                      { label: "Price", value: quote.price || "—" },
+                                      { label: "MOQ", value: quote.moq || "—" },
+                                      { label: "Lead time", value: quote.lead_time || "—" },
+                                      { label: "Region", value: quote.supplier_region || "—" },
+                                      { label: "Contact name", value: quote.contact_name || "—" },
+                                      { label: "Phone", value: quote.contact_phone || "—" },
+                                      { label: "WeChat", value: quote.contact_wechat || "—" },
+                                      { label: "Email", value: quote.contact_email || "—" },
+                                    ].map((s) => (
+                                      <div key={s.label} className="bg-white/4 border border-white/7 rounded-lg p-2.5">
+                                        <div className="text-slate-600 text-xs font-bold uppercase tracking-wider mb-0.5">{s.label}</div>
+                                        <div className="text-slate-300 text-xs break-words">{s.value}</div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  {quote.note && (
+                                    <div className="bg-white/4 border border-white/7 rounded-lg p-3">
+                                      <div className="text-slate-600 text-xs font-bold uppercase tracking-widest mb-1">Note</div>
+                                      <p className="text-slate-400 text-xs leading-relaxed m-0">{quote.note}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Add quote form */}
+                          <div className="bg-indigo-500/6 border border-indigo-500/20 rounded-2xl p-5 flex flex-col gap-4">
+                            <div className="text-indigo-300 font-bold text-sm">Add new quote manually</div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                              {[
+                                { label: "Supplier name *", key: "supplier_name", placeholder: "Company name" },
+                                { label: "Price", key: "price", placeholder: "e.g. $2.50/yard" },
+                                { label: "MOQ", key: "moq", placeholder: "e.g. 500 yards" },
+                                { label: "Lead time", key: "lead_time", placeholder: "e.g. 15-20 days" },
+                                { label: "Supplier region", key: "supplier_region", placeholder: "e.g. Guangzhou" },
+                                { label: "Contact name", key: "contact_name", placeholder: "Contact person" },
+                                { label: "Contact phone", key: "contact_phone", placeholder: "Phone number" },
+                                { label: "Contact WeChat", key: "contact_wechat", placeholder: "WeChat ID" },
+                                { label: "Contact email", key: "contact_email", placeholder: "Email address" },
+                              ].map((field) => (
+                                <div key={field.key} className="flex flex-col gap-1.5">
+                                  <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">{field.label}</label>
+                                  <input
+                                    value={newQuotes[request.id]?.[field.key as keyof NewQuoteForm] || ""}
+                                    onChange={(e) => updateNewQuoteField(request.id, field.key as keyof NewQuoteForm, e.target.value)}
+                                    placeholder={field.placeholder}
+                                    className="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-indigo-500 transition-all"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                            <textarea
+                              value={newQuotes[request.id]?.note || ""}
+                              onChange={(e) => updateNewQuoteField(request.id, "note", e.target.value)}
+                              placeholder="Supplier note..."
+                              rows={3}
+                              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-indigo-500 transition-all resize-none"
+                            />
+                            <button onClick={() => addQuote(request.id)} className="self-start bg-gradient-to-r from-indigo-500 to-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl border-0 cursor-pointer shadow-lg shadow-indigo-500/25">
+                              Add quote →
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+
+          {/* ── SUPPLIERS TAB ── */}
+          {activeTab === "suppliers" && (
+            <div className="flex flex-col gap-4">
+              <div>
+                <h2 className="text-xl font-black text-white tracking-tight mb-1">Registered suppliers</h2>
+                <p className="text-slate-500 text-sm m-0">{suppliers.length} supplier{suppliers.length === 1 ? "" : "s"} registered on the platform.</p>
+              </div>
+
+              {suppliers.length === 0 ? (
+                <div className="border border-dashed border-white/10 rounded-2xl p-10 text-center text-slate-600 text-sm">No suppliers registered yet. Create invite codes to onboard suppliers.</div>
+              ) : (
+                suppliers.map((supplier) => (
+                  <div key={supplier.id} className="bg-white/3 border border-white/7 rounded-2xl p-5 flex flex-col gap-4">
+                    <div className="flex justify-between gap-3 flex-wrap items-start">
+                      <div>
+                        <div className="text-white font-bold text-base mb-1">{supplier.company_name}</div>
+                        <div className="text-slate-500 text-xs mb-0.5">{supplier.contact_name || "—"} · {supplier.email || "—"}</div>
+                        <div className="text-slate-600 text-xs">{supplier.region || "Region not set"} · Joined {new Date(supplier.created_at).toLocaleDateString()}</div>
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${supplier.is_active ? "bg-emerald-900/60 text-emerald-300 border border-emerald-500/30" : "bg-red-900/60 text-red-300 border border-red-500/30"}`}>
+                          {supplier.is_active ? "Active" : "Inactive"}
+                        </span>
+                        <button onClick={() => toggleSupplierActive(supplier.id, !!supplier.is_active)} className={`text-xs font-bold px-3 py-1.5 rounded-xl border-0 cursor-pointer transition-all ${supplier.is_active ? "bg-red-500/10 text-red-400 hover:bg-red-500/15" : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/15"}`}>
+                          {supplier.is_active ? "Deactivate" : "Activate"}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+                      {[
+                        { label: "Phone", value: supplier.phone || "—" },
+                        { label: "WeChat", value: supplier.wechat || "—" },
+                        { label: "Region", value: supplier.region || "—" },
+                        { label: "Email", value: supplier.email || "—" },
+                      ].map((info) => (
+                        <div key={info.label} className="bg-white/4 border border-white/7 rounded-xl p-3">
+                          <div className="text-slate-600 text-xs font-bold uppercase tracking-wider mb-1">{info.label}</div>
+                          <div className="text-slate-300 text-xs break-words">{info.value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* ── INVITES TAB ── */}
+          {activeTab === "invites" && (
+            <div className="flex flex-col gap-4">
+              <div>
+                <h2 className="text-xl font-black text-white tracking-tight mb-1">Supplier invite codes</h2>
+                <p className="text-slate-500 text-sm m-0">Generate and manage invite codes for new suppliers.</p>
+              </div>
+
+              {/* Create invite */}
+              <div className="bg-amber-500/6 border border-amber-500/20 rounded-2xl p-5 flex flex-col gap-4">
+                <div className="text-amber-300 font-bold text-sm">Create new invite code</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-slate-400 text-xs font-bold uppercase tracking-wider">Invite code *</label>
                     <input
-                      placeholder="Supplier name"
-                      value={newQuotes[request.id]?.supplier_name || ""}
-                      onChange={(e) =>
-                        updateNewQuoteField(request.id, "supplier_name", e.target.value)
-                      }
-                      style={inputStyle}
-                    />
-                    <input
-                      placeholder="Price"
-                      value={newQuotes[request.id]?.price || ""}
-                      onChange={(e) =>
-                        updateNewQuoteField(request.id, "price", e.target.value)
-                      }
-                      style={inputStyle}
-                    />
-                    <input
-                      placeholder="MOQ"
-                      value={newQuotes[request.id]?.moq || ""}
-                      onChange={(e) =>
-                        updateNewQuoteField(request.id, "moq", e.target.value)
-                      }
-                      style={inputStyle}
-                    />
-                    <input
-                      placeholder="Supplier region"
-                      value={newQuotes[request.id]?.supplier_region || ""}
-                      onChange={(e) =>
-                        updateNewQuoteField(request.id, "supplier_region", e.target.value)
-                      }
-                      style={inputStyle}
-                    />
-                    <input
-                      placeholder="Lead time"
-                      value={newQuotes[request.id]?.lead_time || ""}
-                      onChange={(e) =>
-                        updateNewQuoteField(request.id, "lead_time", e.target.value)
-                      }
-                      style={inputStyle}
-                    />
-                    <input
-                      placeholder="Contact name"
-                      value={newQuotes[request.id]?.contact_name || ""}
-                      onChange={(e) =>
-                        updateNewQuoteField(request.id, "contact_name", e.target.value)
-                      }
-                      style={inputStyle}
-                    />
-                    <input
-                      placeholder="Contact phone"
-                      value={newQuotes[request.id]?.contact_phone || ""}
-                      onChange={(e) =>
-                        updateNewQuoteField(request.id, "contact_phone", e.target.value)
-                      }
-                      style={inputStyle}
-                    />
-                    <input
-                      placeholder="Contact WeChat"
-                      value={newQuotes[request.id]?.contact_wechat || ""}
-                      onChange={(e) =>
-                        updateNewQuoteField(request.id, "contact_wechat", e.target.value)
-                      }
-                      style={inputStyle}
-                    />
-                    <input
-                      placeholder="Contact email"
-                      value={newQuotes[request.id]?.contact_email || ""}
-                      onChange={(e) =>
-                        updateNewQuoteField(request.id, "contact_email", e.target.value)
-                      }
-                      style={inputStyle}
+                      value={newInviteCode}
+                      onChange={(e) => setNewInviteCode(e.target.value.toUpperCase())}
+                      placeholder="e.g. WEINLY-SUP-004"
+                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-amber-500 transition-all"
                     />
                   </div>
-
-                  <textarea
-                    placeholder="Supplier note"
-                    value={newQuotes[request.id]?.note || ""}
-                    onChange={(e) =>
-                      updateNewQuoteField(request.id, "note", e.target.value)
-                    }
-                    rows={4}
-                    style={{ ...inputStyle, marginTop: 12, resize: "vertical" }}
-                  />
-
-                  <div style={{ marginTop: 12 }}>
-                    <button onClick={() => addQuote(request.id)} style={darkButtonStyle}>
-                      Add Quote
-                    </button>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-slate-400 text-xs font-bold uppercase tracking-wider">Supplier email (optional)</label>
+                    <input
+                      value={newInviteEmail}
+                      onChange={(e) => setNewInviteEmail(e.target.value)}
+                      placeholder="supplier@company.com"
+                      type="email"
+                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-amber-500 transition-all"
+                    />
                   </div>
                 </div>
-              </section>
-            );
-          })
-        )}
+                <button onClick={createInvite} disabled={creatingInvite} className="self-start bg-gradient-to-r from-amber-500 to-amber-700 text-white font-bold text-sm px-6 py-3 rounded-xl border-0 cursor-pointer shadow-lg shadow-amber-500/25 disabled:opacity-60">
+                  {creatingInvite ? "Creating..." : "Create invite code →"}
+                </button>
+              </div>
+
+              {/* Invite list */}
+              {invites.length === 0 ? (
+                <div className="border border-dashed border-white/10 rounded-2xl p-10 text-center text-slate-600 text-sm">No invite codes yet.</div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {invites.map((invite) => (
+                    <div key={invite.id} className="bg-white/3 border border-white/7 rounded-2xl p-4 flex justify-between gap-3 flex-wrap items-center">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-white font-black text-base font-mono">{invite.code}</span>
+                          <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${invite.used ? "bg-slate-800 text-slate-400 border border-slate-600/30" : "bg-emerald-900/60 text-emerald-300 border border-emerald-500/30"}`}>
+                            {invite.used ? "Used" : "Available"}
+                          </span>
+                        </div>
+                        <div className="text-slate-500 text-xs">
+                          {invite.email || "No email assigned"} · Created {new Date(invite.created_at).toLocaleDateString()}
+                          {invite.used_at && ` · Used ${new Date(invite.used_at).toLocaleDateString()}`}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        {!invite.used && (
+                          <button
+                            onClick={() => navigator.clipboard.writeText(invite.code).then(() => alert("Code copied!"))}
+                            className="bg-white/6 border border-white/10 text-slate-400 font-semibold text-xs px-4 py-2 rounded-xl cursor-pointer hover:bg-white/10 transition-all border-0">
+                            Copy code
+                          </button>
+                        )}
+                        <button onClick={() => deleteInvite(invite.id)} className="bg-red-500/8 border border-red-500/15 text-red-400 font-semibold text-xs px-4 py-2 rounded-xl cursor-pointer hover:bg-red-500/15 transition-all border-0">
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </main>
   );
 }
-
-const pageStyle: React.CSSProperties = {
-  minHeight: "100vh",
-  background: "#f8fafc",
-  padding: "32px 16px",
-  fontFamily:
-    'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-};
-
-const loginCardStyle: React.CSSProperties = {
-  maxWidth: 420,
-  margin: "80px auto",
-  background: "white",
-  border: "1px solid #e5e7eb",
-  borderRadius: 24,
-  padding: 24,
-  boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
-};
-
-const topBarStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 16,
-  flexWrap: "wrap",
-  alignItems: "center",
-  marginBottom: 18,
-};
-
-const statsGridStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-  gap: 12,
-  marginBottom: 18,
-};
-
-const statCardStyle: React.CSSProperties = {
-  background: "white",
-  border: "1px solid #e5e7eb",
-  borderRadius: 18,
-  padding: 16,
-  boxShadow: "0 8px 24px rgba(0,0,0,0.04)",
-};
-
-const statLabelStyle: React.CSSProperties = {
-  color: "#64748b",
-  fontSize: 13,
-  fontWeight: 700,
-  textTransform: "uppercase",
-  letterSpacing: 0.3,
-};
-
-const statValueStyle: React.CSSProperties = {
-  marginTop: 8,
-  fontSize: 28,
-  fontWeight: 800,
-  color: "#0f172a",
-};
-
-const searchCardStyle: React.CSSProperties = {
-  background: "white",
-  border: "1px solid #e5e7eb",
-  borderRadius: 18,
-  padding: 16,
-  marginBottom: 18,
-};
-
-const requestCardStyle: React.CSSProperties = {
-  background: "white",
-  border: "1px solid #e5e7eb",
-  borderRadius: 24,
-  padding: 22,
-  marginBottom: 20,
-  boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
-};
-
-const requestHeaderStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 14,
-  flexWrap: "wrap",
-  marginBottom: 16,
-};
-
-const pillWrapStyle: React.CSSProperties = {
-  display: "flex",
-  gap: 10,
-  flexWrap: "wrap",
-  alignSelf: "start",
-};
-
-const statusPillStyle: React.CSSProperties = {
-  background: "#eff6ff",
-  color: "#1d4ed8",
-  borderRadius: 999,
-  padding: "8px 12px",
-  fontSize: 12,
-  fontWeight: 700,
-};
-
-const contactPillStyle: React.CSSProperties = {
-  background: "#fef3c7",
-  color: "#92400e",
-  borderRadius: 999,
-  padding: "8px 12px",
-  fontSize: 12,
-  fontWeight: 700,
-};
-
-const stagePillStyle: React.CSSProperties = {
-  borderRadius: 999,
-  padding: "8px 12px",
-  fontSize: 12,
-  fontWeight: 700,
-};
-
-const metaTextStyle: React.CSSProperties = {
-  color: "#64748b",
-  fontSize: 14,
-  lineHeight: 1.6,
-};
-
-const contentBoxStyle: React.CSSProperties = {
-  marginTop: 14,
-  border: "1px solid #e2e8f0",
-  background: "#f8fafc",
-  borderRadius: 16,
-  padding: 14,
-};
-
-const actionSectionStyle: React.CSSProperties = {
-  marginTop: 18,
-  display: "flex",
-  flexDirection: "column",
-  gap: 10,
-};
-
-const actionGroupStyle: React.CSSProperties = {
-  display: "flex",
-  gap: 10,
-  flexWrap: "wrap",
-};
-
-const quotesSectionStyle: React.CSSProperties = {
-  marginTop: 22,
-  borderTop: "1px solid #e2e8f0",
-  paddingTop: 18,
-};
-
-const addQuoteCardStyle: React.CSSProperties = {
-  marginTop: 18,
-  border: "1px solid #e2e8f0",
-  background: "#f8fafc",
-  borderRadius: 18,
-  padding: 16,
-};
-
-const quoteCardStyle: React.CSSProperties = {
-  border: "1px solid #e2e8f0",
-  borderRadius: 16,
-  padding: 14,
-  background: "white",
-  marginBottom: 12,
-};
-
-const quoteHeaderStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 10,
-  flexWrap: "wrap",
-  marginBottom: 10,
-};
-
-const formGridStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-  gap: 10,
-};
-
-const infoGridStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-  gap: 10,
-  marginTop: 12,
-};
-
-const miniCardStyle: React.CSSProperties = {
-  border: "1px solid #e2e8f0",
-  background: "#f8fafc",
-  borderRadius: 14,
-  padding: 12,
-  color: "#0f172a",
-};
-
-const smallMuted: React.CSSProperties = {
-  color: "#64748b",
-  marginTop: 6,
-  fontSize: 14,
-  lineHeight: 1.6,
-  wordBreak: "break-word",
-};
-
-const preWrapText: React.CSSProperties = {
-  margin: "6px 0 0 0",
-  color: "#334155",
-  whiteSpace: "pre-wrap",
-  lineHeight: 1.7,
-};
-
-const emptyStateStyle: React.CSSProperties = {
-  border: "1px dashed #cbd5e1",
-  background: "#f8fafc",
-  borderRadius: 16,
-  padding: 16,
-  color: "#64748b",
-};
-
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "12px 14px",
-  borderRadius: 12,
-  border: "1px solid #cbd5e1",
-  background: "white",
-  color: "#0f172a",
-  fontSize: 14,
-  boxSizing: "border-box",
-};
-
-const darkButtonStyle: React.CSSProperties = {
-  background: "#0f172a",
-  color: "white",
-  border: "none",
-  borderRadius: 12,
-  padding: "12px 16px",
-  fontWeight: 700,
-  cursor: "pointer",
-};
-
-const blueButtonStyle: React.CSSProperties = {
-  background: "#2563eb",
-  color: "white",
-  border: "none",
-  borderRadius: 12,
-  padding: "12px 16px",
-  fontWeight: 700,
-  cursor: "pointer",
-};
-
-const approveButtonStyle: React.CSSProperties = {
-  background: "#065f46",
-  color: "white",
-  border: "none",
-  borderRadius: 12,
-  padding: "10px 14px",
-  fontWeight: 700,
-  cursor: "pointer",
-};
-
-const dangerButtonStyle: React.CSSProperties = {
-  background: "#991b1b",
-  color: "white",
-  border: "none",
-  borderRadius: 12,
-  padding: "10px 14px",
-  fontWeight: 700,
-  cursor: "pointer",
-};
-
-const smallButtonStyle: React.CSSProperties = {
-  background: "#e2e8f0",
-  color: "#0f172a",
-  border: "none",
-  borderRadius: 12,
-  padding: "10px 14px",
-  fontWeight: 700,
-  cursor: "pointer",
-};
