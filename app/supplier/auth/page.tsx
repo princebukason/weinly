@@ -27,7 +27,6 @@ export default function SupplierAuthPage() {
 
     try {
       if (mode === "signup") {
-        // Validate invite code
         const { data: invite, error: inviteError } = await supabase
           .from("supplier_invites")
           .select("*")
@@ -41,7 +40,6 @@ export default function SupplierAuthPage() {
           return;
         }
 
-        // Create auth account
         const { data: authData, error: signUpError } = await supabase.auth.signUp({
           email: email.trim(),
           password,
@@ -57,20 +55,26 @@ export default function SupplierAuthPage() {
         if (signUpError) throw signUpError;
 
         if (authData.user) {
-          // Create supplier profile
-          await supabase.from("supplier_profiles").insert([{
-            user_id: authData.user.id,
-            company_name: companyName.trim(),
-            contact_name: contactName.trim(),
-            email: email.trim(),
-            phone: phone.trim(),
-            wechat: wechat.trim(),
-            region: region.trim(),
-            invite_code: inviteCode.trim().toUpperCase(),
-          }]);
+          const { error: profileError } = await supabase
+            .from("supplier_profiles")
+            .insert([{
+              user_id: authData.user.id,
+              company_name: companyName.trim(),
+              contact_name: contactName.trim(),
+              email: email.trim(),
+              phone: phone.trim(),
+              wechat: wechat.trim(),
+              region: region.trim(),
+              invite_code: inviteCode.trim().toUpperCase(),
+              is_active: true,
+            }]);
 
-          // Mark invite as used
-          await supabase.from("supplier_invites")
+          if (profileError) {
+            console.error("Profile insert failed:", profileError);
+          }
+
+          await supabase
+            .from("supplier_invites")
             .update({ used: true, used_at: new Date().toISOString() })
             .eq("code", inviteCode.trim().toUpperCase());
         }
@@ -85,7 +89,6 @@ export default function SupplierAuthPage() {
 
         if (error) throw error;
 
-        // Check role
         const role = data.user?.user_metadata?.role;
         if (role !== "supplier") {
           await supabase.auth.signOut();
@@ -130,7 +133,8 @@ export default function SupplierAuthPage() {
         <div className="bg-[#111827] border border-white/7 rounded-3xl p-6 md:p-8 shadow-xl shadow-amber-500/5">
           <div className="flex gap-2 mb-6 bg-white/4 border border-white/7 rounded-2xl p-1.5">
             {(["login", "signup"] as const).map((tab) => (
-              <button key={tab} type="button" onClick={() => { setMode(tab); setMessage(null); }}
+              <button key={tab} type="button"
+                onClick={() => { setMode(tab); setMessage(null); }}
                 className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-bold border-0 cursor-pointer transition-all ${mode === tab ? "bg-gradient-to-r from-amber-500 to-amber-700 text-white shadow-lg shadow-amber-500/25" : "text-slate-500 bg-transparent hover:text-slate-300"}`}>
                 {tab === "login" ? "Log in" : "Register"}
               </button>
@@ -146,57 +150,118 @@ export default function SupplierAuthPage() {
           <form onSubmit={handleAuth} className="flex flex-col gap-4">
             {mode === "signup" && (
               <>
-                <div className="bg-amber-500/6 border border-amber-500/20 rounded-xl p-4 mb-2">
+                <div className="bg-amber-500/6 border border-amber-500/20 rounded-xl p-4">
                   <p className="text-amber-300 text-xs leading-relaxed m-0">
                     <strong>Invite only.</strong> Weinly carefully vets all suppliers to protect buyer trust. Contact us on WhatsApp to request an invite code.
                   </p>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-slate-400 text-xs font-bold uppercase tracking-wider">Invite code <span className="text-amber-400">*</span></label>
-                  <input value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} placeholder="e.g. WEINLY-SUP-2025" required className="w-full px-4 py-3 rounded-xl bg-white/5 border border-amber-500/20 text-white text-sm placeholder:text-slate-600 outline-none focus:border-amber-500 transition-all" />
+                  <label className="text-slate-400 text-xs font-bold uppercase tracking-wider">
+                    Invite code <span className="text-amber-400">*</span>
+                  </label>
+                  <input
+                    value={inviteCode}
+                    onChange={(e) => setInviteCode(e.target.value)}
+                    placeholder="e.g. WEINLY-SUP-2025"
+                    required
+                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-amber-500/20 text-white text-sm placeholder:text-slate-600 outline-none focus:border-amber-500 transition-all"
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-slate-400 text-xs font-bold uppercase tracking-wider">Company name <span className="text-amber-400">*</span></label>
-                    <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="e.g. Guangzhou Fabrics Co." required className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-amber-500 transition-all" />
+                    <label className="text-slate-400 text-xs font-bold uppercase tracking-wider">
+                      Company name <span className="text-amber-400">*</span>
+                    </label>
+                    <input
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      placeholder="e.g. Guangzhou Fabrics Co."
+                      required
+                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-amber-500 transition-all"
+                    />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-slate-400 text-xs font-bold uppercase tracking-wider">Contact name <span className="text-amber-400">*</span></label>
-                    <input value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="e.g. Li Wei" required className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-amber-500 transition-all" />
+                    <label className="text-slate-400 text-xs font-bold uppercase tracking-wider">
+                      Contact name <span className="text-amber-400">*</span>
+                    </label>
+                    <input
+                      value={contactName}
+                      onChange={(e) => setContactName(e.target.value)}
+                      placeholder="e.g. Li Wei"
+                      required
+                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-amber-500 transition-all"
+                    />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-slate-400 text-xs font-bold uppercase tracking-wider">Phone / WhatsApp</label>
-                    <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+86 138 0000 0000" className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-amber-500 transition-all" />
+                    <input
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+86 138 0000 0000"
+                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-amber-500 transition-all"
+                    />
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-slate-400 text-xs font-bold uppercase tracking-wider">WeChat ID</label>
-                    <input value={wechat} onChange={(e) => setWechat(e.target.value)} placeholder="WeChat username" className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-amber-500 transition-all" />
+                    <input
+                      value={wechat}
+                      onChange={(e) => setWechat(e.target.value)}
+                      placeholder="WeChat username"
+                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-amber-500 transition-all"
+                    />
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-slate-400 text-xs font-bold uppercase tracking-wider">Region / city</label>
-                  <input value={region} onChange={(e) => setRegion(e.target.value)} placeholder="e.g. Guangzhou, China" className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-amber-500 transition-all" />
+                  <input
+                    value={region}
+                    onChange={(e) => setRegion(e.target.value)}
+                    placeholder="e.g. Guangzhou, China"
+                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-amber-500 transition-all"
+                  />
                 </div>
               </>
             )}
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-slate-400 text-xs font-bold uppercase tracking-wider">Email address <span className="text-amber-400">*</span></label>
-              <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" type="email" required className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-amber-500 transition-all" />
+              <label className="text-slate-400 text-xs font-bold uppercase tracking-wider">
+                Email address <span className="text-amber-400">*</span>
+              </label>
+              <input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@company.com"
+                type="email"
+                required
+                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-amber-500 transition-all"
+              />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-slate-400 text-xs font-bold uppercase tracking-wider">Password <span className="text-amber-400">*</span></label>
-              <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder={mode === "signup" ? "Min. 8 characters" : "Your password"} type="password" required minLength={mode === "signup" ? 8 : undefined} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-amber-500 transition-all" />
+              <label className="text-slate-400 text-xs font-bold uppercase tracking-wider">
+                Password <span className="text-amber-400">*</span>
+              </label>
+              <input
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={mode === "signup" ? "Min. 8 characters" : "Your password"}
+                type="password"
+                required
+                minLength={mode === "signup" ? 8 : undefined}
+                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-amber-500 transition-all"
+              />
             </div>
 
-            <button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-amber-500 to-amber-700 text-white font-bold text-sm py-3.5 rounded-xl shadow-lg shadow-amber-500/25 border-0 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed mt-1">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-amber-500 to-amber-700 text-white font-bold text-sm py-3.5 rounded-xl shadow-lg shadow-amber-500/25 border-0 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed mt-1">
               {loading ? "Please wait..." : mode === "login" ? "Log in to supplier portal" : "Create supplier account"}
             </button>
           </form>
