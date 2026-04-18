@@ -22,22 +22,40 @@ export async function proxy(request: NextRequest) {
   );
 
   const { data: { user } } = await supabase.auth.getUser();
+  const path = request.nextUrl.pathname;
 
-  if (!user && request.nextUrl.pathname.startsWith("/dashboard")) {
-    return NextResponse.redirect(new URL("/auth?next=/dashboard", request.url));
+  // Not logged in — protect buyer dashboard
+  if (!user && path.startsWith("/dashboard")) {
+    return NextResponse.redirect(new URL("/auth", request.url));
   }
 
-  if (!user && request.nextUrl.pathname.startsWith("/supplier")) {
+  // Not logged in — protect supplier dashboard only (not supplier/auth)
+  if (!user && path === "/supplier/dashboard") {
     return NextResponse.redirect(new URL("/supplier/auth", request.url));
   }
 
-  if (user && request.nextUrl.pathname === "/auth") {
+  // Logged in as buyer — redirect away from buyer auth page
+  if (user && path === "/auth") {
+    const role = user.user_metadata?.role;
+    if (role === "supplier") {
+      return NextResponse.redirect(new URL("/supplier/dashboard", request.url));
+    }
     return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  // Logged in as supplier — redirect away from supplier auth page
+  if (user && path === "/supplier/auth") {
+    return NextResponse.redirect(new URL("/supplier/dashboard", request.url));
   }
 
   return supabaseResponse;
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/supplier/:path*", "/auth"],
+  matcher: [
+    "/dashboard/:path*",
+    "/supplier/dashboard/:path*",
+    "/auth",
+    "/supplier/auth",
+  ],
 };
