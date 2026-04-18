@@ -1,43 +1,50 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import SupplierDashboardClient from "./SupplierDashboardClient";
+import DashboardClient from "./DashboardClient";
 
-export default async function SupplierDashboardPage() {
+export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) redirect("/supplier/auth");
+  if (!user) redirect("/auth");
 
   const role = user.user_metadata?.role;
-  if (role !== "supplier") redirect("/auth");
+  if (role === "supplier") redirect("/supplier/dashboard");
 
-  // Get supplier profile
-  const { data: profile } = await supabase
-    .from("supplier_profiles")
-    .select("*")
-    .eq("user_id", user.id)
-    .single();
-
-  // Get all open fabric requests
   const { data: requests } = await supabase
     .from("fabric_requests")
     .select("*")
-    .eq("status", "submitted")
+    .eq("client_email", user.email!)
     .order("created_at", { ascending: false });
 
-  // Get this supplier's quotes
-  const { data: myQuotes } = await supabase
-    .from("quotes")
-    .select("*")
-    .eq("supplier_user_id", user.id)
-    .order("id", { ascending: false });
+  const requestList = requests || [];
+  const requestIds = requestList.map((r) => r.id);
+
+  let quotesMap: Record<string, any[]> = {};
+
+  if (requestIds.length > 0) {
+    const { data: quotes } = await supabase
+      .from("quotes")
+      .select("*")
+      .in("request_id", requestIds)
+      .order("id", { ascending: false });
+
+    (quotes || []).forEach((q) => {
+      if (!quotesMap[q.request_id]) quotesMap[q.request_id] = [];
+      quotesMap[q.request_id].push(q);
+    });
+  }
 
   return (
-    <SupplierDashboardClient
-      user={{ id: user.id, email: user.email!, name: user.user_metadata?.company_name || null }}
-      profile={profile}
-      requests={requests || []}
-      myQuotes={myQuotes || []}
+    <DashboardClient
+      user={{
+        id: user.id,
+        email: user.email!,
+        name: user.user_metadata?.full_name || null,
+        phone: user.user_metadata?.phone || null,
+      }}
+      requests={requestList}
+      quotesMap={quotesMap}
     />
   );
 }
