@@ -8,6 +8,8 @@ export default async function DashboardPage() {
 
   if (!user) redirect("/auth");
 
+  // If role is supplier redirect them to supplier dashboard
+  // If role is buyer OR undefined treat as buyer (backward compatible)
   const role = user.user_metadata?.role;
   if (role === "supplier") redirect("/supplier/dashboard");
 

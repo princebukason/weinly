@@ -29,23 +29,30 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/auth", request.url));
   }
 
-  // Not logged in — protect supplier dashboard only (not supplier/auth)
+  // Not logged in — protect supplier dashboard only
   if (!user && path === "/supplier/dashboard") {
     return NextResponse.redirect(new URL("/supplier/auth", request.url));
   }
 
-  // Logged in as buyer — redirect away from buyer auth page
+  // Logged in — redirect away from buyer auth page
   if (user && path === "/auth") {
     const role = user.user_metadata?.role;
+    // Only redirect suppliers to supplier dashboard
+    // Everyone else (buyer or no role) goes to buyer dashboard
     if (role === "supplier") {
       return NextResponse.redirect(new URL("/supplier/dashboard", request.url));
     }
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // Logged in as supplier — redirect away from supplier auth page
+  // Logged in — redirect away from supplier auth page
   if (user && path === "/supplier/auth") {
-    return NextResponse.redirect(new URL("/supplier/dashboard", request.url));
+    const role = user.user_metadata?.role;
+    if (role === "supplier") {
+      return NextResponse.redirect(new URL("/supplier/dashboard", request.url));
+    }
+    // Buyers who accidentally land on supplier auth go to buyer dashboard
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return supabaseResponse;
