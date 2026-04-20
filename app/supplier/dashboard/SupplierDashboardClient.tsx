@@ -7,7 +7,7 @@ import SiteFooter from "@/components/SiteFooter";
 
 type User = { id: string; email: string; name: string | null; };
 type Profile = { company_name: string; contact_name: string | null; region: string | null; phone: string | null; wechat: string | null; } | null;
-type FabricRequest = { id: string; created_at: string; client_name: string | null; user_input: string; ai_output: unknown; status: string | null; };
+type FabricRequest = { id: string; created_at: string; client_name: string | null; client_email: string | null; user_input: string; ai_output: unknown; status: string | null; };
 type Quote = { id: string; request_id: string; supplier_name: string; price: string | null; moq: string | null; note: string | null; lead_time: string | null; supplier_region: string | null; is_contact_released: boolean | null; };
 
 type Props = { user: User; profile: Profile; requests: FabricRequest[]; myQuotes: Quote[]; };
@@ -71,6 +71,37 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
         is_contact_released: false,
       }]);
       if (error) throw error;
+
+      // Notify buyer that quotes are ready
+      try {
+        const { data: requestData } = await supabase
+          .from("fabric_requests")
+          .select("client_email, client_name, id")
+          .eq("id", quoteForm.requestId)
+          .single();
+
+        if (requestData?.client_email) {
+          await fetch("/api/email/notify-quotes", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              buyerEmail: requestData.client_email,
+              buyerName: requestData.client_name,
+              requestId: requestData.id,
+              quoteCount: 1,
+            }),
+          });
+        }
+      } catch (emailErr) {
+        console.error("Quote notification email failed:", emailErr);
+      }
+
+      // Update request status to quoted
+      await supabase
+        .from("fabric_requests")
+        .update({ status: "quoted" })
+        .eq("id", quoteForm.requestId);
+
       setSuccessId(quoteForm.requestId);
       setQuoteForm({ requestId: "", open: false });
       setFormData({ price: "", moq: "", lead_time: "", note: "", supplier_region: profile?.region || "" });
@@ -124,7 +155,7 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
           </div>
         </nav>
 
-        {/* Welcome */}
+        {/* Welcome banner */}
         <section className="relative overflow-hidden bg-gradient-to-br from-[#1a0f00] via-[#1a1200] to-[#0f0a00] border border-amber-500/15 rounded-3xl p-6 md:p-8 shadow-2xl shadow-amber-500/8">
           <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/8 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
           <div className="relative z-10 flex flex-col md:flex-row justify-between gap-4 items-start md:items-center">
@@ -238,7 +269,7 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                         </div>
                         <div className="flex gap-3 flex-wrap">
                           <button type="submit" disabled={submitting} className="bg-gradient-to-r from-amber-500 to-amber-700 text-white font-bold text-sm px-6 py-3 rounded-xl border-0 cursor-pointer shadow-lg shadow-amber-500/25 disabled:opacity-60">
-                            {submitting ? "Submitting..." : "Submit quote →"}
+                            {submitting ? "Submitting..." : "Submit quote & notify buyer →"}
                           </button>
                           <button type="button" onClick={() => setQuoteForm({ requestId: "", open: false })} className="bg-white/6 border border-white/10 text-slate-400 font-semibold text-sm px-6 py-3 rounded-xl cursor-pointer hover:bg-white/10 transition-all border-0">
                             Cancel
@@ -306,7 +337,7 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                       </div>
                     )}
                     {quote.is_contact_released && (
-                      <div className="bg-emerald-500/6 border border-emerald-500/20 rounded-xl p-3 text-emerald-300 text-sm">
+                      <div className="bg-emerald-500/6 border border-emerald-500/20 rounded-xl p-3 text-emerald-300 text-sm leading-relaxed">
                         <strong>Buyer has unlocked your contact.</strong> They may reach out directly via the contact details on your profile.
                       </div>
                     )}
