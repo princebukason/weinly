@@ -163,7 +163,7 @@ export default function SupplierAuthPage() {
                   <input
                     value={inviteCode}
                     onChange={(e) => setInviteCode(e.target.value)}
-                    placeholder="e.g. WEINLY-SUP-2025"
+                    placeholder="e.g. WEINLY-SUP-2026"
                     required
                     className="w-full px-4 py-3 rounded-xl bg-white/5 border border-amber-500/20 text-white text-sm placeholder:text-slate-600 outline-none focus:border-amber-500 transition-all"
                   />

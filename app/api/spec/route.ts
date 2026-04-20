@@ -54,6 +54,21 @@ User input: ${input}
     const content = completion.choices[0]?.message?.content || "{}";
     const result = JSON.parse(content);
 
+    // Notify all active suppliers about the new request
+try {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://weinlyhq.com";
+  await fetch(`${siteUrl}/api/email/notify-suppliers`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      requestId: "pending",
+      fabricDescription: input,
+      aiSpec: JSON.stringify(result),
+    }),
+  });
+} catch (e) {
+  console.error("Supplier notification failed:", e);
+}
     // FIXED: was { result } — page.tsx reads data.output
     return NextResponse.json({ output: result });
   } catch (e: any) {

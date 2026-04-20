@@ -193,10 +193,31 @@ export default function AdminPage() {
         is_contact_released: false,
       }]);
       if (error) throw error;
+
       await supabase.from("fabric_requests").update({ status: "quoted" }).eq("id", requestId);
+
+      // Notify buyer that quotes are ready
+      try {
+        const request = requests.find((r) => r.id === requestId);
+        if (request?.client_email) {
+          await fetch("/api/email/notify-quotes", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              buyerEmail: request.client_email,
+              buyerName: request.client_name,
+              requestId,
+              quoteCount: (quotesMap[requestId]?.length || 0) + 1,
+            }),
+          });
+        }
+      } catch (e) {
+        console.error("Quote notification email failed:", e);
+      }
+
       setNewQuotes((prev) => ({ ...prev, [requestId]: { ...emptyQuoteForm } }));
       await fetchAll();
-      alert("Quote added.");
+      alert("Quote added and buyer notified.");
     } catch { alert("Failed to add quote."); }
   }
 
@@ -226,12 +247,34 @@ export default function AdminPage() {
   }
 
   async function approveContactRelease(requestId: string, paymentStatus?: string | null) {
-    if (paymentStatus !== "paid") { alert("Payment must be confirmed before releasing supplier contact."); return; }
+    if (paymentStatus !== "paid") {
+      alert("Payment must be confirmed before releasing supplier contact.");
+      return;
+    }
     try {
       await supabase.from("fabric_requests").update({ contact_request_status: "approved" }).eq("id", requestId);
       await supabase.from("quotes").update({ is_contact_released: true }).eq("request_id", requestId);
+
+      // Notify buyer that contact has been approved
+      try {
+        const request = requests.find((r) => r.id === requestId);
+        if (request?.client_email) {
+          await fetch("/api/email/notify-contact-approved", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              buyerEmail: request.client_email,
+              buyerName: request.client_name,
+              requestId,
+            }),
+          });
+        }
+      } catch (e) {
+        console.error("Contact approval email failed:", e);
+      }
+
       await fetchAll();
-      alert("Supplier contact approved and released.");
+      alert("Supplier contact approved, released and buyer notified.");
     } catch { alert("Failed to approve contact release."); }
   }
 
@@ -380,7 +423,7 @@ export default function AdminPage() {
             { label: "Total requests", value: String(stats.total), color: "text-indigo-400", bg: "bg-indigo-500/8 border-indigo-500/20" },
             { label: "Needs approval", value: String(stats.pendingApproval), color: "text-violet-400", bg: "bg-violet-500/8 border-violet-500/20" },
             { label: "Contacts released", value: String(stats.released), color: "text-emerald-400", bg: "bg-emerald-500/8 border-emerald-500/20" },
-            { label: "Total revenue", value: `₦${(stats.totalRevenue).toLocaleString()}`, color: "text-amber-400", bg: "bg-amber-500/8 border-amber-500/20" },
+            { label: "Total revenue", value: `₦${stats.totalRevenue.toLocaleString()}`, color: "text-amber-400", bg: "bg-amber-500/8 border-amber-500/20" },
             { label: "Active suppliers", value: String(stats.activeSuppliers), color: "text-sky-400", bg: "bg-sky-500/8 border-sky-500/20" },
             { label: "Unused invites", value: String(stats.unusedInvites), color: "text-pink-400", bg: "bg-pink-500/8 border-pink-500/20" },
           ].map((stat) => (
@@ -402,7 +445,7 @@ export default function AdminPage() {
             ))}
           </div>
 
-          {/* ── REQUESTS TAB ── */}
+          {/* REQUESTS TAB */}
           {activeTab === "requests" && (
             <div className="flex flex-col gap-4">
               <input
@@ -422,8 +465,6 @@ export default function AdminPage() {
 
                   return (
                     <div key={request.id} className="bg-white/3 border border-white/7 rounded-2xl overflow-hidden">
-
-                      {/* Summary row */}
                       <div className="p-4 flex justify-between gap-3 flex-wrap items-start cursor-pointer hover:bg-white/2 transition-all" onClick={() => setExpandedId(isExpanded ? null : request.id)}>
                         <div className="flex flex-col gap-1.5 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -445,11 +486,8 @@ export default function AdminPage() {
                         </div>
                       </div>
 
-                      {/* Expanded */}
                       {isExpanded && (
                         <div className="border-t border-white/6 p-4 flex flex-col gap-4">
-
-                          {/* Info grid */}
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
                             {[
                               { label: "Email", value: request.client_email || "—" },
@@ -468,13 +506,11 @@ export default function AdminPage() {
                             ))}
                           </div>
 
-                          {/* Fabric request */}
                           <div className="bg-white/4 border border-white/7 rounded-xl p-4">
                             <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">Fabric request</div>
                             <p className="text-slate-300 text-sm leading-relaxed m-0 whitespace-pre-wrap">{request.user_input}</p>
                           </div>
 
-                          {/* AI spec */}
                           {request.ai_output != null && (
                             <div className="bg-white/4 border border-white/7 rounded-xl p-4">
                               <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">AI sourcing spec</div>
@@ -482,7 +518,6 @@ export default function AdminPage() {
                             </div>
                           )}
 
-                          {/* Internal note */}
                           <div className="flex flex-col gap-1.5">
                             <label className="text-slate-500 text-xs font-bold uppercase tracking-widest">Internal note</label>
                             <textarea
@@ -494,12 +529,12 @@ export default function AdminPage() {
                             />
                           </div>
 
-                          {/* Action buttons */}
                           <div className="flex flex-col gap-3">
                             <div className="text-slate-500 text-xs font-bold uppercase tracking-widest">Request status</div>
                             <div className="flex gap-2 flex-wrap">
                               {["submitted", "quoted", "completed"].map((s) => (
-                                <button key={s} onClick={() => updateRequestStatus(request.id, s)} className={`text-xs font-bold px-4 py-2 rounded-xl border-0 cursor-pointer transition-all ${request.status === s ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30" : "bg-white/6 text-slate-400 hover:bg-white/10"}`}>
+                                <button key={s} onClick={() => updateRequestStatus(request.id, s)}
+                                  className={`text-xs font-bold px-4 py-2 rounded-xl border-0 cursor-pointer transition-all ${request.status === s ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30" : "bg-white/6 text-slate-400 hover:bg-white/10"}`}>
                                   {s.charAt(0).toUpperCase() + s.slice(1)}
                                 </button>
                               ))}
@@ -541,7 +576,6 @@ export default function AdminPage() {
                             </div>
                           </div>
 
-                          {/* Existing quotes */}
                           {quotes.length > 0 && (
                             <div className="flex flex-col gap-3">
                               <div className="text-slate-500 text-xs font-bold uppercase tracking-widest">Existing quotes ({quotes.length})</div>
@@ -581,7 +615,6 @@ export default function AdminPage() {
                             </div>
                           )}
 
-                          {/* Add quote form */}
                           <div className="bg-indigo-500/6 border border-indigo-500/20 rounded-2xl p-5 flex flex-col gap-4">
                             <div className="text-indigo-300 font-bold text-sm">Add new quote manually</div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -615,7 +648,7 @@ export default function AdminPage() {
                               className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-indigo-500 transition-all resize-none"
                             />
                             <button onClick={() => addQuote(request.id)} className="self-start bg-gradient-to-r from-indigo-500 to-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl border-0 cursor-pointer shadow-lg shadow-indigo-500/25">
-                              Add quote →
+                              Add quote & notify buyer →
                             </button>
                           </div>
                         </div>
@@ -627,7 +660,7 @@ export default function AdminPage() {
             </div>
           )}
 
-          {/* ── SUPPLIERS TAB ── */}
+          {/* SUPPLIERS TAB */}
           {activeTab === "suppliers" && (
             <div className="flex flex-col gap-4">
               <div>
@@ -636,7 +669,7 @@ export default function AdminPage() {
               </div>
 
               {suppliers.length === 0 ? (
-                <div className="border border-dashed border-white/10 rounded-2xl p-10 text-center text-slate-600 text-sm">No suppliers registered yet. Create invite codes to onboard suppliers.</div>
+                <div className="border border-dashed border-white/10 rounded-2xl p-10 text-center text-slate-600 text-sm">No suppliers registered yet.</div>
               ) : (
                 suppliers.map((supplier) => (
                   <div key={supplier.id} className="bg-white/3 border border-white/7 rounded-2xl p-5 flex flex-col gap-4">
@@ -650,7 +683,8 @@ export default function AdminPage() {
                         <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${supplier.is_active ? "bg-emerald-900/60 text-emerald-300 border border-emerald-500/30" : "bg-red-900/60 text-red-300 border border-red-500/30"}`}>
                           {supplier.is_active ? "Active" : "Inactive"}
                         </span>
-                        <button onClick={() => toggleSupplierActive(supplier.id, !!supplier.is_active)} className={`text-xs font-bold px-3 py-1.5 rounded-xl border-0 cursor-pointer transition-all ${supplier.is_active ? "bg-red-500/10 text-red-400 hover:bg-red-500/15" : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/15"}`}>
+                        <button onClick={() => toggleSupplierActive(supplier.id, !!supplier.is_active)}
+                          className={`text-xs font-bold px-3 py-1.5 rounded-xl border-0 cursor-pointer transition-all ${supplier.is_active ? "bg-red-500/10 text-red-400 hover:bg-red-500/15" : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/15"}`}>
                           {supplier.is_active ? "Deactivate" : "Activate"}
                         </button>
                       </div>
@@ -674,7 +708,7 @@ export default function AdminPage() {
             </div>
           )}
 
-          {/* ── INVITES TAB ── */}
+          {/* INVITES TAB */}
           {activeTab === "invites" && (
             <div className="flex flex-col gap-4">
               <div>
@@ -682,7 +716,6 @@ export default function AdminPage() {
                 <p className="text-slate-500 text-sm m-0">Generate and manage invite codes for new suppliers.</p>
               </div>
 
-              {/* Create invite */}
               <div className="bg-amber-500/6 border border-amber-500/20 rounded-2xl p-5 flex flex-col gap-4">
                 <div className="text-amber-300 font-bold text-sm">Create new invite code</div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -711,7 +744,6 @@ export default function AdminPage() {
                 </button>
               </div>
 
-              {/* Invite list */}
               {invites.length === 0 ? (
                 <div className="border border-dashed border-white/10 rounded-2xl p-10 text-center text-slate-600 text-sm">No invite codes yet.</div>
               ) : (
@@ -732,8 +764,7 @@ export default function AdminPage() {
                       </div>
                       <div className="flex gap-2">
                         {!invite.used && (
-                          <button
-                            onClick={() => navigator.clipboard.writeText(invite.code).then(() => alert("Code copied!"))}
+                          <button onClick={() => navigator.clipboard.writeText(invite.code).then(() => alert("Code copied!"))}
                             className="bg-white/6 border border-white/10 text-slate-400 font-semibold text-xs px-4 py-2 rounded-xl cursor-pointer hover:bg-white/10 transition-all border-0">
                             Copy code
                           </button>

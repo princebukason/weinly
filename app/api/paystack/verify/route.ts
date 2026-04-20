@@ -4,7 +4,6 @@ import { createClient } from "@supabase/supabase-js";
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || "";
 
 export async function POST(req: NextRequest) {
-  // FIXED: create client inside the function, not at module level
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -94,6 +93,32 @@ export async function POST(req: NextRequest) {
         { error: "Failed to update request payment state." },
         { status: 500 }
       );
+    }
+
+    // FIX 1 & 2 — email is now INSIDE try block, AFTER successful update
+    // requestId is in scope here and only runs on success
+    try {
+      const { data: request } = await supabase
+        .from("fabric_requests")
+        .select("client_email, client_name")
+        .eq("id", requestId)
+        .single();
+
+      if (request?.client_email) {
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://weinlyhq.com";
+        await fetch(`${siteUrl}/api/email/notify-contact-approved`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            buyerEmail: request.client_email,
+            buyerName: request.client_name,
+            requestId,
+          }),
+        });
+      }
+    } catch (e) {
+      // Email failure should not block payment success response
+      console.error("Payment confirmation email failed:", e);
     }
 
     return NextResponse.json({
