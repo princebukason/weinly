@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { quotesReadyEmail } from "@/lib/emails/templates";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function POST(req: NextRequest) {
+  if (!process.env.RESEND_API_KEY) {
+    return NextResponse.json({ error: "Missing RESEND_API_KEY." }, { status: 500 });
+  }
+
+  const resend = new Resend(process.env.RESEND_API_KEY);
+
   try {
     const body = await req.json();
     const { buyerEmail, buyerName, requestId, quoteCount } = body;
@@ -16,7 +20,7 @@ export async function POST(req: NextRequest) {
     const template = quotesReadyEmail(buyerName || "", requestId, quoteCount || 1);
 
     const { error } = await resend.emails.send({
-      from: "Weinly <onboarding@resend.dev>",
+      from: "Weinly <hello@weinlyhq.com>",
       to: buyerEmail,
       subject: template.subject,
       html: template.html,

@@ -3,14 +3,22 @@ import { Resend } from "resend";
 import { createClient } from "@supabase/supabase-js";
 import { newRequestSupplierEmail } from "@/lib/emails/templates";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 export async function POST(req: NextRequest) {
+  if (!process.env.RESEND_API_KEY) {
+    return NextResponse.json({ error: "Missing RESEND_API_KEY." }, { status: 500 });
+  }
+
+  const resend = new Resend(process.env.RESEND_API_KEY);
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    return NextResponse.json({ error: "Missing Supabase configuration." }, { status: 500 });
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+
   try {
     const body = await req.json();
     const { requestId, fabricDescription, aiSpec } = body;
@@ -19,7 +27,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing requestId or fabricDescription." }, { status: 400 });
     }
 
-    // Get all active suppliers
     const { data: suppliers, error: suppliersError } = await supabase
       .from("supplier_profiles")
       .select("company_name, email")
@@ -32,7 +39,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, sent: 0, message: "No active suppliers to notify." });
     }
 
-    // Send to all active suppliers
     const results = await Promise.allSettled(
       suppliers.map(async (supplier) => {
         const template = newRequestSupplierEmail(
@@ -41,9 +47,8 @@ export async function POST(req: NextRequest) {
           fabricDescription,
           aiSpec || ""
         );
-
         return resend.emails.send({
-          from: "Weinly <onboarding@resend.dev>",
+          from: "Weinly <hello@weinlyhq.com>",
           to: supplier.email,
           subject: template.subject,
           html: template.html,
