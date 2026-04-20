@@ -47,11 +47,16 @@ export async function POST(req: NextRequest) {
           fabricDescription,
           aiSpec || ""
         );
+
         return resend.emails.send({
           from: "Weinly <hello@weinlyhq.com>",
           to: supplier.email,
           subject: template.subject,
           html: template.html,
+          headers: {
+            "List-Unsubscribe": "<mailto:hello@weinlyhq.com?subject=Unsubscribe>",
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+          },
         });
       })
     );

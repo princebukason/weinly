@@ -24,6 +24,10 @@ export async function POST(req: NextRequest) {
       to: buyerEmail,
       subject: template.subject,
       html: template.html,
+      headers: {
+        "List-Unsubscribe": "<mailto:hello@weinlyhq.com?subject=Unsubscribe>",
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      },
     });
 
     if (error) throw error;
