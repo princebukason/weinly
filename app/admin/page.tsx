@@ -103,6 +103,18 @@ function getStagePill(request: FabricRequest, quoteCount: number) {
   return { cls: "bg-amber-900/60 text-amber-300 border border-amber-500/30", label: "In progress" };
 }
 
+async function sendPushNotification(buyerEmail: string, title: string, message: string, requestId: string) {
+  try {
+    await fetch("/api/push/notify-buyer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ buyerEmail, title, message, requestId }),
+    });
+  } catch (e) {
+    console.error("Push notification failed:", e);
+  }
+}
+
 export default function AdminPage() {
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
@@ -196,7 +208,7 @@ export default function AdminPage() {
 
       await supabase.from("fabric_requests").update({ status: "quoted" }).eq("id", requestId);
 
-      // Notify buyer that quotes are ready
+      // Notify buyer by email
       try {
         const request = requests.find((r) => r.id === requestId);
         if (request?.client_email) {
@@ -212,7 +224,22 @@ export default function AdminPage() {
           });
         }
       } catch (e) {
-        console.error("Quote notification email failed:", e);
+        console.error("Quote email notification failed:", e);
+      }
+
+      // Notify buyer by push notification
+      try {
+        const request = requests.find((r) => r.id === requestId);
+        if (request?.client_email) {
+          await sendPushNotification(
+            request.client_email,
+            "Your quotes are ready 🎉",
+            "A verified supplier has responded to your fabric request. Tap to review.",
+            requestId
+          );
+        }
+      } catch (e) {
+        console.error("Quote push notification failed:", e);
       }
 
       setNewQuotes((prev) => ({ ...prev, [requestId]: { ...emptyQuoteForm } }));
@@ -255,7 +282,7 @@ export default function AdminPage() {
       await supabase.from("fabric_requests").update({ contact_request_status: "approved" }).eq("id", requestId);
       await supabase.from("quotes").update({ is_contact_released: true }).eq("request_id", requestId);
 
-      // Notify buyer that contact has been approved
+      // Notify buyer by email
       try {
         const request = requests.find((r) => r.id === requestId);
         if (request?.client_email) {
@@ -271,6 +298,21 @@ export default function AdminPage() {
         }
       } catch (e) {
         console.error("Contact approval email failed:", e);
+      }
+
+      // Notify buyer by push notification
+      try {
+        const request = requests.find((r) => r.id === requestId);
+        if (request?.client_email) {
+          await sendPushNotification(
+            request.client_email,
+            "Supplier contact approved ✓",
+            "Your supplier contact details are now available. Tap to view.",
+            requestId
+          );
+        }
+      } catch (e) {
+        console.error("Contact approval push notification failed:", e);
       }
 
       await fetchAll();

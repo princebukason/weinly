@@ -72,7 +72,7 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
       }]);
       if (error) throw error;
 
-      // Notify buyer that quotes are ready
+      // Notify buyer by email
       try {
         const { data: requestData } = await supabase
           .from("fabric_requests")
@@ -93,7 +93,31 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
           });
         }
       } catch (emailErr) {
-        console.error("Quote notification email failed:", emailErr);
+        console.error("Quote email notification failed:", emailErr);
+      }
+
+      // Notify buyer by push notification
+      try {
+        const { data: requestData } = await supabase
+          .from("fabric_requests")
+          .select("client_email, id")
+          .eq("id", quoteForm.requestId)
+          .single();
+
+        if (requestData?.client_email) {
+          await fetch("/api/push/notify-buyer", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              buyerEmail: requestData.client_email,
+              title: "Your quotes are ready 🎉",
+              message: "A verified supplier has responded to your fabric request. Tap to review.",
+              requestId: requestData.id,
+            }),
+          });
+        }
+      } catch (pushErr) {
+        console.error("Quote push notification failed:", pushErr);
       }
 
       // Update request status to quoted
@@ -137,6 +161,36 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
     }
   }
 
+  const stats = [
+    { value: String(pendingRequests.length), label: "New requests", color: "text-amber-400" },
+    { value: String(myQuotes.length), label: "Quotes sent", color: "text-sky-400" },
+    { value: String(myQuotes.filter(q => q.is_contact_released).length), label: "Deals closed", color: "text-emerald-400" },
+  ];
+
+  const profileFields = [
+    { label: "Company name", key: "company_name", placeholder: "Your company name" },
+    { label: "Contact name", key: "contact_name", placeholder: "Your name" },
+    { label: "Phone / WhatsApp", key: "phone", placeholder: "+86 138 0000 0000" },
+    { label: "WeChat ID", key: "wechat", placeholder: "WeChat username" },
+    { label: "Region / city", key: "region", placeholder: "e.g. Guangzhou, China" },
+  ];
+
+  const profileInfoItems = [
+    { label: "Company name", value: profile?.company_name || "—" },
+    { label: "Contact name", value: profile?.contact_name || "—" },
+    { label: "Phone / WhatsApp", value: profile?.phone || "Not set" },
+    { label: "WeChat ID", value: profile?.wechat || "Not set" },
+    { label: "Region", value: profile?.region || "Not set" },
+    { label: "Email", value: user.email },
+  ];
+
+  const quoteFormFields = [
+    { label: "Price per yard/piece *", key: "price", placeholder: "e.g. $2.50/yard" },
+    { label: "Minimum order qty *", key: "moq", placeholder: "e.g. 500 yards" },
+    { label: "Lead time", key: "lead_time", placeholder: "e.g. 15-20 days" },
+    { label: "Your region", key: "supplier_region", placeholder: "e.g. Guangzhou, China" },
+  ];
+
   return (
     <main className="min-h-screen bg-[#0a0f1e] px-3 py-3 md:px-4 md:py-4 font-sans">
       <div className="max-w-5xl mx-auto flex flex-col gap-3">
@@ -170,11 +224,7 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
               <p className="text-slate-400 text-sm m-0">{profile?.region || user.email}</p>
             </div>
             <div className="grid grid-cols-3 gap-3">
-              {[
-                { value: String(pendingRequests.length), label: "New requests", color: "text-amber-400" },
-                { value: String(myQuotes.length), label: "Quotes sent", color: "text-sky-400" },
-                { value: String(myQuotes.filter(q => q.is_contact_released).length), label: "Deals closed", color: "text-emerald-400" },
-              ].map((s) => (
+              {stats.map((s) => (
                 <div key={s.label} className="bg-white/5 border border-white/8 rounded-2xl p-3 text-center">
                   <div className={`text-2xl font-black ${s.color}`}>{s.value}</div>
                   <div className="text-slate-600 text-xs mt-0.5">{s.label}</div>
@@ -219,7 +269,9 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                         <div className="text-slate-500 text-xs">{new Date(request.created_at).toLocaleDateString()}</div>
                       </div>
                       {successId === request.id && (
-                        <span className="bg-emerald-900/60 text-emerald-300 border border-emerald-500/30 text-xs font-bold px-3 py-1.5 rounded-full">Quote submitted ✓</span>
+                        <span className="bg-emerald-900/60 text-emerald-300 border border-emerald-500/30 text-xs font-bold px-3 py-1.5 rounded-full">
+                          Quote submitted ✓
+                        </span>
                       )}
                     </div>
 
@@ -235,17 +287,11 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                       </div>
                     )}
 
-                    {/* Quote form */}
                     {quoteForm.open && quoteForm.requestId === request.id ? (
                       <form onSubmit={submitQuote} className="bg-amber-500/6 border border-amber-500/20 rounded-2xl p-5 flex flex-col gap-4">
                         <h4 className="text-white font-bold text-base m-0">Submit your quote</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {[
-                            { label: "Price per yard/piece *", key: "price", placeholder: "e.g. $2.50/yard" },
-                            { label: "Minimum order qty *", key: "moq", placeholder: "e.g. 500 yards" },
-                            { label: "Lead time", key: "lead_time", placeholder: "e.g. 15-20 days" },
-                            { label: "Your region", key: "supplier_region", placeholder: "e.g. Guangzhou, China" },
-                          ].map((field) => (
+                          {quoteFormFields.map((field) => (
                             <div key={field.key} className="flex flex-col gap-1.5">
                               <label className="text-slate-400 text-xs font-bold uppercase tracking-wider">{field.label}</label>
                               <input
@@ -361,19 +407,15 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
               </div>
 
               {profileMsg && (
-                <div className="bg-emerald-500/8 border border-emerald-500/20 rounded-xl p-4 text-emerald-300 text-sm">{profileMsg}</div>
+                <div className="bg-emerald-500/8 border border-emerald-500/20 rounded-xl p-4 text-emerald-300 text-sm">
+                  {profileMsg}
+                </div>
               )}
 
               {editProfile ? (
                 <form onSubmit={saveProfile} className="flex flex-col gap-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {[
-                      { label: "Company name", key: "company_name", placeholder: "Your company name" },
-                      { label: "Contact name", key: "contact_name", placeholder: "Your name" },
-                      { label: "Phone / WhatsApp", key: "phone", placeholder: "+86 138 0000 0000" },
-                      { label: "WeChat ID", key: "wechat", placeholder: "WeChat username" },
-                      { label: "Region / city", key: "region", placeholder: "e.g. Guangzhou, China" },
-                    ].map((field) => (
+                    {profileFields.map((field) => (
                       <div key={field.key} className="flex flex-col gap-1.5">
                         <label className="text-slate-400 text-xs font-bold uppercase tracking-wider">{field.label}</label>
                         <input
@@ -391,14 +433,7 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                 </form>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {[
-                    { label: "Company name", value: profile?.company_name || "—" },
-                    { label: "Contact name", value: profile?.contact_name || "—" },
-                    { label: "Phone / WhatsApp", value: profile?.phone || "Not set" },
-                    { label: "WeChat ID", value: profile?.wechat || "Not set" },
-                    { label: "Region", value: profile?.region || "Not set" },
-                    { label: "Email", value: user.email },
-                  ].map((info) => (
+                  {profileInfoItems.map((info) => (
                     <div key={info.label} className="bg-white/4 border border-white/7 rounded-xl p-4">
                       <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">{info.label}</div>
                       <div className="text-white text-sm font-semibold break-words">{info.value}</div>
@@ -409,7 +444,9 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
 
               <div className="bg-amber-500/6 border border-amber-500/20 rounded-2xl p-5 mt-2">
                 <h3 className="text-amber-300 font-bold text-sm mb-2 m-0">Important — keep your contact details updated</h3>
-                <p className="text-slate-500 text-xs leading-relaxed m-0">When a buyer unlocks your contact, Weinly releases your phone number, WeChat and email directly to them. Make sure these are always accurate so buyers can reach you.</p>
+                <p className="text-slate-500 text-xs leading-relaxed m-0">
+                  When a buyer unlocks your contact, Weinly releases your phone number, WeChat and email directly to them. Make sure these are always accurate so buyers can reach you.
+                </p>
               </div>
             </div>
           )}
