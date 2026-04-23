@@ -13,13 +13,18 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+type BillingCycle = "monthly" | "yearly";
+type ProPlan = "pro_monthly" | "pro_yearly";
+
 export default function PricingPage() {
   const [loading, setLoading] = useState<string | null>(null);
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
 
-  const supportLink = buildWhatsappLink("Hello Weinly, I want to upgrade to Pro.");
+  const supportLink = buildWhatsappLink(
+    "Hello Weinly, I want to upgrade to Weinly Pro."
+  );
 
-  async function handleProPayment(plan: "pro_monthly" | "pro_yearly") {
+  async function handleProPayment(plan: ProPlan) {
     setLoading(plan);
 
     try {
@@ -97,194 +102,232 @@ export default function PricingPage() {
     }
   }
 
-  function handleBankTransfer(plan: "pro_monthly" | "pro_yearly") {
+  function handleBankTransfer(plan: ProPlan) {
     const amount = plan === "pro_yearly" ? "₦200,000" : "₦25,000";
-    const message =
-      "Hello Weinly, I want to subscribe to Weinly Pro " +
-      (plan === "pro_yearly" ? "Yearly" : "Monthly") +
-      " (" +
-      amount +
-      "). Please send me your bank details.";
+    const cycleLabel = plan === "pro_yearly" ? "Yearly" : "Monthly";
 
+    const message = `Hello Weinly, I want to subscribe to Weinly Pro ${cycleLabel} (${amount}). Please send me your bank details.`;
     window.open(buildWhatsappLink(message), "_blank");
   }
 
+  const currentPlan: ProPlan =
+    billingCycle === "monthly" ? "pro_monthly" : "pro_yearly";
+  const currentPrice = billingCycle === "monthly" ? "₦25,000" : "₦200,000";
+  const currentPeriod = billingCycle === "monthly" ? "month" : "year";
+
   const freeFeatures = [
-    { text: "Submit fabric requests", included: true },
-    { text: "AI sourcing spec", included: true },
-    { text: "Quote preview", included: true },
-    { text: "Request tracking", included: true },
-    { text: "Supplier contact unlocks", included: false, note: "₦10,000 each" },
-    { text: "Priority matching", included: false },
-    { text: "Dedicated support", included: false },
-    { text: "Reorder button", included: false },
-    { text: "Price intelligence", included: false },
+    "Submit sourcing requests",
+    "AI sourcing spec",
+    "Quote preview",
+    "Track request progress",
+  ];
+
+  const paidExtras = [
+    "Supplier contact unlocks billed separately",
+    "No priority matching",
+    "No price intelligence",
+    "No dedicated support",
   ];
 
   const proFeatures = [
-    { text: "Everything in Free", included: true },
-    { text: "3 contact unlocks/month included", included: true },
-    { text: "Priority supplier matching", included: true },
-    { text: "Dedicated WhatsApp support", included: true },
-    { text: "Reorder button on past requests", included: true },
-    { text: "Price intelligence on quotes", included: true },
-    { text: "Pro badge on profile", included: true },
-    { text: "Faster response time", included: true },
-    { text: "Early access to new features", included: true },
+    "Everything in Free",
+    "3 supplier contact unlocks every month",
+    "Priority supplier matching",
+    "Dedicated WhatsApp support",
+    "Reorder from past requests",
+    "Price intelligence on quotes",
+    "Faster turnaround",
+    "Early access to new features",
   ];
 
   const enterpriseFeatures = [
-    { text: "Everything in Pro", included: true },
-    { text: "Unlimited contact unlocks", included: true },
-    { text: "Dedicated account manager", included: true },
-    { text: "Custom MOQ negotiations", included: true },
-    { text: "Factory inspection service", included: true },
-    { text: "Bulk order management", included: true },
-    { text: "Custom pricing", included: true },
-    { text: "API access", included: true },
+    "Everything in Pro",
+    "Unlimited contact unlocks",
+    "Dedicated account manager",
+    "Factory inspection support",
+    "Bulk order handling",
+    "Custom sourcing workflow",
+    "Custom pricing",
   ];
 
   const faqs = [
     {
-      q: "What does Pro include?",
-      a: "Weinly Pro includes 3 supplier contact unlocks per month, priority matching, dedicated WhatsApp support, reorder button, price intelligence and a Pro badge on your profile.",
+      q: "Who is Weinly Pro for?",
+      a: "Weinly Pro is for serious buyers, fabric sellers, fashion brands and sourcing professionals who want faster access, better supplier matching and less risk when buying from China.",
     },
     {
-      q: "Can I cancel anytime?",
-      a: "Yes. Your Pro access continues until the end of your billing period. Contact us on WhatsApp to cancel.",
+      q: "What does the 3 unlocks/month mean?",
+      a: "Each month, Pro includes 3 supplier contact unlocks at no extra charge. That means you can access supplier contact details for up to 3 suitable quote matches every month.",
     },
     {
-      q: "What happens to unused unlocks?",
-      a: "Unused contact unlocks do not roll over. You get 3 fresh unlocks at the start of each billing month.",
+      q: "What happens if I need more than 3 unlocks?",
+      a: "You can still unlock more supplier contacts separately, or upgrade to a custom Enterprise arrangement if you buy in larger volumes.",
     },
     {
       q: "Can I pay by bank transfer?",
-      a: "Yes. Click Pay via bank transfer and we will send you our bank details on WhatsApp. Your Pro subscription will be activated once payment is confirmed.",
+      a: "Yes. If you prefer bank transfer, click the bank transfer option and we will send payment details on WhatsApp.",
     },
     {
-      q: "Is there a yearly discount?",
-      a: "Yes. The yearly plan is ₦200,000 which saves you ₦100,000 compared to paying monthly for 12 months.",
+      q: "Is yearly cheaper?",
+      a: "Yes. Yearly costs ₦200,000, which saves you ₦100,000 compared to paying ₦25,000 monthly for 12 months.",
     },
     {
-      q: "What is Enterprise for?",
-      a: "Enterprise is for large buyers, sourcing agents and businesses that need unlimited unlocks, factory inspections and dedicated account management.",
+      q: "Can I cancel later?",
+      a: "Yes. If you want to stop renewal or make changes, contact Weinly support on WhatsApp.",
     },
   ];
 
-  const currentPlan = billingCycle === "monthly" ? "pro_monthly" : "pro_yearly";
-  const currentPrice = billingCycle === "monthly" ? "₦25,000" : "₦200,000";
-  const currentPeriod = billingCycle === "monthly" ? "month" : "year";
-
   return (
-    <main className="min-h-screen bg-[#0a0f1e] px-3 py-3 font-sans md:px-4 md:py-4">
-      <div className="mx-auto flex max-w-5xl flex-col gap-3">
+    <main className="min-h-screen bg-[#0a0f1e] px-3 py-3 md:px-4 md:py-4 font-sans">
+      <div className="mx-auto flex max-w-6xl flex-col gap-3">
         <SiteHeader />
 
-        <section className="relative overflow-hidden rounded-3xl border border-indigo-500/15 bg-gradient-to-br from-[#0f172a] via-[#1a1040] to-[#0c1a3a] p-6 text-center shadow-2xl shadow-indigo-500/10 md:p-12">
-          <div className="pointer-events-none absolute right-0 top-0 h-96 w-96 translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-500/10 blur-3xl" />
+        {/* Hero */}
+        <section className="relative overflow-hidden rounded-3xl border border-indigo-500/15 bg-gradient-to-br from-[#0f172a] via-[#1a1040] to-[#0c1a3a] p-6 md:p-10 shadow-2xl shadow-indigo-500/10">
+          <div className="pointer-events-none absolute right-0 top-0 h-72 w-72 translate-x-1/3 -translate-y-1/3 rounded-full bg-indigo-500/10 blur-3xl" />
+          <div className="pointer-events-none absolute bottom-0 left-0 h-56 w-56 -translate-x-1/3 translate-y-1/3 rounded-full bg-violet-500/10 blur-3xl" />
 
-          <div className="relative z-10">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-indigo-500/25 bg-indigo-500/10 px-4 py-1.5">
-              <span className="h-2 w-2 rounded-full bg-emerald-400" />
-              <span className="text-xs font-semibold text-indigo-300">Simple pricing</span>
+          <div className="relative z-10 grid grid-cols-1 gap-8 md:grid-cols-2 md:items-center">
+            <div>
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-indigo-500/25 bg-indigo-500/10 px-4 py-1.5">
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                <span className="text-xs font-semibold text-indigo-300">
+                  Pricing built for serious buyers
+                </span>
+              </div>
+
+              <h1 className="mb-4 text-3xl font-black tracking-tight text-white md:text-5xl">
+                Source premium fabrics from China with more speed, clarity and control.
+              </h1>
+
+              <p className="max-w-xl text-sm leading-relaxed text-slate-400 md:text-base">
+                Weinly helps buyers avoid costly mistakes, compare supplier quotes faster,
+                and unlock verified supplier contacts when they are ready to move.
+              </p>
+
+              <div className="mt-6 flex flex-wrap gap-3">
+                <div className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-300">
+                  Faster sourcing
+                </div>
+                <div className="rounded-full border border-sky-500/20 bg-sky-500/10 px-4 py-2 text-xs font-semibold text-sky-300">
+                  Better supplier matching
+                </div>
+                <div className="rounded-full border border-violet-500/20 bg-violet-500/10 px-4 py-2 text-xs font-semibold text-violet-300">
+                  Safer buying flow
+                </div>
+              </div>
             </div>
 
-            <h1 className="mb-4 text-3xl font-black tracking-tight text-white md:text-5xl">
-              {"Source smarter with "}
-              <span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">
-                Weinly Pro
-              </span>
-            </h1>
+            <div className="rounded-3xl border border-white/10 bg-white/5 p-5 md:p-6">
+              <div className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-indigo-300">
+                Why buyers upgrade
+              </div>
 
-            <p className="mx-auto mb-8 max-w-xl text-base leading-relaxed text-slate-400 md:text-lg">
-              Serious fabric buyers use Weinly Pro to source faster, safer and more
-              profitably from China.
-            </p>
-
-            <div className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 p-1.5">
-              <button
-                onClick={() => setBillingCycle("monthly")}
-                className={`rounded-xl px-5 py-2 text-sm font-bold transition-all ${
-                  billingCycle === "monthly"
-                    ? "bg-gradient-to-r from-indigo-500 to-indigo-700 text-white shadow-lg"
-                    : "bg-transparent text-slate-500"
-                }`}
-              >
-                Monthly
-              </button>
-
-              <button
-                onClick={() => setBillingCycle("yearly")}
-                className={`rounded-xl px-5 py-2 text-sm font-bold transition-all ${
-                  billingCycle === "yearly"
-                    ? "bg-gradient-to-r from-indigo-500 to-indigo-700 text-white shadow-lg"
-                    : "bg-transparent text-slate-500"
-                }`}
-              >
-                {"Yearly "}
-                <span className="ml-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-400">
-                  Save ₦100k
-                </span>
-              </button>
+              <div className="space-y-3">
+                {[
+                  "Get 3 contact unlocks included every month",
+                  "Reach suppliers faster when you are ready to buy",
+                  "See quotes with more intelligence and better support",
+                  "Reorder more easily from previous sourcing requests",
+                ].map((item) => (
+                  <div
+                    key={item}
+                    className="flex items-start gap-3 rounded-2xl border border-white/7 bg-white/4 p-3"
+                  >
+                    <span className="mt-0.5 text-emerald-400">✓</span>
+                    <span className="text-sm leading-relaxed text-slate-300">
+                      {item}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </section>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div className="flex flex-col gap-4 rounded-3xl border border-white/7 bg-[#111827] p-6">
-            <div>
-              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">
+        {/* Billing toggle */}
+        <section className="flex justify-center">
+          <div className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 p-1.5">
+            <button
+              onClick={() => setBillingCycle("monthly")}
+              className={`rounded-xl px-5 py-2 text-sm font-bold transition-all ${
+                billingCycle === "monthly"
+                  ? "bg-gradient-to-r from-indigo-500 to-indigo-700 text-white shadow-lg"
+                  : "bg-transparent text-slate-500"
+              }`}
+            >
+              Monthly
+            </button>
+
+            <button
+              onClick={() => setBillingCycle("yearly")}
+              className={`rounded-xl px-5 py-2 text-sm font-bold transition-all ${
+                billingCycle === "yearly"
+                  ? "bg-gradient-to-r from-indigo-500 to-indigo-700 text-white shadow-lg"
+                  : "bg-transparent text-slate-500"
+              }`}
+            >
+              Yearly
+              <span className="ml-2 rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-400">
+                Save ₦100k
+              </span>
+            </button>
+          </div>
+        </section>
+
+        {/* Pricing cards */}
+        <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          {/* Free */}
+          <div className="flex h-full flex-col rounded-3xl border border-white/7 bg-[#111827] p-6">
+            <div className="mb-5">
+              <div className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-slate-500">
                 Free
               </div>
               <div className="mb-2 text-4xl font-black tracking-tight text-white">₦0</div>
               <p className="text-sm leading-relaxed text-slate-500">
-                Get started with fabric sourcing at no cost.
+                Good for testing Weinly and submitting sourcing requests.
               </p>
             </div>
 
-            <div className="h-px bg-white/7" />
+            <div className="mb-5 h-px bg-white/7" />
 
             <div className="flex flex-1 flex-col gap-3">
               {freeFeatures.map((item) => (
-                <div key={item.text} className="flex items-start gap-3">
-                  <span
-                    className={`mt-0.5 shrink-0 font-bold ${
-                      item.included ? "text-emerald-400" : "text-slate-700"
-                    }`}
-                  >
-                    {item.included ? "✓" : "✕"}
-                  </span>
+                <div key={item} className="flex items-start gap-3">
+                  <span className="mt-0.5 text-emerald-400">✓</span>
+                  <span className="text-sm text-slate-300">{item}</span>
+                </div>
+              ))}
 
-                  <span
-                    className={`text-sm ${
-                      item.included ? "text-slate-300" : "text-slate-600"
-                    }`}
-                  >
-                    {item.text}
-                    {item.note && (
-                      <span className="ml-1 text-xs text-slate-500">({item.note})</span>
-                    )}
-                  </span>
+              <div className="my-2 h-px bg-white/7" />
+
+              {paidExtras.map((item) => (
+                <div key={item} className="flex items-start gap-3">
+                  <span className="mt-0.5 text-slate-700">✕</span>
+                  <span className="text-sm text-slate-600">{item}</span>
                 </div>
               ))}
             </div>
 
             <a
               href="/#main-tabs"
-              className="block rounded-xl border border-white/10 bg-white/6 py-3 text-center text-sm font-bold text-slate-400 no-underline"
+              className="mt-6 block rounded-xl border border-white/10 bg-white/6 py-3 text-center text-sm font-bold text-slate-300 no-underline"
             >
-              Get started free
+              Start free
             </a>
           </div>
 
-          <div className="relative flex flex-col gap-4 rounded-3xl border border-indigo-500/30 bg-gradient-to-b from-indigo-950 to-violet-950 p-6 shadow-2xl shadow-indigo-500/15">
-            <span className="absolute left-1/2 top-[-12px] -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-1.5 text-xs font-bold text-white">
-              Most popular
-            </span>
+          {/* Pro */}
+          <div className="relative flex h-full flex-col rounded-3xl border border-indigo-500/30 bg-gradient-to-b from-indigo-950 to-violet-950 p-6 shadow-2xl shadow-indigo-500/15">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+              <span className="rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-1.5 text-xs font-bold text-white whitespace-nowrap">
+                Most popular
+              </span>
+            </div>
 
-            <div>
-              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-indigo-300">
-                Pro
+            <div className="mb-5">
+              <div className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-indigo-300">
+                Weinly Pro
               </div>
 
               <div className="mb-2 flex items-end gap-2">
@@ -294,35 +337,47 @@ export default function PricingPage() {
                 <div className="mb-1 text-sm text-slate-400">/{currentPeriod}</div>
               </div>
 
+              <p className="text-sm leading-relaxed text-indigo-200/80">
+                Best for active buyers who want faster supplier access and more support.
+              </p>
+
               {billingCycle === "yearly" && (
-                <div className="mb-2 inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-bold text-emerald-400">
-                  Save ₦100,000 vs monthly
+                <div className="mt-3 inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-bold text-emerald-400">
+                  Save ₦100,000 yearly
                 </div>
               )}
-
-              <p className="text-sm leading-relaxed text-indigo-300/70">
-                Everything you need to source profitably.
-              </p>
             </div>
 
-            <div className="h-px bg-white/10" />
+            <div className="mb-5 rounded-2xl border border-indigo-400/20 bg-white/5 p-4">
+              <div className="mb-1 text-xs font-bold uppercase tracking-widest text-indigo-300">
+                What you get
+              </div>
+              <div className="text-sm font-semibold text-white">
+                3 supplier contact unlocks included every month
+              </div>
+              <div className="mt-1 text-xs leading-relaxed text-slate-400">
+                Plus priority matching, better support and a smoother reorder flow.
+              </div>
+            </div>
+
+            <div className="mb-5 h-px bg-white/10" />
 
             <div className="flex flex-1 flex-col gap-3">
               {proFeatures.map((item) => (
-                <div key={item.text} className="flex items-start gap-3">
-                  <span className="mt-0.5 shrink-0 font-bold text-cyan-400">✓</span>
-                  <span className="text-sm text-indigo-200">{item.text}</span>
+                <div key={item} className="flex items-start gap-3">
+                  <span className="mt-0.5 text-cyan-400">✓</span>
+                  <span className="text-sm text-indigo-100">{item}</span>
                 </div>
               ))}
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div className="mt-6 flex flex-col gap-2">
               <button
                 onClick={() => handleProPayment(currentPlan)}
                 disabled={loading !== null}
                 className="w-full cursor-pointer rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-indigo-500/30 disabled:opacity-60"
               >
-                {loading ? "Processing..." : "Pay with Paystack"}
+                {loading === currentPlan ? "Processing..." : "Pay with Paystack"}
               </button>
 
               <button
@@ -335,26 +390,27 @@ export default function PricingPage() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-4 rounded-3xl border border-white/7 bg-[#111827] p-6">
-            <div>
-              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">
+          {/* Enterprise */}
+          <div className="flex h-full flex-col rounded-3xl border border-white/7 bg-[#111827] p-6">
+            <div className="mb-5">
+              <div className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-slate-500">
                 Enterprise
               </div>
               <div className="mb-2 text-4xl font-black tracking-tight text-white">
                 Custom
               </div>
               <p className="text-sm leading-relaxed text-slate-500">
-                For large buyers and sourcing agents with high volume.
+                For large buyers, sourcing teams and businesses with ongoing volume.
               </p>
             </div>
 
-            <div className="h-px bg-white/7" />
+            <div className="mb-5 h-px bg-white/7" />
 
             <div className="flex flex-1 flex-col gap-3">
               {enterpriseFeatures.map((item) => (
-                <div key={item.text} className="flex items-start gap-3">
-                  <span className="mt-0.5 shrink-0 font-bold text-amber-400">✓</span>
-                  <span className="text-sm text-slate-300">{item.text}</span>
+                <div key={item} className="flex items-start gap-3">
+                  <span className="mt-0.5 text-amber-400">✓</span>
+                  <span className="text-sm text-slate-300">{item}</span>
                 </div>
               ))}
             </div>
@@ -363,17 +419,45 @@ export default function PricingPage() {
               href={supportLink}
               target="_blank"
               rel="noreferrer"
-              className="block rounded-xl border border-amber-500/20 bg-amber-500/10 py-3 text-center text-sm font-bold text-amber-400 no-underline"
+              className="mt-6 block rounded-xl border border-amber-500/20 bg-amber-500/10 py-3 text-center text-sm font-bold text-amber-400 no-underline"
             >
-              Contact us on WhatsApp
+              Talk to us on WhatsApp
             </a>
           </div>
-        </div>
+        </section>
 
+        {/* Comparison / trust */}
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="rounded-3xl border border-white/7 bg-[#111827] p-5">
+            <div className="mb-2 text-sm font-bold text-white">Built for fabric buyers</div>
+            <p className="text-sm leading-relaxed text-slate-500">
+              This is not generic software. Weinly is designed around real sourcing
+              pain points buyers face when dealing with suppliers in China.
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-white/7 bg-[#111827] p-5">
+            <div className="mb-2 text-sm font-bold text-white">Reduce costly mistakes</div>
+            <p className="text-sm leading-relaxed text-slate-500">
+              Better request formatting, quote visibility and guided unlock flow help
+              buyers avoid rushing into the wrong supplier.
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-white/7 bg-[#111827] p-5">
+            <div className="mb-2 text-sm font-bold text-white">Scale with confidence</div>
+            <p className="text-sm leading-relaxed text-slate-500">
+              Whether you are buying for retail, wholesale or custom production, Weinly
+              gives you a more structured sourcing workflow.
+            </p>
+          </div>
+        </section>
+
+        {/* FAQ */}
         <section className="rounded-3xl border border-white/7 bg-[#111827] p-6 md:p-10">
-          <span className="mb-3 inline-block rounded-full bg-indigo-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-indigo-400">
+          <div className="mb-3 inline-block rounded-full bg-indigo-500/12 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-indigo-400">
             FAQ
-          </span>
+          </div>
 
           <h2 className="mb-8 text-2xl font-black tracking-tight text-white md:text-3xl">
             Frequently asked questions
@@ -382,29 +466,30 @@ export default function PricingPage() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {faqs.map((faq) => (
               <div key={faq.q} className="rounded-2xl border border-white/7 bg-white/4 p-5">
-                <h3 className="m-0 mb-2 text-sm font-bold text-white">{faq.q}</h3>
-                <p className="m-0 text-xs leading-relaxed text-slate-500">{faq.a}</p>
+                <h3 className="mb-2 text-sm font-bold text-white">{faq.q}</h3>
+                <p className="text-xs leading-relaxed text-slate-500">{faq.a}</p>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="rounded-3xl border border-indigo-500/20 bg-gradient-to-r from-indigo-900/60 to-violet-900/60 p-6 text-center md:p-10">
-          <h2 className="mb-3 text-2xl font-black tracking-tight text-white md:text-3xl">
-            Ready to source like a pro?
+        {/* Desktop-only closing CTA */}
+        <section className="hidden md:block rounded-3xl border border-indigo-500/20 bg-gradient-to-r from-indigo-900/60 to-violet-900/60 p-8 text-center">
+          <h2 className="mb-3 text-3xl font-black tracking-tight text-white">
+            Ready to move faster with Weinly Pro?
           </h2>
-
-          <p className="mx-auto mb-6 max-w-lg text-base leading-relaxed text-slate-400">
-            Join serious fabric buyers already using Weinly Pro to source premium
-            fabrics from China with confidence.
+          <p className="mx-auto mb-6 max-w-2xl text-base leading-relaxed text-slate-400">
+            Upgrade when you are ready to unlock suppliers faster, get better support,
+            and source more confidently from China.
           </p>
 
           <div className="flex flex-wrap justify-center gap-3">
             <button
-              onClick={() => handleProPayment("pro_monthly")}
-              className="cursor-pointer rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-indigo-500/25"
+              onClick={() => handleProPayment(currentPlan)}
+              disabled={loading !== null}
+              className="cursor-pointer rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-indigo-500/25 disabled:opacity-60"
             >
-              Get Weinly Pro
+              {loading === currentPlan ? "Processing..." : "Choose Pro"}
             </button>
 
             <a
