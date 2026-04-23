@@ -24,9 +24,9 @@ export default async function SupplierDashboardPage() {
     redirect("/supplier/auth");
   }
 
-  if (profile.status && profile.status !== "approved") {
-    redirect("/supplier/pending");
-  }
+  if (profile.is_active === false) {
+  redirect("/supplier/pending");
+}
 
   const { data: requests, error: requestsError } = await supabase
     .from("fabric_requests")

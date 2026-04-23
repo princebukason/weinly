@@ -147,16 +147,17 @@ export default function HomePage() {
   }
 
   async function syncState(id: string) {
-    const request = await fetchRequest(id);
-    const quotes = await fetchQuotes(id);
-    setLookupRequest(request);
-    setLookupQuotes(quotes);
+  const request = await fetchRequest(id);
+  const quotes = await fetchQuotes(id);
+  setLookupRequest(request);
+  setLookupQuotes(quotes);
+  setLookupId(id);
 
-    if (submittedRequest?.id === id) {
-      setSubmittedRequest(request);
-      setSubmittedQuotes(quotes);
-    }
+  if (submittedRequest?.id === id) {
+    setSubmittedRequest(request);
+    setSubmittedQuotes(quotes);
   }
+}
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

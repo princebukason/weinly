@@ -766,11 +766,11 @@ export default function SupplierDashboardClient({
                         </form>
                       ) : (
                         <button
-                          onClick={() => openNewQuote(request.id)}
-                          className="self-start rounded-xl border-0 bg-gradient-to-r from-amber-500 to-amber-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/20"
-                        >
-                          Submit a quote →
-                        </button>
+  onClick={() => openNewQuote(request.id)}
+  className="cursor-pointer self-start rounded-xl border-0 bg-gradient-to-r from-amber-500 to-amber-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/20"
+>
+  Submit a quote →
+</button>
                       )}
                     </div>
                   );
@@ -862,17 +862,17 @@ export default function SupplierDashboardClient({
 
                     <div className="flex flex-wrap gap-3 pt-1">
                       <button
-                        onClick={() => openEditQuote(quote)}
-                        className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-2.5 text-sm font-bold text-amber-400 transition-all hover:bg-amber-500/15"
-                      >
-                        Edit quote
-                      </button>
+  onClick={() => openEditQuote(quote)}
+  className="cursor-pointer rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-2.5 text-sm font-bold text-amber-400 transition-all hover:bg-amber-500/15"
+>
+  Edit quote
+</button>
 
-                      <button
-                        onClick={() => deleteQuote(quote.id)}
-                        disabled={deletingQuoteId === quote.id}
-                        className="rounded-xl border border-red-500/20 bg-red-500/8 px-4 py-2.5 text-sm font-bold text-red-400 transition-all hover:bg-red-500/12 disabled:opacity-60"
-                      >
+<button
+  onClick={() => deleteQuote(quote.id)}
+  disabled={deletingQuoteId === quote.id}
+  className="cursor-pointer rounded-xl border border-red-500/20 bg-red-500/8 px-4 py-2.5 text-sm font-bold text-red-400 transition-all hover:bg-red-500/12 disabled:opacity-60"
+>
                         {deletingQuoteId === quote.id ? "Deleting..." : "Delete quote"}
                       </button>
                     </div>
