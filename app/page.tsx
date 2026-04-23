@@ -351,25 +351,27 @@ export default function HomePage() {
   }, [requestId]);
 
   useEffect(() => {
-  if (typeof window === "undefined") return;
+    if (typeof window === "undefined") return;
 
-  const requestIdFromUrl = new URLSearchParams(window.location.search).get("requestId");
-  if (!requestIdFromUrl) return;
+    const requestIdFromUrl = new URLSearchParams(window.location.search).get("requestId");
+    if (!requestIdFromUrl) return;
 
-  setLookupId(requestIdFromUrl);
-  setActiveTab("track");
+    const safeRequestId = requestIdFromUrl;
 
-  async function load() {
-    const request = await fetchRequest(requestIdFromUrl);
-    if (!request) return;
+    setLookupId(safeRequestId);
+    setActiveTab("track");
 
-    const quotes = await fetchQuotes(requestIdFromUrl);
-    setLookupRequest(request);
-    setLookupQuotes(quotes);
-  }
+    async function load() {
+      const request = await fetchRequest(safeRequestId);
+      if (!request) return;
 
-  load();
-}, []);
+      const quotes = await fetchQuotes(safeRequestId);
+      setLookupRequest(request);
+      setLookupQuotes(quotes);
+    }
+
+    load();
+  }, []);
 
   const activeRequest = useMemo(
     () => lookupRequest || submittedRequest,
@@ -395,7 +397,6 @@ export default function HomePage() {
       <div className="mx-auto flex max-w-5xl flex-col gap-3">
         <SiteHeader />
 
-        {/* ── HERO ── */}
         <section className="relative overflow-hidden rounded-3xl border border-indigo-500/15 bg-gradient-to-br from-[#0f172a] via-[#1a1040] to-[#0c1a3a] p-6 shadow-2xl shadow-indigo-500/10 md:p-12">
           <div className="pointer-events-none absolute right-0 top-0 h-96 w-96 translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-500/10 blur-3xl" />
           <div className="pointer-events-none absolute bottom-0 left-0 h-64 w-64 -translate-x-1/2 translate-y-1/2 rounded-full bg-violet-500/8 blur-3xl" />
@@ -496,7 +497,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ── HOW IT WORKS ── */}
         <section
           id="how-it-works"
           className="rounded-3xl border border-white/7 bg-[#111827] p-6 md:p-10"
@@ -549,7 +549,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ── MAIN TABS ── */}
         <section
           id="main-tabs"
           className="rounded-3xl border border-white/7 bg-[#111827] p-4 md:p-8"
@@ -758,7 +757,6 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* ── TRACKER ── */}
         {activeRequest && stagePill && (
           <section
             id="request-tracker"
@@ -1103,7 +1101,6 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* ── PRO TEASER ── */}
         <section className="rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-950 to-violet-950 p-6 md:p-10">
           <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-2">
             <div>
@@ -1150,17 +1147,14 @@ export default function HomePage() {
                   <span className="text-emerald-400">✓</span>
                   <span>Access suppliers faster when ready to buy</span>
                 </div>
-
                 <div className="flex gap-2">
                   <span className="text-emerald-400">✓</span>
                   <span>Reduce delays and middlemen issues</span>
                 </div>
-
                 <div className="flex gap-2">
                   <span className="text-emerald-400">✓</span>
                   <span>Make better sourcing decisions</span>
                 </div>
-
                 <div className="flex gap-2">
                   <span className="text-emerald-400">✓</span>
                   <span>Scale your fabric business faster</span>
@@ -1170,7 +1164,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ── PRICING ── */}
         <section
           id="pricing"
           className="rounded-3xl border border-white/7 bg-[#111827] p-6 md:p-10"
@@ -1274,7 +1267,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ── TRUST ── */}
         <section className="rounded-3xl border border-white/7 bg-[#111827] p-6 md:p-10">
           <span className="mb-3 inline-block rounded-full bg-indigo-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-indigo-400">
             Why Weinly
