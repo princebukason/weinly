@@ -8,6 +8,7 @@ import SiteFooter from "@/components/SiteFooter";
 import { buildWhatsappLink } from "@/lib/config";
 
 type User = { id: string; email: string; name: string | null; phone: string | null; };
+
 type FabricRequest = {
   id: string; created_at: string; client_name: string | null; client_email: string | null;
   client_phone: string | null; user_input: string; ai_output: unknown; status: string | null;
@@ -20,6 +21,14 @@ type Quote = {
   moq: string | null; note: string | null; contact_name: string | null;
   contact_phone: string | null; contact_wechat: string | null; contact_email: string | null;
   supplier_region: string | null; lead_time: string | null; is_contact_released: boolean | null;
+};
+
+type Props = {
+  user: User;
+  requests: FabricRequest[];
+  quotesMap: Record<string, any[]>;
+  isPro: boolean;
+  subscription: any;
 };
 
 function formatAiOutput(aiOutput: unknown) {
@@ -40,9 +49,7 @@ function getStagePill(request: FabricRequest, quoteCount: number) {
   return { cls: "bg-amber-900/60 text-amber-300 border border-amber-500/30", label: "In progress" };
 }
 
-type Props = { user: User; requests: FabricRequest[]; quotesMap: Record<string, Quote[]>; };
-
-export default function DashboardClient({ user, requests, quotesMap }: Props) {
+export default function DashboardClient({ user, requests, quotesMap, isPro, subscription }: Props) {
   const [loggingOut, setLoggingOut] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const router = useRouter();
@@ -60,12 +67,25 @@ export default function DashboardClient({ user, requests, quotesMap }: Props) {
   const unlockedCount = requests.filter((r) => r.contact_request_status === "approved").length;
   const pendingCount = requests.filter((r) => r.payment_status !== "paid" && r.contact_request_status !== "approved" && (quotesMap[r.id]?.length || 0) > 0).length;
 
+  const stats = [
+    { label: "Total requests", value: String(requests.length), color: "text-indigo-400", bg: "bg-indigo-500/8 border-indigo-500/20" },
+    { label: "Supplier quotes", value: String(totalQuotes), color: "text-sky-400", bg: "bg-sky-500/8 border-sky-500/20" },
+    { label: "Contacts unlocked", value: String(unlockedCount), color: "text-emerald-400", bg: "bg-emerald-500/8 border-emerald-500/20" },
+    { label: "Ready to unlock", value: String(pendingCount), color: "text-amber-400", bg: "bg-amber-500/8 border-amber-500/20" },
+    {
+      label: isPro ? "Pro unlocks/month" : "Upgrade to Pro",
+      value: isPro ? "3/month" : "Free",
+      color: isPro ? "text-violet-400" : "text-slate-500",
+      bg: isPro ? "bg-violet-500/8 border-violet-500/20" : "bg-white/4 border-white/7",
+    },
+  ];
+
   return (
     <main className="min-h-screen bg-[#0a0f1e] px-3 py-3 md:px-4 md:py-4 font-sans">
       <div className="max-w-5xl mx-auto flex flex-col gap-3">
         <SiteHeader />
 
-        {/* ── WELCOME BANNER ── */}
+        {/* Welcome banner */}
         <section className="relative overflow-hidden bg-gradient-to-br from-[#0f172a] via-[#1a1040] to-[#0c1a3a] border border-indigo-500/15 rounded-3xl p-6 md:p-8 shadow-2xl shadow-indigo-500/10">
           <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
           <div className="relative z-10 flex flex-col md:flex-row justify-between gap-6 items-start md:items-center">
@@ -78,6 +98,15 @@ export default function DashboardClient({ user, requests, quotesMap }: Props) {
                 Welcome back{user.name ? `, ${user.name.split(" ")[0]}` : ""}
               </h1>
               <p className="text-slate-400 text-sm m-0">{user.email}</p>
+              {isPro && (
+                <div className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-500/20 to-violet-500/20 border border-indigo-500/30 rounded-full px-3 py-1 mt-2">
+                  <span className="text-xs">✨</span>
+                  <span className="text-indigo-300 text-xs font-bold">Weinly Pro</span>
+                  {subscription?.expires_at && (
+                    <span className="text-indigo-400/60 text-xs">· expires {new Date(subscription.expires_at).toLocaleDateString()}</span>
+                  )}
+                </div>
+              )}
             </div>
             <div className="flex gap-3 flex-wrap">
               <a href="/#main-tabs" className="bg-gradient-to-r from-indigo-500 to-indigo-700 text-white font-bold text-sm px-5 py-2.5 rounded-xl no-underline shadow-lg shadow-indigo-500/25 flex items-center">
@@ -93,14 +122,9 @@ export default function DashboardClient({ user, requests, quotesMap }: Props) {
           </div>
         </section>
 
-        {/* ── STATS ── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            { label: "Total requests", value: String(requests.length), color: "text-indigo-400", bg: "bg-indigo-500/8 border-indigo-500/20" },
-            { label: "Supplier quotes", value: String(totalQuotes), color: "text-sky-400", bg: "bg-sky-500/8 border-sky-500/20" },
-            { label: "Contacts unlocked", value: String(unlockedCount), color: "text-emerald-400", bg: "bg-emerald-500/8 border-emerald-500/20" },
-            { label: "Ready to unlock", value: String(pendingCount), color: "text-amber-400", bg: "bg-amber-500/8 border-amber-500/20" },
-          ].map((stat) => (
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {stats.map((stat) => (
             <div key={stat.label} className={`${stat.bg} border rounded-2xl p-4`}>
               <div className={`text-3xl font-black ${stat.color} mb-1`}>{stat.value}</div>
               <div className="text-slate-500 text-xs font-semibold">{stat.label}</div>
@@ -108,12 +132,32 @@ export default function DashboardClient({ user, requests, quotesMap }: Props) {
           ))}
         </div>
 
-        {/* ── REQUESTS ── */}
+        {/* Pro upgrade banner for free users */}
+        {!isPro && (
+          <div className="bg-gradient-to-r from-indigo-900/40 to-violet-900/40 border border-indigo-500/20 rounded-2xl p-4 flex flex-col md:flex-row justify-between gap-4 items-start md:items-center">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-lg">✨</span>
+                <span className="text-white font-bold text-sm">Upgrade to Weinly Pro</span>
+              </div>
+              <p className="text-slate-400 text-xs m-0 leading-relaxed">
+                Get 3 contact unlocks/month, priority matching and dedicated support for ₦25,000/month.
+              </p>
+            </div>
+            <a href="/pricing" className="bg-gradient-to-r from-indigo-500 to-violet-600 text-white font-bold text-sm px-5 py-2.5 rounded-xl no-underline shadow-lg shadow-indigo-500/20 whitespace-nowrap flex items-center shrink-0">
+              Upgrade to Pro →
+            </a>
+          </div>
+        )}
+
+        {/* Requests */}
         <section className="bg-[#111827] border border-white/7 rounded-3xl p-5 md:p-8">
           <div className="flex justify-between items-center gap-4 flex-wrap mb-6">
             <div>
               <h2 className="text-xl md:text-2xl font-black text-white tracking-tight mb-1">Your requests</h2>
-              <p className="text-slate-500 text-sm m-0">{requests.length === 0 ? "No requests yet" : `${requests.length} request${requests.length === 1 ? "" : "s"} found`}</p>
+              <p className="text-slate-500 text-sm m-0">
+                {requests.length === 0 ? "No requests yet" : `${requests.length} request${requests.length === 1 ? "" : "s"} found`}
+              </p>
             </div>
             <a href="/#main-tabs" className="bg-indigo-500/12 text-indigo-400 text-xs font-bold px-4 py-2 rounded-full no-underline hover:bg-indigo-500/20 transition-all border border-indigo-500/20">
               + New request
@@ -142,7 +186,7 @@ export default function DashboardClient({ user, requests, quotesMap }: Props) {
                 return (
                   <div key={request.id} className="bg-white/3 border border-white/7 rounded-2xl overflow-hidden">
 
-                    {/* Request summary row */}
+                    {/* Summary row */}
                     <div
                       className="p-4 md:p-5 flex justify-between gap-3 flex-wrap items-start cursor-pointer hover:bg-white/2 transition-all"
                       onClick={() => setExpandedId(isExpanded ? null : request.id)}>
@@ -186,6 +230,12 @@ export default function DashboardClient({ user, requests, quotesMap }: Props) {
                           ))}
                         </div>
 
+                        {/* Fabric request */}
+                        <div className="bg-white/4 border border-white/7 rounded-xl p-4">
+                          <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">Fabric request</div>
+                          <p className="text-slate-300 text-sm leading-relaxed m-0 whitespace-pre-wrap">{request.user_input}</p>
+                        </div>
+
                         {/* AI spec */}
                         {request.ai_output != null && (
                           <div className="bg-white/4 border border-white/7 rounded-xl p-4">
@@ -198,7 +248,7 @@ export default function DashboardClient({ user, requests, quotesMap }: Props) {
                         {quotes.length > 0 && (
                           <div className="flex flex-col gap-3">
                             <h3 className="text-white font-bold text-sm m-0">Supplier quotes ({quotes.length})</h3>
-                            {quotes.map((quote) => (
+                            {quotes.map((quote: Quote) => (
                               <div key={quote.id} className="bg-white/4 border border-white/7 rounded-xl p-4 flex flex-col gap-3">
                                 <div className="flex justify-between gap-3 flex-wrap">
                                   <div>
@@ -250,6 +300,16 @@ export default function DashboardClient({ user, requests, quotesMap }: Props) {
                           <a href={`/?requestId=${request.id}`} className="bg-gradient-to-r from-indigo-500 to-indigo-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl no-underline shadow-lg shadow-indigo-500/20 flex items-center">
                             {request.contact_request_status !== "approved" && quotes.length > 0 ? "Unlock supplier contact →" : "Open request →"}
                           </a>
+
+                          {/* Reorder button — Pro only */}
+                          {isPro && request.status === "completed" && (
+                            
+                              href={`/?reorder=${request.id}`}
+                              className="bg-violet-500/10 border border-violet-500/20 text-violet-400 font-bold text-xs px-4 py-2.5 rounded-xl no-underline flex items-center hover:bg-violet-500/15 transition-all">
+                              ✨ Reorder
+                            </a>
+                          )}
+
                           <a href={reqSupportLink} target="_blank" rel="noreferrer" className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-semibold text-xs px-4 py-2.5 rounded-xl no-underline flex items-center hover:bg-emerald-500/15 transition-all">
                             WhatsApp support
                           </a>
@@ -263,7 +323,7 @@ export default function DashboardClient({ user, requests, quotesMap }: Props) {
           )}
         </section>
 
-        {/* ── ACCOUNT ── */}
+        {/* Account */}
         <section className="bg-[#111827] border border-white/7 rounded-3xl p-5 md:p-8">
           <h2 className="text-lg font-black text-white tracking-tight mb-4">Account details</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
@@ -278,6 +338,40 @@ export default function DashboardClient({ user, requests, quotesMap }: Props) {
               </div>
             ))}
           </div>
+
+          {/* Subscription status */}
+          {isPro ? (
+            <div className="bg-gradient-to-r from-indigo-900/40 to-violet-900/40 border border-indigo-500/20 rounded-2xl p-4 mb-4">
+              <div className="flex justify-between gap-3 flex-wrap items-center">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span>✨</span>
+                    <span className="text-white font-bold text-sm">Weinly Pro — Active</span>
+                  </div>
+                  <p className="text-slate-400 text-xs m-0">
+                    Plan: {subscription?.plan === "pro_yearly" ? "Yearly" : "Monthly"} ·
+                    Expires: {subscription?.expires_at ? new Date(subscription.expires_at).toLocaleDateString() : "—"}
+                  </p>
+                </div>
+                <a href={buildWhatsappLink("Hello Weinly, I want to manage my Pro subscription.")} target="_blank" rel="noreferrer" className="bg-indigo-500/15 text-indigo-400 text-xs font-bold px-4 py-2 rounded-xl no-underline hover:bg-indigo-500/20 transition-all border border-indigo-500/20">
+                  Manage subscription
+                </a>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white/4 border border-white/7 rounded-2xl p-4 mb-4">
+              <div className="flex justify-between gap-3 flex-wrap items-center">
+                <div>
+                  <div className="text-white font-bold text-sm mb-1">Free plan</div>
+                  <p className="text-slate-500 text-xs m-0">Upgrade to Pro for ₦25,000/month and get 3 unlocks included.</p>
+                </div>
+                <a href="/pricing" className="bg-gradient-to-r from-indigo-500 to-violet-600 text-white font-bold text-xs px-4 py-2 rounded-xl no-underline shadow-lg shadow-indigo-500/20">
+                  Upgrade to Pro →
+                </a>
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-3 flex-wrap">
             <a href={supportLink} target="_blank" rel="noreferrer" className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-semibold text-sm px-5 py-2.5 rounded-xl no-underline hover:bg-emerald-500/15 transition-all flex items-center">
               WhatsApp support
@@ -285,7 +379,7 @@ export default function DashboardClient({ user, requests, quotesMap }: Props) {
             <button
               onClick={handleLogout}
               disabled={loggingOut}
-              className="bg-red-500/8 border border-red-500/20 text-red-400 font-semibold text-sm px-5 py-2.5 rounded-xl cursor-pointer hover:bg-red-500/15 transition-all disabled:opacity-60">
+              className="bg-red-500/8 border border-red-500/20 text-red-400 font-semibold text-sm px-5 py-2.5 rounded-xl cursor-pointer hover:bg-red-500/15 transition-all disabled:opacity-60 border-0">
               {loggingOut ? "Logging out..." : "Log out"}
             </button>
           </div>

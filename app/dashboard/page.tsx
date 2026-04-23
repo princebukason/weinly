@@ -8,8 +8,6 @@ export default async function DashboardPage() {
 
   if (!user) redirect("/auth");
 
-  // If role is supplier redirect them to supplier dashboard
-  // If role is buyer OR undefined treat as buyer (backward compatible)
   const role = user.user_metadata?.role;
   if (role === "supplier") redirect("/supplier/dashboard");
 
@@ -37,6 +35,16 @@ export default async function DashboardPage() {
     });
   }
 
+  // Get subscription
+  const { data: subscription } = await supabase
+    .from("subscriptions")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("status", "active")
+    .single();
+
+  const isPro = subscription && new Date(subscription.expires_at) > new Date();
+
   return (
     <DashboardClient
       user={{
@@ -47,6 +55,8 @@ export default async function DashboardPage() {
       }}
       requests={requestList}
       quotesMap={quotesMap}
+      isPro={isPro || false}
+      subscription={isPro ? subscription : null}
     />
   );
 }

@@ -35,7 +35,7 @@ export default function SiteHeader({ showSubmitButton = true }: SiteHeaderProps)
           <a href="/" className="text-slate-400 hover:text-white text-sm font-semibold transition-colors">Home</a>
           <a href="/#how-it-works" className="text-slate-400 hover:text-white text-sm font-semibold transition-colors">How it works</a>
           <a href="/history" className="text-slate-400 hover:text-white text-sm font-semibold transition-colors">History</a>
-          <a href="/#pricing" className="text-slate-400 hover:text-white text-sm font-semibold transition-colors">Pricing</a>
+          <a href="/pricing" className="text-slate-400 hover:text-white text-sm font-semibold transition-colors">Pricing</a>
           <a href={genericSupportLink} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-white text-sm font-semibold transition-colors">WhatsApp</a>
           <a href="/dashboard" className="text-slate-400 hover:text-white text-sm font-semibold transition-colors">Dashboard</a>
         </div>
@@ -70,6 +70,7 @@ export default function SiteHeader({ showSubmitButton = true }: SiteHeaderProps)
             { href: "/history", label: "History" },
             { href: "/#pricing", label: "Pricing" },
             { href: "/dashboard", label: "Dashboard" },
+            { href: "/pricing", label: "Pricing" },
           ].map((link) => (
             <a key={link.href} href={link.href} onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white hover:bg-white/5 font-semibold text-sm px-4 py-3 rounded-xl transition-all no-underline">
               {link.label}
