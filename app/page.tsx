@@ -397,6 +397,7 @@ export default function HomePage() {
       <div className="mx-auto flex max-w-5xl flex-col gap-3">
         <SiteHeader />
 
+        {/* ── HERO ── */}
         <section className="relative overflow-hidden rounded-3xl border border-indigo-500/15 bg-gradient-to-br from-[#0f172a] via-[#1a1040] to-[#0c1a3a] p-6 shadow-2xl shadow-indigo-500/10 md:p-12">
           <div className="pointer-events-none absolute right-0 top-0 h-96 w-96 translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-500/10 blur-3xl" />
           <div className="pointer-events-none absolute bottom-0 left-0 h-64 w-64 -translate-x-1/2 translate-y-1/2 rounded-full bg-violet-500/8 blur-3xl" />
@@ -497,6 +498,7 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ── HOW IT WORKS ── */}
         <section
           id="how-it-works"
           className="rounded-3xl border border-white/7 bg-[#111827] p-6 md:p-10"
@@ -549,6 +551,7 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ── MAIN TABS ── */}
         <section
           id="main-tabs"
           className="rounded-3xl border border-white/7 bg-[#111827] p-4 md:p-8"
@@ -757,6 +760,7 @@ export default function HomePage() {
           )}
         </section>
 
+        {/* ── TRACKER ── */}
         {activeRequest && stagePill && (
           <section
             id="request-tracker"
@@ -932,18 +936,82 @@ export default function HomePage() {
                       )}
 
                       {!isReleased && contactStatus === "none" && (
-                        <div className="rounded-xl border border-white/7 bg-white/4 p-4">
-                          <p className="m-0 mb-4 text-sm leading-relaxed text-slate-400">
-                            Supplier contact is protected. Proceed to request access and
-                            unlock direct contact details.
-                          </p>
-                          <div className="flex flex-wrap gap-3">
-                            <button
-                              onClick={() => requestContact(activeRequest.id)}
-                              className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-indigo-500 to-indigo-700 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-500/25"
-                            >
-                              Proceed to unlock
-                            </button>
+                        <div className="rounded-2xl border border-indigo-500/20 bg-gradient-to-br from-[#111827] to-[#161b2f] p-5">
+                          <div className="mb-4">
+                            <h4 className="mb-1 text-base font-bold text-white">
+                              Unlock supplier contact
+                            </h4>
+                            <p className="m-0 text-sm leading-relaxed text-slate-400">
+                              Choose a one-time unlock or upgrade to Pro for better value.
+                            </p>
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                            <div className="rounded-xl border border-white/10 bg-white/4 p-4">
+                              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">
+                                One-time unlock
+                              </div>
+                              <div className="mb-2 text-2xl font-black text-white">
+                                ₦10,000
+                              </div>
+                              <div className="mb-4 text-sm leading-relaxed text-slate-400">
+                                Unlock this supplier’s phone, WeChat and email for this
+                                request.
+                              </div>
+                              <button
+                                onClick={() => requestContact(activeRequest.id)}
+                                className="w-full cursor-pointer rounded-xl border-0 bg-gradient-to-r from-indigo-500 to-indigo-700 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-500/25"
+                              >
+                                Proceed to unlock
+                              </button>
+                            </div>
+
+                            <div className="relative overflow-hidden rounded-xl border border-violet-500/25 bg-violet-500/8 p-4">
+                              <span className="absolute right-3 top-3 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
+                                Best value
+                              </span>
+
+                              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-violet-300">
+                                Weinly Pro
+                              </div>
+                              <div className="mb-1 text-2xl font-black text-white">
+                                ₦25,000
+                                <span className="ml-1 text-sm font-semibold text-slate-400">
+                                  /month
+                                </span>
+                              </div>
+                              <div className="mb-3 text-sm leading-relaxed text-slate-300">
+                                Includes 3 contact unlocks every month plus priority
+                                matching and support.
+                              </div>
+
+                              <div className="mb-4 flex flex-col gap-2">
+                                {[
+                                  "3 unlocks included monthly",
+                                  "Priority supplier matching",
+                                  "Dedicated support",
+                                  "Better value for active buyers",
+                                ].map((item) => (
+                                  <div
+                                    key={item}
+                                    className="flex items-start gap-2 text-sm text-slate-300"
+                                  >
+                                    <span className="text-emerald-400">✓</span>
+                                    <span>{item}</span>
+                                  </div>
+                                ))}
+                              </div>
+
+                              <a
+                                href="/pricing"
+                                className="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-violet-500 to-indigo-600 px-5 py-3 text-sm font-bold text-white no-underline shadow-lg shadow-violet-500/20"
+                              >
+                                Upgrade to Pro
+                              </a>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 flex flex-wrap gap-3">
                             <a
                               href={supportLink}
                               target="_blank"
@@ -1101,6 +1169,7 @@ export default function HomePage() {
           </section>
         )}
 
+        {/* ── PRO TEASER ── */}
         <section className="rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-950 to-violet-950 p-6 md:p-10">
           <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-2">
             <div>
@@ -1164,6 +1233,7 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ── PRICING ── */}
         <section
           id="pricing"
           className="rounded-3xl border border-white/7 bg-[#111827] p-6 md:p-10"
@@ -1267,6 +1337,7 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ── TRUST ── */}
         <section className="rounded-3xl border border-white/7 bg-[#111827] p-6 md:p-10">
           <span className="mb-3 inline-block rounded-full bg-indigo-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-indigo-400">
             Why Weinly
