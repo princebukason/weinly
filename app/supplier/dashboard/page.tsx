@@ -43,7 +43,7 @@ export default async function SupplierDashboardPage() {
 
   if (requestsError || quotesError) {
     return (
-      <main className="min-h-screen bg-[#0a0f1e] text-white p-6">
+      <main className="min-h-screen bg-[#0a0f1e] p-6 text-white">
         Failed to load supplier dashboard.
       </main>
     );
@@ -53,7 +53,7 @@ export default async function SupplierDashboardPage() {
     <SupplierDashboardClient
       user={{
         id: user.id,
-        email: user.email!,
+        email: user.email || "",
         name: user.user_metadata?.company_name || null,
       }}
       profile={profile}

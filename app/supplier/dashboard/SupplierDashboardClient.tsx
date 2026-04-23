@@ -84,19 +84,25 @@ function getIntentLevel(request: FabricRequest) {
     text.includes("packs") ||
     text.includes("moq") ||
     text.includes("meters")
-  ) score += 1;
+  ) {
+    score += 1;
+  }
   if (
     text.includes("urgent") ||
     text.includes("asap") ||
     text.includes("immediately") ||
     text.includes("fast")
-  ) score += 1;
+  ) {
+    score += 1;
+  }
   if (
     text.includes("premium") ||
     text.includes("high quality") ||
     text.includes("high-end") ||
     text.includes("export")
-  ) score += 1;
+  ) {
+    score += 1;
+  }
 
   if (score >= 3) {
     return {
@@ -157,21 +163,12 @@ function getRequestPriority(request: FabricRequest) {
 
 function getCompetitionLabel(priority: number) {
   if (priority >= 30) {
-    return {
-      label: "Worth quoting",
-      cls: "text-emerald-400",
-    };
+    return { label: "Worth quoting", cls: "text-emerald-400" };
   }
   if (priority >= 20) {
-    return {
-      label: "Good opportunity",
-      cls: "text-sky-400",
-    };
+    return { label: "Good opportunity", cls: "text-sky-400" };
   }
-  return {
-    label: "Optional",
-    cls: "text-slate-500",
-  };
+  return { label: "Optional", cls: "text-slate-500" };
 }
 
 export default function SupplierDashboardClient({
@@ -228,7 +225,6 @@ export default function SupplierDashboardClient({
   }, [profileComplete]);
 
   const quotedRequestIds = new Set(myQuotes.map((q) => q.request_id));
-
   const pendingRequests = requests.filter((r) => !quotedRequestIds.has(r.id));
 
   const filteredRequests = useMemo(() => {
@@ -255,22 +251,21 @@ export default function SupplierDashboardClient({
   const filteredQuotes = useMemo(() => {
     const q = search.trim().toLowerCase();
 
-    return [...myQuotes]
-      .filter((quote) => {
-        if (!q) return true;
-        const text = [
-          quote.request_id,
-          quote.supplier_name,
-          quote.price || "",
-          quote.moq || "",
-          quote.note || "",
-          quote.supplier_region || "",
-        ]
-          .join(" ")
-          .toLowerCase();
-        return text.includes(q);
-      })
-      .sort((a, b) => Number(b.id) - Number(a.id));
+    return [...myQuotes].filter((quote) => {
+      if (!q) return true;
+      const text = [
+        quote.request_id,
+        quote.supplier_name,
+        quote.price || "",
+        quote.moq || "",
+        quote.note || "",
+        quote.supplier_region || "",
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return text.includes(q);
+    });
   }, [myQuotes, search]);
 
   const closedDeals = myQuotes.filter((q) => q.is_contact_released).length;
