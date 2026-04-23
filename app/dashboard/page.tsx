@@ -4,21 +4,21 @@ import DashboardClient from "./DashboardClient";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
 
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/auth");
 
   const role = user.user_metadata?.role;
   if (role === "supplier") redirect("/supplier/dashboard");
 
-  const { data: requests } = await supabase
+  const { data: requestsByEmail } = await supabase
     .from("fabric_requests")
     .select("*")
     .eq("client_email", user.email!)
     .order("created_at", { ascending: false });
 
-  const requestList = requests || [];
-  const requestIds = requestList.map((r) => r.id);
+  const requestList = requestsByEmail || [];
+  const requestIds = requestList.map((r: any) => r.id);
 
   let quotesMap: Record<string, any[]> = {};
 
@@ -29,13 +29,12 @@ export default async function DashboardPage() {
       .in("request_id", requestIds)
       .order("id", { ascending: false });
 
-    (quotes || []).forEach((q) => {
+    (quotes || []).forEach((q: any) => {
       if (!quotesMap[q.request_id]) quotesMap[q.request_id] = [];
       quotesMap[q.request_id].push(q);
     });
   }
 
-  // Get subscription
   const { data: subscription } = await supabase
     .from("subscriptions")
     .select("*")

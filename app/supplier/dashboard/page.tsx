@@ -5,10 +5,7 @@ import SupplierDashboardClient from "./SupplierDashboardClient";
 export default async function SupplierDashboardPage() {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/supplier/auth");
 
   const role = user.user_metadata?.role;
@@ -20,13 +17,9 @@ export default async function SupplierDashboardPage() {
     .eq("user_id", user.id)
     .single();
 
-  if (profileError || !profile) {
-    redirect("/supplier/auth");
-  }
+  if (profileError || !profile) redirect("/supplier/auth");
 
-  if (profile.is_active === false) {
-  redirect("/supplier/pending");
-}
+  if (profile.is_active === false) redirect("/supplier/pending");
 
   const { data: requests, error: requestsError } = await supabase
     .from("fabric_requests")
