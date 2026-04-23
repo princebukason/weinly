@@ -351,24 +351,25 @@ export default function HomePage() {
   }, [requestId]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+  if (typeof window === "undefined") return;
 
-    const id = new URLSearchParams(window.location.search).get("requestId");
-    if (!id) return;
+  const requestIdFromUrl = new URLSearchParams(window.location.search).get("requestId");
+  if (!requestIdFromUrl) return;
 
-    setLookupId(id);
-    setActiveTab("track");
+  setLookupId(requestIdFromUrl);
+  setActiveTab("track");
 
-    async function load() {
-      const request = await fetchRequest(id);
-      if (!request) return;
-      const quotes = await fetchQuotes(id);
-      setLookupRequest(request);
-      setLookupQuotes(quotes);
-    }
+  async function load() {
+    const request = await fetchRequest(requestIdFromUrl);
+    if (!request) return;
 
-    load();
-  }, []);
+    const quotes = await fetchQuotes(requestIdFromUrl);
+    setLookupRequest(request);
+    setLookupQuotes(quotes);
+  }
+
+  load();
+}, []);
 
   const activeRequest = useMemo(
     () => lookupRequest || submittedRequest,
