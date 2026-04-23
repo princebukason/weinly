@@ -24,7 +24,7 @@ export default async function SupplierDashboardPage() {
     redirect("/supplier/auth");
   }
 
-  if (profile.status !== "approved") {
+  if (profile.status && profile.status !== "approved") {
     redirect("/supplier/pending");
   }
 
@@ -43,17 +43,11 @@ export default async function SupplierDashboardPage() {
 
   if (requestsError || quotesError) {
     return (
-      <div className="p-6 text-white">
+      <main className="min-h-screen bg-[#0a0f1e] text-white p-6">
         Failed to load supplier dashboard.
-      </div>
+      </main>
     );
   }
-
-  const myQuotedRequestIds = new Set((myQuotes || []).map((q) => q.request_id));
-
-  const availableRequests = (requests || []).filter(
-    (request) => !myQuotedRequestIds.has(request.id)
-  );
 
   return (
     <SupplierDashboardClient
@@ -63,7 +57,7 @@ export default async function SupplierDashboardPage() {
         name: user.user_metadata?.company_name || null,
       }}
       profile={profile}
-      requests={availableRequests}
+      requests={requests || []}
       myQuotes={myQuotes || []}
     />
   );
