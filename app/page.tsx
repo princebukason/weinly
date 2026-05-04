@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import { buildWhatsappLink } from "@/lib/config";
+import { useCurrency } from "@/hooks/useCurrency";
 
 let PaystackPop: any = null;
 
@@ -12,8 +13,6 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 const PAYSTACK_PUBLIC_KEY = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "";
-const ACCESS_FEE = "₦10,000";
-const ACCESS_FEE_KOBO = 1000000;
 
 type FabricRequest = {
   id: string;
@@ -71,31 +70,18 @@ function getStageLabel(request: FabricRequest, quoteCount: number) {
 }
 
 function getStagePill(request: FabricRequest, quoteCount: number) {
-  if (request.contact_request_status === "approved") {
-    return {
-      bg: "bg-emerald-900/60 text-emerald-300 border border-emerald-500/30",
-      label: "Access unlocked",
-    };
-  }
-  if (request.payment_status === "paid") {
-    return {
-      bg: "bg-violet-900/60 text-violet-300 border border-violet-500/30",
-      label: "Paid — awaiting approval",
-    };
-  }
-  if (quoteCount > 0) {
-    return {
-      bg: "bg-blue-900/60 text-blue-300 border border-blue-500/30",
-      label: "Quotes ready",
-    };
-  }
-  return {
-    bg: "bg-amber-900/60 text-amber-300 border border-amber-500/30",
-    label: "In progress",
-  };
+  if (request.contact_request_status === "approved")
+    return { bg: "bg-emerald-900/60 text-emerald-300 border border-emerald-500/30", label: "Access unlocked" };
+  if (request.payment_status === "paid")
+    return { bg: "bg-violet-900/60 text-violet-300 border border-violet-500/30", label: "Paid — awaiting approval" };
+  if (quoteCount > 0)
+    return { bg: "bg-blue-900/60 text-blue-300 border border-blue-500/30", label: "Quotes ready" };
+  return { bg: "bg-amber-900/60 text-amber-300 border border-amber-500/30", label: "In progress" };
 }
 
 export default function HomePage() {
+  const prices = useCurrency();
+
   const [description, setDescription] = useState("");
   const [clientName, setClientName] = useState("");
   const [clientEmail, setClientEmail] = useState("");
@@ -110,13 +96,9 @@ export default function HomePage() {
   const [lookupRequest, setLookupRequest] = useState<FabricRequest | null>(null);
   const [lookupQuotes, setLookupQuotes] = useState<Quote[]>([]);
   const [activeTab, setActiveTab] = useState<"submit" | "track">("submit");
-
-  // ── REALTIME STATE ──
   const [isLive, setIsLive] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [realtimeFlash, setRealtimeFlash] = useState(false);
-
-  // ── PRICING STATE ──
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
 
   async function generateAISpec(userInput: string) {
@@ -129,105 +111,56 @@ export default function HomePage() {
       if (!res.ok) return null;
       const data = await res.json();
       return data?.output || null;
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   }
 
   async function fetchQuotes(id: string) {
-    const { data, error } = await supabase
-      .from("quotes")
-      .select("*")
-      .eq("request_id", id)
-      .order("id", { ascending: false });
+    const { data, error } = await supabase.from("quotes").select("*").eq("request_id", id).order("id", { ascending: false });
     if (error) return [];
     return (data || []) as Quote[];
   }
 
   async function fetchRequest(id: string) {
-    const { data, error } = await supabase
-      .from("fabric_requests")
-      .select("*")
-      .eq("id", id)
-      .single();
+    const { data, error } = await supabase.from("fabric_requests").select("*").eq("id", id).single();
     if (error) return null;
     return data as FabricRequest;
   }
 
-  const syncState = useCallback(
-    async (id: string, flash = false) => {
-      const request = await fetchRequest(id);
-      const quotes = await fetchQuotes(id);
-      setLookupRequest(request);
-      setLookupQuotes(quotes);
-      setLookupId(id);
-      setLastUpdated(new Date());
+  const syncState = useCallback(async (id: string, flash = false) => {
+    const request = await fetchRequest(id);
+    const quotes = await fetchQuotes(id);
+    setLookupRequest(request);
+    setLookupQuotes(quotes);
+    setLookupId(id);
+    setLastUpdated(new Date());
+    if (submittedRequest?.id === id) {
+      setSubmittedRequest(request);
+      setSubmittedQuotes(quotes);
+    }
+    if (flash) {
+      setRealtimeFlash(true);
+      setTimeout(() => setRealtimeFlash(false), 1500);
+    }
+  }, [submittedRequest]);
 
-      if (submittedRequest?.id === id) {
-        setSubmittedRequest(request);
-        setSubmittedQuotes(quotes);
-      }
-
-      if (flash) {
-        setRealtimeFlash(true);
-        setTimeout(() => setRealtimeFlash(false), 1500);
-      }
-    },
-    [submittedRequest]
-  );
-
-  // ── REALTIME SUBSCRIPTION ──
   useEffect(() => {
     const activeId = lookupId || requestId;
     if (!activeId) return;
-
     setIsLive(false);
-
     const channel = supabase
       .channel(`tracker-${activeId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "fabric_requests",
-          filter: `id=eq.${activeId}`,
-        },
-        async () => {
-          await syncState(activeId, true);
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "quotes",
-          filter: `request_id=eq.${activeId}`,
-        },
-        async () => {
-          await syncState(activeId, true);
-        }
-      )
-      .subscribe((status) => {
-        setIsLive(status === "SUBSCRIBED");
-      });
-
-    return () => {
-      supabase.removeChannel(channel);
-      setIsLive(false);
-    };
+      .on("postgres_changes", { event: "*", schema: "public", table: "fabric_requests", filter: `id=eq.${activeId}` }, async () => { await syncState(activeId, true); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "quotes", filter: `request_id=eq.${activeId}` }, async () => { await syncState(activeId, true); })
+      .subscribe((status) => { setIsLive(status === "SUBSCRIBED"); });
+    return () => { supabase.removeChannel(channel); setIsLive(false); };
   }, [lookupId, requestId, syncState]);
 
-  // ── URL PARAM LOAD ──
   useEffect(() => {
     if (typeof window === "undefined") return;
     const requestIdFromUrl = new URLSearchParams(window.location.search).get("requestId");
     if (!requestIdFromUrl) return;
-
     setLookupId(requestIdFromUrl);
     setActiveTab("track");
-
     async function load() {
       const request = await fetchRequest(requestIdFromUrl!);
       if (!request) return;
@@ -236,218 +169,119 @@ export default function HomePage() {
       setLookupQuotes(quotes);
       setLastUpdated(new Date());
     }
-
     load();
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-
-    if (!description.trim()) {
-      alert("Please describe the fabric you need.");
-      return;
-    }
-
+    if (!description.trim()) { alert("Please describe the fabric you need."); return; }
     setLoading(true);
-
     try {
       const aiOutput = await generateAISpec(description.trim());
-
-      const { data, error } = await supabase
-        .from("fabric_requests")
-        .insert([
-          {
-            client_name: clientName || null,
-            client_email: clientEmail || null,
-            client_phone: clientPhone || null,
-            user_input: description.trim(),
-            ai_output: aiOutput,
-            status: "submitted",
-            buyer_requested_contact: false,
-            contact_request_status: "none",
-            payment_status: "unpaid",
-          },
-        ])
-        .select()
-        .single();
-
+      const { data, error } = await supabase.from("fabric_requests").insert([{
+        client_name: clientName || null,
+        client_email: clientEmail || null,
+        client_phone: clientPhone || null,
+        user_input: description.trim(),
+        ai_output: aiOutput,
+        status: "submitted",
+        buyer_requested_contact: false,
+        contact_request_status: "none",
+        payment_status: "unpaid",
+      }]).select().single();
       if (error) throw error;
-
       setSubmittedRequest(data as FabricRequest);
       setSubmittedQuotes([]);
       setRequestId(data.id);
       setLookupId(data.id);
       setActiveTab("track");
       setLastUpdated(new Date());
-
-      setTimeout(() => {
-        document.getElementById("request-result")?.scrollIntoView({ behavior: "smooth" });
-      }, 100);
-    } catch {
-      alert("Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+      setTimeout(() => { document.getElementById("request-result")?.scrollIntoView({ behavior: "smooth" }); }, 100);
+    } catch { alert("Something went wrong. Please try again."); }
+    finally { setLoading(false); }
   }
 
   async function handleLookup(id?: string) {
     const cleanId = (id ?? lookupId).trim();
-
-    if (!cleanId) {
-      alert("Enter a request ID.");
-      return;
-    }
-
+    if (!cleanId) { alert("Enter a request ID."); return; }
     setLookupLoading(true);
     setLookupRequest(null);
     setLookupQuotes([]);
-
     try {
       const request = await fetchRequest(cleanId);
-
-      if (!request) {
-        alert("Request not found.");
-        return;
-      }
-
+      if (!request) { alert("Request not found."); return; }
       const quotes = await fetchQuotes(cleanId);
       setLookupRequest(request);
       setLookupQuotes(quotes);
       setLookupId(cleanId);
       setLastUpdated(new Date());
-
-      setTimeout(() => {
-        document.getElementById("request-tracker")?.scrollIntoView({ behavior: "smooth" });
-      }, 100);
-    } catch {
-      alert("Failed to fetch request.");
-    } finally {
-      setLookupLoading(false);
-    }
+      setTimeout(() => { document.getElementById("request-tracker")?.scrollIntoView({ behavior: "smooth" }); }, 100);
+    } catch { alert("Failed to fetch request."); }
+    finally { setLookupLoading(false); }
   }
 
   async function requestContact(reqId: string) {
     try {
-      const { error } = await supabase
-        .from("fabric_requests")
-        .update({
-          buyer_requested_contact: true,
-          contact_request_status: "pending",
-          payment_status: "unpaid",
-          contact_access_fee: ACCESS_FEE,
-        })
-        .eq("id", reqId);
-
+      const { error } = await supabase.from("fabric_requests").update({
+        buyer_requested_contact: true,
+        contact_request_status: "pending",
+        payment_status: "unpaid",
+        contact_access_fee: prices.unlock,
+      }).eq("id", reqId);
       if (error) throw error;
       await syncState(reqId);
-    } catch {
-      alert("Failed to request supplier contact.");
-    }
+    } catch { alert("Failed to request supplier contact."); }
   }
 
   async function startPayment(request: FabricRequest) {
-    if (!request.client_email) {
-      alert("Your email is required to proceed with payment.");
-      return;
-    }
-
-    if (!PAYSTACK_PUBLIC_KEY) {
-      alert("Payment configuration missing.");
-      return;
-    }
-
+    if (!request.client_email) { alert("Your email is required to proceed with payment."); return; }
+    if (!PAYSTACK_PUBLIC_KEY) { alert("Payment configuration missing."); return; }
     setPaymentLoading(true);
-
     try {
       const initRes = await fetch("/api/paystack/initialize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: request.client_email,
-          amount: ACCESS_FEE_KOBO,
+          amount: prices.unlockRaw,
           requestId: request.id,
           name: request.client_name,
           phone: request.client_phone,
+          currency: prices.currency,
         }),
       });
-
       const initData = await initRes.json();
-
-      if (!initRes.ok || !initData?.access_code) {
-        alert(initData?.error || "Failed to initialize payment.");
-        setPaymentLoading(false);
-        return;
-      }
-
-      if (!PaystackPop) {
-        const m = await import("@paystack/inline-js");
-        PaystackPop = m.default;
-      }
-
+      if (!initRes.ok || !initData?.access_code) { alert(initData?.error || "Failed to initialize payment."); setPaymentLoading(false); return; }
+      if (!PaystackPop) { const m = await import("@paystack/inline-js"); PaystackPop = m.default; }
       const popup = new PaystackPop();
-
       popup.resumeTransaction(initData.access_code, {
         onSuccess: async (transaction: { reference: string }) => {
           try {
             const verifyRes = await fetch("/api/paystack/verify", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                reference: transaction.reference,
-                requestId: request.id,
-                expectedAmount: ACCESS_FEE_KOBO,
-              }),
+              body: JSON.stringify({ reference: transaction.reference, requestId: request.id, expectedAmount: prices.unlockRaw }),
             });
-
             const verifyData = await verifyRes.json();
-
-            if (!verifyRes.ok) {
-              alert(verifyData?.error || "Verification failed.");
-              return;
-            }
-
+            if (!verifyRes.ok) { alert(verifyData?.error || "Verification failed."); return; }
             await syncState(request.id);
             alert("Payment confirmed! Supplier contact will be released after approval.");
-          } catch {
-            alert("Payment verification failed.");
-          } finally {
-            setPaymentLoading(false);
-          }
+          } catch { alert("Payment verification failed."); }
+          finally { setPaymentLoading(false); }
         },
         onCancel: () => setPaymentLoading(false),
       });
-    } catch {
-      setPaymentLoading(false);
-      alert("Failed to launch payment.");
-    }
+    } catch { setPaymentLoading(false); alert("Failed to launch payment."); }
   }
 
-  const activeRequest = useMemo(
-    () => lookupRequest || submittedRequest,
-    [lookupRequest, submittedRequest]
-  );
+  const activeRequest = useMemo(() => lookupRequest || submittedRequest, [lookupRequest, submittedRequest]);
+  const activeQuotes = useMemo(() => (lookupRequest ? lookupQuotes : submittedQuotes), [lookupRequest, lookupQuotes, submittedQuotes]);
+  const stagePill = useMemo(() => (activeRequest ? getStagePill(activeRequest, activeQuotes.length) : null), [activeRequest, activeQuotes.length]);
 
-  const activeQuotes = useMemo(
-    () => (lookupRequest ? lookupQuotes : submittedQuotes),
-    [lookupRequest, lookupQuotes, submittedQuotes]
-  );
-
-  const stagePill = useMemo(
-    () => (activeRequest ? getStagePill(activeRequest, activeQuotes.length) : null),
-    [activeRequest, activeQuotes.length]
-  );
-
-  const genericSupportLink = buildWhatsappLink(
-    "Hello Weinly, I need help with fabric sourcing."
-  );
-  const proSupportLink = buildWhatsappLink(
-    "Hello Weinly, I want to upgrade to Weinly Pro."
-  );
-  const enterpriseSupportLink = buildWhatsappLink(
-    "Hello Weinly, I am interested in an Enterprise arrangement."
-  );
-
-  const proPrice = billingCycle === "monthly" ? "₦25,000" : "₦200,000";
+  const genericSupportLink = buildWhatsappLink("Hello Weinly, I need help with fabric sourcing.");
+  const proSupportLink = buildWhatsappLink("Hello Weinly, I want to upgrade to Weinly Pro.");
+  const enterpriseSupportLink = buildWhatsappLink("Hello Weinly, I am interested in an Enterprise arrangement.");
+  const proPrice = billingCycle === "monthly" ? prices.proMonthly : prices.proYearly;
   const proPeriod = billingCycle === "monthly" ? "month" : "year";
 
   return (
@@ -459,33 +293,26 @@ export default function HomePage() {
         <section className="relative overflow-hidden rounded-3xl border border-indigo-500/15 bg-gradient-to-br from-[#0f172a] via-[#1a1040] to-[#0c1a3a] p-6 shadow-2xl shadow-indigo-500/10 md:p-12">
           <div className="pointer-events-none absolute right-0 top-0 h-96 w-96 translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-500/10 blur-3xl" />
           <div className="pointer-events-none absolute bottom-0 left-0 h-64 w-64 -translate-x-1/2 translate-y-1/2 rounded-full bg-violet-500/8 blur-3xl" />
-
           <div className="relative z-10 grid grid-cols-1 items-center gap-8 lg:grid-cols-2 lg:gap-12">
             <div className="flex flex-col gap-5">
               <div className="inline-flex w-fit items-center gap-2 rounded-full border border-indigo-500/25 bg-indigo-500/10 px-4 py-1.5">
                 <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400" />
-                <span className="text-xs font-semibold text-indigo-300">
-                  Fabric sourcing platform
-                </span>
+                <span className="text-xs font-semibold text-indigo-300">Fabric sourcing platform</span>
               </div>
-
               <h1 className="text-4xl font-black leading-[1.05] tracking-tight text-white md:text-5xl lg:text-6xl">
                 Source premium fabrics{" "}
                 <span className="bg-gradient-to-r from-indigo-400 via-sky-400 to-emerald-400 bg-clip-text text-transparent">
                   directly from China
                 </span>
               </h1>
-
               <p className="max-w-lg text-base leading-relaxed text-slate-400 md:text-lg">
-                Describe what you need. Get verified supplier quotes. Unlock direct
-                contact and negotiate the best deals — no middlemen.
+                Describe what you need. Get verified supplier quotes. Unlock direct contact and negotiate the best deals — no middlemen.
               </p>
-
               <div className="flex flex-wrap gap-6">
                 {[
                   { v: "500+", l: "Verified suppliers" },
                   { v: "24hr", l: "Avg quote time" },
-                  { v: "₦10k", l: "Contact unlock" },
+                  { v: prices.unlock, l: "Contact unlock" },
                 ].map((s) => (
                   <div key={s.l} className="flex flex-col gap-0.5">
                     <span className="text-2xl font-black text-white">{s.v}</span>
@@ -493,53 +320,25 @@ export default function HomePage() {
                   </div>
                 ))}
               </div>
-
               <div className="flex flex-wrap gap-3">
                 <button
-                  onClick={() => {
-                    setActiveTab("submit");
-                    document.getElementById("main-tabs")?.scrollIntoView({ behavior: "smooth" });
-                  }}
+                  onClick={() => { setActiveTab("submit"); document.getElementById("main-tabs")?.scrollIntoView({ behavior: "smooth" }); }}
                   className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-indigo-500 to-indigo-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-500/30 transition-all hover:shadow-indigo-500/50"
                 >
                   Start sourcing →
                 </button>
-                <a
-                  href={genericSupportLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center rounded-xl border border-white/12 bg-white/6 px-6 py-3 text-sm font-semibold text-slate-300 no-underline transition-all hover:bg-white/10"
-                >
+                <a href={genericSupportLink} target="_blank" rel="noreferrer" className="flex items-center rounded-xl border border-white/12 bg-white/6 px-6 py-3 text-sm font-semibold text-slate-300 no-underline transition-all hover:bg-white/10">
                   WhatsApp us
                 </a>
               </div>
             </div>
-
             <div className="flex flex-col gap-3">
               {[
-                {
-                  icon: "✦",
-                  title: "AI spec formatting",
-                  text: "Turn rough descriptions into professional sourcing specs instantly.",
-                  color: "text-indigo-400",
-                },
-                {
-                  icon: "◈",
-                  title: "Verified quotes first",
-                  text: "See price, MOQ and lead time before paying anything.",
-                  color: "text-emerald-400",
-                },
-                {
-                  icon: "⬡",
-                  title: "Direct supplier access",
-                  text: "Pay ₦10,000 to unlock phone, WeChat and email directly.",
-                  color: "text-amber-400",
-                },
+                { icon: "✦", title: "AI spec formatting", text: "Turn rough descriptions into professional sourcing specs instantly.", color: "text-indigo-400" },
+                { icon: "◈", title: "Verified quotes first", text: "See price, MOQ and lead time before paying anything.", color: "text-emerald-400" },
+                { icon: "⬡", title: "Direct supplier access", text: `Pay ${prices.unlock} to unlock phone, WeChat and email directly.`, color: "text-amber-400" },
               ].map((f) => (
-                <div
-                  key={f.title}
-                  className="flex items-start gap-4 rounded-2xl border border-white/8 bg-white/5 p-4 backdrop-blur-sm"
-                >
+                <div key={f.title} className="flex items-start gap-4 rounded-2xl border border-white/8 bg-white/5 p-4 backdrop-blur-sm">
                   <span className={`mt-0.5 shrink-0 text-xl ${f.color}`}>{f.icon}</span>
                   <div>
                     <div className="mb-1 text-sm font-bold text-white">{f.title}</div>
@@ -552,45 +351,17 @@ export default function HomePage() {
         </section>
 
         {/* ── HOW IT WORKS ── */}
-        <section
-          id="how-it-works"
-          className="rounded-3xl border border-white/7 bg-[#111827] p-6 md:p-10"
-        >
-          <span className="mb-3 inline-block rounded-full bg-indigo-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-indigo-400">
-            How it works
-          </span>
-          <h2 className="mb-8 text-2xl font-black tracking-tight text-white md:text-3xl">
-            Three steps to your supplier
-          </h2>
-
+        <section id="how-it-works" className="rounded-3xl border border-white/7 bg-[#111827] p-6 md:p-10">
+          <span className="mb-3 inline-block rounded-full bg-indigo-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-indigo-400">How it works</span>
+          <h2 className="mb-8 text-2xl font-black tracking-tight text-white md:text-3xl">Three steps to your supplier</h2>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {[
-              {
-                n: "01",
-                title: "Submit your request",
-                text: "Describe the fabric you need. AI formats it into a professional sourcing spec.",
-                color: "from-indigo-500 to-indigo-600",
-                textColor: "text-indigo-400",
-              },
-              {
-                n: "02",
-                title: "Review supplier quotes",
-                text: "We match you to verified Chinese suppliers. See price, MOQ and lead time first.",
-                color: "from-emerald-500 to-emerald-600",
-                textColor: "text-emerald-400",
-              },
-              {
-                n: "03",
-                title: "Unlock & connect",
-                text: "Pay ₦10,000 to unlock direct supplier contact — phone, WeChat, email.",
-                color: "from-amber-500 to-amber-600",
-                textColor: "text-amber-400",
-              },
+              { n: "01", title: "Submit your request", text: "Describe the fabric you need. AI formats it into a professional sourcing spec.", color: "from-indigo-500 to-indigo-600", textColor: "text-indigo-400" },
+              { n: "02", title: "Review supplier quotes", text: "We match you to verified Chinese suppliers. See price, MOQ and lead time first.", color: "from-emerald-500 to-emerald-600", textColor: "text-emerald-400" },
+              { n: "03", title: "Unlock & connect", text: `Pay ${prices.unlock} to unlock direct supplier contact — phone, WeChat, email.`, color: "from-amber-500 to-amber-600", textColor: "text-amber-400" },
             ].map((step) => (
               <div key={step.n} className="rounded-2xl border border-white/7 bg-white/4 p-6">
-                <div className={`mb-3 text-xs font-black uppercase tracking-widest ${step.textColor}`}>
-                  {step.n}
-                </div>
+                <div className={`mb-3 text-xs font-black uppercase tracking-widest ${step.textColor}`}>{step.n}</div>
                 <div className={`mb-4 h-1 w-10 rounded-full bg-gradient-to-r ${step.color}`} />
                 <h3 className="mb-2 text-base font-bold text-white">{step.title}</h3>
                 <p className="m-0 text-sm leading-relaxed text-slate-500">{step.text}</p>
@@ -600,21 +371,11 @@ export default function HomePage() {
         </section>
 
         {/* ── MAIN TABS ── */}
-        <section
-          id="main-tabs"
-          className="rounded-3xl border border-white/7 bg-[#111827] p-4 md:p-8"
-        >
+        <section id="main-tabs" className="rounded-3xl border border-white/7 bg-[#111827] p-4 md:p-8">
           <div className="mb-6 flex gap-2 rounded-2xl border border-white/7 bg-white/4 p-1.5">
             {(["submit", "track"] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`flex-1 cursor-pointer rounded-xl border-0 px-4 py-3 text-sm font-bold transition-all ${
-                  activeTab === tab
-                    ? "bg-gradient-to-r from-indigo-500 to-indigo-700 text-white shadow-lg shadow-indigo-500/25"
-                    : "bg-transparent text-slate-500 hover:text-slate-300"
-                }`}
-              >
+              <button key={tab} onClick={() => setActiveTab(tab)}
+                className={`flex-1 cursor-pointer rounded-xl border-0 px-4 py-3 text-sm font-bold transition-all ${activeTab === tab ? "bg-gradient-to-r from-indigo-500 to-indigo-700 text-white shadow-lg shadow-indigo-500/25" : "bg-transparent text-slate-500 hover:text-slate-300"}`}>
                 {tab === "submit" ? "Submit request" : "Track request"}
               </button>
             ))}
@@ -623,14 +384,9 @@ export default function HomePage() {
           {activeTab === "submit" && (
             <div className="flex flex-col gap-5">
               <div>
-                <h2 className="mb-1 text-xl font-black tracking-tight text-white md:text-2xl">
-                  Tell us what you need
-                </h2>
-                <p className="m-0 text-sm leading-relaxed text-slate-500">
-                  Be detailed — fabric type, color, quantity and quality. Better detail = better quotes.
-                </p>
+                <h2 className="mb-1 text-xl font-black tracking-tight text-white md:text-2xl">Tell us what you need</h2>
+                <p className="m-0 text-sm leading-relaxed text-slate-500">Be detailed — fabric type, color, quantity and quality. Better detail = better quotes.</p>
               </div>
-
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                   {[
@@ -639,50 +395,26 @@ export default function HomePage() {
                     { label: "WhatsApp / phone", value: clientPhone, setter: setClientPhone, placeholder: "+234 800 000 0000", type: "text" },
                   ].map((field) => (
                     <div key={field.label} className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                        {field.label}
-                      </label>
-                      <input
-                        value={field.value}
-                        onChange={(e) => field.setter(e.target.value)}
-                        placeholder={field.placeholder}
-                        type={field.type}
-                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-indigo-500 focus:bg-indigo-500/5"
-                      />
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-400">{field.label}</label>
+                      <input value={field.value} onChange={(e) => field.setter(e.target.value)} placeholder={field.placeholder} type={field.type}
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-indigo-500 focus:bg-indigo-500/5" />
                     </div>
                   ))}
                 </div>
-
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                    Fabric description
-                  </label>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Fabric description</label>
+                  <textarea value={description} onChange={(e) => setDescription(e.target.value)}
                     placeholder="Example: premium beaded lace for wedding asoebi, navy blue, soft handfeel, 5-yard packs, high-end quality, need at least 50 packs..."
-                    rows={5}
-                    className="w-full resize-y rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-indigo-500 focus:bg-indigo-500/5"
-                  />
-                  <p className="m-0 text-xs text-slate-600">
-                    Include: fabric type · color · quantity · quality level · intended use
-                  </p>
+                    rows={5} className="w-full resize-y rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-indigo-500 focus:bg-indigo-500/5" />
+                  <p className="m-0 text-xs text-slate-600">Include: fabric type · color · quantity · quality level · intended use</p>
                 </div>
-
                 <div className="flex flex-wrap gap-3">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-indigo-500 to-indigo-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-500/25 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
+                  <button type="submit" disabled={loading}
+                    className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-indigo-500 to-indigo-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-500/25 disabled:cursor-not-allowed disabled:opacity-60">
                     {loading ? "Processing..." : "Submit fabric request →"}
                   </button>
-                  <a
-                    href={genericSupportLink}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-6 py-3 text-sm font-bold text-emerald-400 no-underline transition-all hover:bg-emerald-500/15"
-                  >
+                  <a href={genericSupportLink} target="_blank" rel="noreferrer"
+                    className="flex items-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-6 py-3 text-sm font-bold text-emerald-400 no-underline transition-all hover:bg-emerald-500/15">
                     Need help?
                   </a>
                 </div>
@@ -693,45 +425,25 @@ export default function HomePage() {
           {activeTab === "track" && (
             <div className="flex flex-col gap-5">
               <div>
-                <h2 className="mb-1 text-xl font-black tracking-tight text-white md:text-2xl">
-                  Track your request
-                </h2>
-                <p className="m-0 text-sm leading-relaxed text-slate-500">
-                  Paste your request ID to see quotes, payment status and supplier contact.
-                </p>
+                <h2 className="mb-1 text-xl font-black tracking-tight text-white md:text-2xl">Track your request</h2>
+                <p className="m-0 text-sm leading-relaxed text-slate-500">Paste your request ID to see quotes, payment status and supplier contact.</p>
               </div>
-
               <div className="flex flex-wrap gap-3">
-                <input
-                  value={lookupId}
-                  onChange={(e) => setLookupId(e.target.value)}
-                  placeholder="Paste your request ID here"
-                  className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-indigo-500"
-                />
-                <button
-                  onClick={() => handleLookup()}
-                  disabled={lookupLoading}
-                  className="shrink-0 cursor-pointer rounded-xl border-0 bg-gradient-to-r from-indigo-500 to-indigo-700 px-6 py-3 text-sm font-bold text-white disabled:opacity-60"
-                >
+                <input value={lookupId} onChange={(e) => setLookupId(e.target.value)} placeholder="Paste your request ID here"
+                  className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-indigo-500" />
+                <button onClick={() => handleLookup()} disabled={lookupLoading}
+                  className="shrink-0 cursor-pointer rounded-xl border-0 bg-gradient-to-r from-indigo-500 to-indigo-700 px-6 py-3 text-sm font-bold text-white disabled:opacity-60">
                   {lookupLoading ? "Loading..." : "Track →"}
                 </button>
               </div>
-
               <div className="flex flex-wrap gap-5">
-                <a href="/history" className="text-sm font-semibold text-indigo-400 no-underline transition-colors hover:text-indigo-300">
-                  View all history →
-                </a>
-                <a href={genericSupportLink} target="_blank" rel="noreferrer" className="text-sm font-semibold text-emerald-400 no-underline transition-colors hover:text-emerald-300">
-                  Chat support →
-                </a>
+                <a href="/history" className="text-sm font-semibold text-indigo-400 no-underline transition-colors hover:text-indigo-300">View all history →</a>
+                <a href={genericSupportLink} target="_blank" rel="noreferrer" className="text-sm font-semibold text-emerald-400 no-underline transition-colors hover:text-emerald-300">Chat support →</a>
               </div>
-
               {submittedRequest && (
                 <div id="request-result" className="flex flex-col gap-4 rounded-2xl border border-indigo-500/20 bg-indigo-500/6 p-5">
                   <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-base font-black text-white shadow-lg shadow-emerald-500/30">
-                      ✓
-                    </div>
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-base font-black text-white shadow-lg shadow-emerald-500/30">✓</div>
                     <div>
                       <div className="text-base font-bold text-white">Request submitted!</div>
                       <div className="text-sm text-slate-500">Save your ID to track quotes</div>
@@ -744,9 +456,7 @@ export default function HomePage() {
                   {submittedRequest.ai_output != null && (
                     <div className="rounded-xl border border-white/7 bg-white/4 p-4">
                       <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">AI sourcing spec</div>
-                      <p className="m-0 whitespace-pre-wrap text-sm leading-relaxed text-slate-400">
-                        {formatAiOutput(submittedRequest.ai_output)}
-                      </p>
+                      <p className="m-0 whitespace-pre-wrap text-sm leading-relaxed text-slate-400">{formatAiOutput(submittedRequest.ai_output)}</p>
                     </div>
                   )}
                   <div className="rounded-xl border border-indigo-500/15 bg-indigo-500/8 p-4">
@@ -762,41 +472,23 @@ export default function HomePage() {
 
         {/* ── TRACKER ── */}
         {activeRequest && stagePill && (
-          <section
-            id="request-tracker"
-            className={`flex flex-col gap-5 rounded-3xl border p-5 shadow-xl md:p-8 transition-all duration-500 ${
-              realtimeFlash
-                ? "border-emerald-500/40 bg-emerald-500/5 shadow-emerald-500/10"
-                : "border-indigo-500/15 bg-[#0d1424] shadow-indigo-500/8"
-            }`}
-          >
+          <section id="request-tracker"
+            className={`flex flex-col gap-5 rounded-3xl border p-5 shadow-xl md:p-8 transition-all duration-500 ${realtimeFlash ? "border-emerald-500/40 bg-emerald-500/5 shadow-emerald-500/10" : "border-indigo-500/15 bg-[#0d1424] shadow-indigo-500/8"}`}>
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <h2 className="mb-1 flex items-center gap-2 text-xl font-black tracking-tight text-white md:text-2xl">
                   Request tracker
-                  <span
-                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-all ${
-                      isLive
-                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                        : "border-slate-700 bg-slate-800/50 text-slate-500"
-                    }`}
-                  >
+                  <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-all ${isLive ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" : "border-slate-700 bg-slate-800/50 text-slate-500"}`}>
                     <span className={`h-1.5 w-1.5 rounded-full ${isLive ? "animate-pulse bg-emerald-400" : "bg-slate-600"}`} />
                     {isLive ? "Live" : "Connecting..."}
                   </span>
                 </h2>
                 <p className="m-0 text-sm text-slate-500">
                   Follow quotes, pay and unlock supplier contact
-                  {lastUpdated && (
-                    <span className="ml-2 text-xs text-slate-600">
-                      · Updated {lastUpdated.toLocaleTimeString()}
-                    </span>
-                  )}
+                  {lastUpdated && <span className="ml-2 text-xs text-slate-600">· Updated {lastUpdated.toLocaleTimeString()}</span>}
                 </p>
               </div>
-              <span className={`rounded-full px-4 py-2 text-xs font-bold ${stagePill.bg}`}>
-                {stagePill.label}
-              </span>
+              <span className={`rounded-full px-4 py-2 text-xs font-bold ${stagePill.bg}`}>{stagePill.label}</span>
             </div>
 
             {realtimeFlash && (
@@ -807,16 +499,11 @@ export default function HomePage() {
             )}
 
             <div className="rounded-2xl border border-white/7 bg-white/4 p-4">
-              <div className="mb-2 text-base font-bold text-white">
-                {getStageLabel(activeRequest, activeQuotes.length)}
-              </div>
+              <div className="mb-2 text-base font-bold text-white">{getStageLabel(activeRequest, activeQuotes.length)}</div>
               <p className="m-0 text-sm leading-relaxed text-slate-500">
-                {activeRequest.contact_request_status === "approved"
-                  ? "Supplier contact approved — direct details visible below."
-                  : activeRequest.payment_status === "paid"
-                  ? "Payment received. Admin is reviewing — contact will be released shortly."
-                  : activeQuotes.length > 0
-                  ? "Quote preview ready. Review below then proceed to unlock supplier contact."
+                {activeRequest.contact_request_status === "approved" ? "Supplier contact approved — direct details visible below."
+                  : activeRequest.payment_status === "paid" ? "Payment received. Admin is reviewing — contact will be released shortly."
+                  : activeQuotes.length > 0 ? "Quote preview ready. Review below then proceed to unlock supplier contact."
                   : "Request received and being matched to verified suppliers."}
               </p>
             </div>
@@ -847,9 +534,7 @@ export default function HomePage() {
             {activeRequest.ai_output != null && (
               <div className="rounded-xl border border-white/7 bg-white/4 p-4">
                 <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">AI sourcing spec</div>
-                <p className="m-0 whitespace-pre-wrap text-sm leading-relaxed text-slate-400">
-                  {formatAiOutput(activeRequest.ai_output)}
-                </p>
+                <p className="m-0 whitespace-pre-wrap text-sm leading-relaxed text-slate-400">{formatAiOutput(activeRequest.ai_output)}</p>
               </div>
             )}
 
@@ -865,34 +550,22 @@ export default function HomePage() {
                 <div className="rounded-2xl border border-dashed border-white/10 bg-white/2 p-10 text-center">
                   <div className="mb-3 text-4xl">◎</div>
                   <div className="mb-2 font-bold text-slate-400">Sourcing in progress</div>
-                  <p className="m-0 text-sm leading-relaxed text-slate-600">
-                    Matching your request to verified suppliers. Quotes appear here shortly.
-                  </p>
-                  {isLive && (
-                    <p className="m-0 mt-2 text-xs text-emerald-500">
-                      This page will update automatically when quotes arrive.
-                    </p>
-                  )}
+                  <p className="m-0 text-sm leading-relaxed text-slate-600">Matching your request to verified suppliers. Quotes appear here shortly.</p>
+                  {isLive && <p className="m-0 mt-2 text-xs text-emerald-500">This page will update automatically when quotes arrive.</p>}
                 </div>
               ) : (
                 activeQuotes.map((quote) => {
                   const isReleased = !!quote.is_contact_released;
                   const contactStatus = activeRequest.contact_request_status || "none";
                   const paymentStatus = activeRequest.payment_status || "unpaid";
-                  const supportLink = buildWhatsappLink(
-                    `Hello Weinly, I need help with request ID: ${activeRequest.id}`
-                  );
+                  const supportLink = buildWhatsappLink(`Hello Weinly, I need help with request ID: ${activeRequest.id}`);
 
                   return (
                     <div key={quote.id} className="flex flex-col gap-4 rounded-2xl border border-white/7 bg-white/3 p-5">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <div className="mb-1 text-lg font-bold text-white">
-                            {quote.supplier_name || "Verified Supplier"}
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            {quote.supplier_region || "China"} · Verified partner
-                          </div>
+                          <div className="mb-1 text-lg font-bold text-white">{quote.supplier_name || "Verified Supplier"}</div>
+                          <div className="text-xs text-slate-500">{quote.supplier_region || "China"} · Verified partner</div>
                         </div>
                         <span className={`rounded-full px-3 py-1.5 text-xs font-bold ${isReleased ? "border border-emerald-500/30 bg-emerald-900/60 text-emerald-300" : "border border-blue-500/30 bg-blue-900/60 text-blue-300"}`}>
                           {isReleased ? "Contact released" : "Protected"}
@@ -924,41 +597,30 @@ export default function HomePage() {
                         <div className="rounded-2xl border border-indigo-500/20 bg-gradient-to-br from-[#111827] to-[#161b2f] p-5">
                           <div className="mb-4">
                             <h4 className="mb-1 text-base font-bold text-white">Unlock supplier contact</h4>
-                            <p className="m-0 text-sm leading-relaxed text-slate-400">
-                              Choose a one-time unlock or upgrade to Pro for better value.
-                            </p>
+                            <p className="m-0 text-sm leading-relaxed text-slate-400">Choose a one-time unlock or upgrade to Pro for better value.</p>
                           </div>
                           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                             <div className="rounded-xl border border-white/10 bg-white/4 p-4">
                               <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">One-time unlock</div>
-                              <div className="mb-2 text-2xl font-black text-white">₦10,000</div>
-                              <div className="mb-4 text-sm leading-relaxed text-slate-400">
-                                Unlock this supplier's phone, WeChat and email for this request.
-                              </div>
-                              <button
-                                onClick={() => requestContact(activeRequest.id)}
-                                className="w-full cursor-pointer rounded-xl border-0 bg-gradient-to-r from-indigo-500 to-indigo-700 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-500/25"
-                              >
+                              <div className="mb-2 text-2xl font-black text-white">{prices.unlock}</div>
+                              <div className="mb-4 text-sm leading-relaxed text-slate-400">Unlock this supplier's phone, WeChat and email for this request.</div>
+                              <button onClick={() => requestContact(activeRequest.id)}
+                                className="w-full cursor-pointer rounded-xl border-0 bg-gradient-to-r from-indigo-500 to-indigo-700 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-500/25">
                                 Proceed to unlock
                               </button>
                             </div>
                             <div className="relative overflow-hidden rounded-xl border border-violet-500/25 bg-violet-500/8 p-4">
-                              <span className="absolute right-3 top-3 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
-                                Best value
-                              </span>
+                              <span className="absolute right-3 top-3 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white">Best value</span>
                               <div className="mb-2 text-xs font-bold uppercase tracking-widest text-violet-300">Weinly Pro</div>
                               <div className="mb-1 text-2xl font-black text-white">
-                                ₦25,000
+                                {prices.proMonthly}
                                 <span className="ml-1 text-sm font-semibold text-slate-400">/month</span>
                               </div>
-                              <div className="mb-3 text-sm leading-relaxed text-slate-300">
-                                Includes 3 contact unlocks every month plus priority matching and support.
-                              </div>
+                              <div className="mb-3 text-sm leading-relaxed text-slate-300">Includes 3 contact unlocks every month plus priority matching and support.</div>
                               <div className="mb-4 flex flex-col gap-2">
                                 {["3 unlocks included monthly", "Priority supplier matching", "Dedicated support", "Better value for active buyers"].map((item) => (
                                   <div key={item} className="flex items-start gap-2 text-sm text-slate-300">
-                                    <span className="text-emerald-400">✓</span>
-                                    <span>{item}</span>
+                                    <span className="text-emerald-400">✓</span><span>{item}</span>
                                   </div>
                                 ))}
                               </div>
@@ -968,9 +630,7 @@ export default function HomePage() {
                             </div>
                           </div>
                           <div className="mt-4 flex flex-wrap gap-3">
-                            <a href={supportLink} target="_blank" rel="noreferrer" className="flex items-center rounded-xl border border-white/10 bg-white/6 px-5 py-2.5 text-sm font-semibold text-slate-400 no-underline transition-all hover:bg-white/10">
-                              Ask support
-                            </a>
+                            <a href={supportLink} target="_blank" rel="noreferrer" className="flex items-center rounded-xl border border-white/10 bg-white/6 px-5 py-2.5 text-sm font-semibold text-slate-400 no-underline transition-all hover:bg-white/10">Ask support</a>
                           </div>
                         </div>
                       )}
@@ -980,7 +640,7 @@ export default function HomePage() {
                           <h4 className="m-0 mb-4 text-base font-bold text-white">Unlock supplier contact</h4>
                           <div className="mb-4 flex flex-col gap-2 rounded-xl border border-indigo-500/15 bg-indigo-500/8 p-4">
                             {[
-                              { label: "Access fee", value: ACCESS_FEE },
+                              { label: "Access fee", value: prices.unlock },
                               { label: "Payment method", value: "Paystack" },
                               { label: "Request ID", value: activeRequest.id },
                             ].map((row) => (
@@ -990,20 +650,13 @@ export default function HomePage() {
                               </div>
                             ))}
                           </div>
-                          <p className="m-0 mb-4 text-sm leading-relaxed text-slate-500">
-                            Get direct access to supplier phone, WeChat and contact person.
-                          </p>
+                          <p className="m-0 mb-4 text-sm leading-relaxed text-slate-500">Get direct access to supplier phone, WeChat and contact person.</p>
                           <div className="flex flex-wrap gap-3">
-                            <button
-                              onClick={() => startPayment(activeRequest)}
-                              disabled={paymentLoading}
-                              className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-indigo-500 to-indigo-700 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-500/25 disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                              {paymentLoading ? "Processing..." : `Pay ${ACCESS_FEE} & unlock`}
+                            <button onClick={() => startPayment(activeRequest)} disabled={paymentLoading}
+                              className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-indigo-500 to-indigo-700 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-500/25 disabled:cursor-not-allowed disabled:opacity-60">
+                              {paymentLoading ? "Processing..." : `Pay ${prices.unlock} & unlock`}
                             </button>
-                            <a href={supportLink} target="_blank" rel="noreferrer" className="flex items-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-5 py-2.5 text-sm font-semibold text-emerald-400 no-underline transition-all hover:bg-emerald-500/15">
-                              Need help?
-                            </a>
+                            <a href={supportLink} target="_blank" rel="noreferrer" className="flex items-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-5 py-2.5 text-sm font-semibold text-emerald-400 no-underline transition-all hover:bg-emerald-500/15">Need help?</a>
                           </div>
                         </div>
                       )}
@@ -1053,12 +706,9 @@ export default function HomePage() {
                 <p className="m-0 text-sm text-slate-500">Our team is on WhatsApp for quotes, payment and contact release help.</p>
               </div>
               <div className="flex shrink-0 flex-wrap gap-3">
-                <a href={buildWhatsappLink(`Hello Weinly, I need help with request ID: ${activeRequest.id}`)} target="_blank" rel="noreferrer" className="flex items-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-5 py-2.5 text-sm font-bold text-emerald-400 no-underline transition-all hover:bg-emerald-500/15">
-                  Chat on WhatsApp
-                </a>
-                <a href="/history" className="flex items-center rounded-xl border border-white/10 bg-white/6 px-5 py-2.5 text-sm font-semibold text-slate-400 no-underline transition-all hover:bg-white/10">
-                  View history
-                </a>
+                <a href={buildWhatsappLink(`Hello Weinly, I need help with request ID: ${activeRequest.id}`)} target="_blank" rel="noreferrer"
+                  className="flex items-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-5 py-2.5 text-sm font-bold text-emerald-400 no-underline transition-all hover:bg-emerald-500/15">Chat on WhatsApp</a>
+                <a href="/history" className="flex items-center rounded-xl border border-white/10 bg-white/6 px-5 py-2.5 text-sm font-semibold text-slate-400 no-underline transition-all hover:bg-white/10">View history</a>
               </div>
             </div>
           </section>
@@ -1068,32 +718,21 @@ export default function HomePage() {
         <section className="rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-950 to-violet-950 p-6 md:p-10">
           <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-2">
             <div>
-              <span className="mb-3 inline-block rounded-full bg-indigo-500/15 px-3 py-1 text-xs font-bold uppercase tracking-widest text-indigo-400">
-                Weinly Pro
-              </span>
-              <h2 className="mb-3 text-2xl font-black tracking-tight text-white md:text-3xl">
-                Upgrade when you're ready to move faster
-              </h2>
-              <p className="mb-5 text-sm leading-relaxed text-slate-400 md:text-base">
-                Serious buyers use Weinly Pro to unlock suppliers faster, get priority matching, and scale their sourcing business with less risk.
-              </p>
+              <span className="mb-3 inline-block rounded-full bg-indigo-500/15 px-3 py-1 text-xs font-bold uppercase tracking-widest text-indigo-400">Weinly Pro</span>
+              <h2 className="mb-3 text-2xl font-black tracking-tight text-white md:text-3xl">Upgrade when you're ready to move faster</h2>
+              <p className="mb-5 text-sm leading-relaxed text-slate-400 md:text-base">Serious buyers use Weinly Pro to unlock suppliers faster, get priority matching, and scale their sourcing business with less risk.</p>
               <div className="mb-6 flex flex-wrap gap-3">
                 <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">3 unlocks / month</span>
                 <span className="rounded-full border border-sky-500/20 bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-300">Priority suppliers</span>
                 <span className="rounded-full border border-violet-500/20 bg-violet-500/10 px-3 py-1 text-xs font-semibold text-violet-300">Dedicated support</span>
               </div>
-              <a href="/pricing" className="inline-flex items-center rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 px-6 py-3 text-sm font-bold text-white no-underline shadow-lg shadow-indigo-500/20">
-                View Pro pricing →
-              </a>
+              <a href="/pricing" className="inline-flex items-center rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 px-6 py-3 text-sm font-bold text-white no-underline shadow-lg shadow-indigo-500/20">View Pro pricing →</a>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
               <div className="mb-3 text-sm font-bold text-white">Why buyers upgrade</div>
               <div className="flex flex-col gap-3 text-sm text-slate-300">
                 {["Access suppliers faster when ready to buy", "Reduce delays and middlemen issues", "Make better sourcing decisions", "Scale your fabric business faster"].map((item) => (
-                  <div key={item} className="flex gap-2">
-                    <span className="text-emerald-400">✓</span>
-                    <span>{item}</span>
-                  </div>
+                  <div key={item} className="flex gap-2"><span className="text-emerald-400">✓</span><span>{item}</span></div>
                 ))}
               </div>
             </div>
@@ -1102,87 +741,72 @@ export default function HomePage() {
 
         {/* ── PRICING ── */}
         <section id="pricing" className="rounded-3xl border border-white/7 bg-[#111827] p-6 md:p-10">
-          <span className="mb-3 inline-block rounded-full bg-indigo-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-indigo-400">
-            Pricing
-          </span>
-          <h2 className="mb-2 text-2xl font-black tracking-tight text-white md:text-3xl">
-            Simple, transparent pricing
-          </h2>
-          <p className="m-0 mb-6 text-sm leading-relaxed text-slate-500">
-            Start for free. Only pay when you want direct access to a supplier.
-          </p>
+          <span className="mb-3 inline-block rounded-full bg-indigo-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-indigo-400">Pricing</span>
+          <h2 className="mb-2 text-2xl font-black tracking-tight text-white md:text-3xl">Simple, transparent pricing</h2>
+          <p className="m-0 mb-6 text-sm leading-relaxed text-slate-500">Start for free. Only pay when you want direct access to a supplier.</p>
 
           {/* Billing toggle */}
           <div className="mb-8 flex justify-start">
             <div className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 p-1.5">
               {(["monthly", "yearly"] as const).map((cycle) => (
-                <button
-                  key={cycle}
-                  onClick={() => setBillingCycle(cycle)}
-                  className={`rounded-xl border-0 cursor-pointer px-5 py-2 text-sm font-bold transition-all ${
-                    billingCycle === cycle
-                      ? "bg-gradient-to-r from-indigo-500 to-indigo-700 text-white shadow-lg"
-                      : "bg-transparent text-slate-500 hover:text-slate-300"
-                  }`}
-                >
-                  {cycle === "monthly" ? "Monthly" : (
-                    <>
-                      Yearly
-                      <span className="ml-2 rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-400">
-                        Save ₦100k
-                      </span>
-                    </>
-                  )}
+                <button key={cycle} onClick={() => setBillingCycle(cycle)}
+                  className={`rounded-xl border-0 cursor-pointer px-5 py-2 text-sm font-bold transition-all ${billingCycle === cycle ? "bg-gradient-to-r from-indigo-500 to-indigo-700 text-white shadow-lg" : "bg-transparent text-slate-500 hover:text-slate-300"}`}>
+                  {cycle === "monthly" ? "Monthly" : <><span>Yearly</span><span className="ml-2 rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-400">Save {prices.currency === "NGN" ? "₦100k" : "$120"}</span></>}
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+
             {/* Free */}
             <div className="flex flex-col rounded-2xl border border-white/7 bg-white/4 p-6">
               <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">Free</div>
-              <div className="mb-3 text-4xl font-black tracking-tight text-white">₦0</div>
-              <p className="mb-5 text-sm leading-relaxed text-slate-500">
-                Good for testing Weinly and submitting sourcing requests.
-              </p>
+              <div className="mb-3 text-4xl font-black tracking-tight text-white">{prices.symbol}0</div>
+              <p className="mb-5 text-sm leading-relaxed text-slate-500">Good for testing Weinly and submitting sourcing requests.</p>
               <div className="mb-5 h-px bg-white/7" />
               <div className="flex flex-1 flex-col gap-3 mb-6">
                 {["Submit sourcing requests", "AI sourcing spec", "Quote preview", "Track request progress"].map((item) => (
                   <div key={item} className="flex items-start gap-3 text-sm text-slate-400">
-                    <span className="mt-0.5 shrink-0 font-bold text-emerald-400">✓</span>
-                    {item}
-                  </div>
-                ))}
-                <div className="my-1 h-px bg-white/7" />
-                {["Supplier contact unlocks billed separately", "No priority matching", "No dedicated support"].map((item) => (
-                  <div key={item} className="flex items-start gap-3 text-sm text-slate-600">
-                    <span className="mt-0.5 shrink-0 text-slate-700">✕</span>
-                    {item}
+                    <span className="mt-0.5 shrink-0 font-bold text-emerald-400">✓</span>{item}
                   </div>
                 ))}
               </div>
-              <a href="/#main-tabs" className="block rounded-xl border border-white/10 bg-white/6 py-3 text-center text-sm font-bold text-slate-300 no-underline transition-all hover:bg-white/10">
-                Start free
-              </a>
+              <a href="/#main-tabs" className="block rounded-xl border border-white/10 bg-white/6 py-3 text-center text-sm font-bold text-slate-300 no-underline transition-all hover:bg-white/10">Start free</a>
+            </div>
+
+            {/* Contact Unlock */}
+            <div className="flex flex-col rounded-2xl border border-white/7 bg-white/4 p-6">
+              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">Contact Unlock</div>
+              <div className="mb-1 text-4xl font-black tracking-tight text-white">{prices.unlock}</div>
+              <div className="mb-3 text-xs text-slate-500">one-time per request</div>
+              <p className="mb-5 text-sm leading-relaxed text-slate-500">Unlock direct supplier contact for a single request after admin approval.</p>
+              <div className="mb-5 h-px bg-white/7" />
+              <div className="flex flex-1 flex-col gap-3 mb-6">
+                {["Everything in Free", "Direct phone number", "WeChat ID", "Email address", "Contact person name", "Controlled release process"].map((item) => (
+                  <div key={item} className="flex items-start gap-3 text-sm text-slate-400">
+                    <span className="mt-0.5 shrink-0 font-bold text-emerald-400">✓</span>{item}
+                  </div>
+                ))}
+              </div>
+              <button onClick={() => { setActiveTab("submit"); document.getElementById("main-tabs")?.scrollIntoView({ behavior: "smooth" }); }}
+                className="block w-full cursor-pointer rounded-xl border border-indigo-500/30 bg-indigo-500/10 py-3 text-center text-sm font-bold text-indigo-300 transition-all hover:bg-indigo-500/15">
+                Submit a request
+              </button>
             </div>
 
             {/* Pro */}
             <div className="relative flex flex-col rounded-2xl border border-indigo-500/30 bg-gradient-to-b from-indigo-950 to-violet-950 p-6 shadow-2xl shadow-indigo-500/15">
-              <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-1.5 text-xs font-bold text-white">
-                Most popular
-              </span>
+              <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-1.5 text-xs font-bold text-white">Most popular</span>
               <div className="mb-2 text-xs font-bold uppercase tracking-widest text-indigo-300">Weinly Pro</div>
               <div className="mb-2 flex items-end gap-2">
                 <div className="text-4xl font-black tracking-tight text-white">{proPrice}</div>
                 <div className="mb-1 text-sm text-slate-400">/{proPeriod}</div>
               </div>
-              <p className="mb-3 text-sm leading-relaxed text-indigo-200/80">
-                Best for active buyers who want faster supplier access and more support.
-              </p>
+              <p className="mb-3 text-sm leading-relaxed text-indigo-200/80">Best for active buyers who want faster supplier access and more support.</p>
               {billingCycle === "yearly" && (
                 <div className="mb-4 inline-flex w-fit items-center gap-1 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-bold text-emerald-400">
-                  Save ₦100,000 yearly
+                  Save {prices.currency === "NGN" ? "₦100,000" : "$120"} yearly
                 </div>
               )}
               <div className="mb-5 rounded-2xl border border-indigo-400/20 bg-white/5 p-4">
@@ -1192,29 +816,15 @@ export default function HomePage() {
               </div>
               <div className="mb-5 h-px bg-white/10" />
               <div className="flex flex-1 flex-col gap-3 mb-6">
-                {[
-                  "Everything in Free",
-                  "3 supplier contact unlocks / month",
-                  "Priority supplier matching",
-                  "Dedicated WhatsApp support",
-                  "Reorder from past requests",
-                  "Price intelligence on quotes",
-                  "Faster turnaround",
-                  "Early access to new features",
-                ].map((item) => (
+                {["Everything in Free", "3 contact unlocks / month", "Priority supplier matching", "Dedicated WhatsApp support", "Reorder from past requests", "Price intelligence on quotes", "Faster turnaround", "Early access to new features"].map((item) => (
                   <div key={item} className="flex items-start gap-3 text-sm text-indigo-100">
-                    <span className="mt-0.5 shrink-0 font-bold text-cyan-400">✓</span>
-                    {item}
+                    <span className="mt-0.5 shrink-0 font-bold text-cyan-400">✓</span>{item}
                   </div>
                 ))}
               </div>
               <div className="flex flex-col gap-2">
-                <a href="/pricing" className="block w-full rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 py-3.5 text-center text-sm font-bold text-white no-underline shadow-lg shadow-indigo-500/30">
-                  Get Pro →
-                </a>
-                <a href={proSupportLink} target="_blank" rel="noreferrer" className="block w-full rounded-xl border border-emerald-500/20 bg-emerald-500/10 py-3 text-center text-sm font-bold text-emerald-400 no-underline transition-all hover:bg-emerald-500/15">
-                  Pay via bank transfer
-                </a>
+                <a href="/pricing" className="block w-full rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 py-3.5 text-center text-sm font-bold text-white no-underline shadow-lg shadow-indigo-500/30">Get Pro →</a>
+                <a href={proSupportLink} target="_blank" rel="noreferrer" className="block w-full rounded-xl border border-emerald-500/20 bg-emerald-500/10 py-3 text-center text-sm font-bold text-emerald-400 no-underline transition-all hover:bg-emerald-500/15">Pay via bank transfer</a>
               </div>
             </div>
 
@@ -1222,42 +832,24 @@ export default function HomePage() {
             <div className="flex flex-col rounded-2xl border border-white/7 bg-white/4 p-6">
               <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">Enterprise</div>
               <div className="mb-3 text-4xl font-black tracking-tight text-white">Custom</div>
-              <p className="mb-5 text-sm leading-relaxed text-slate-500">
-                For large buyers, sourcing teams and businesses with ongoing volume.
-              </p>
+              <p className="mb-5 text-sm leading-relaxed text-slate-500">For large buyers, sourcing teams and businesses with ongoing volume.</p>
               <div className="mb-5 h-px bg-white/7" />
               <div className="flex flex-1 flex-col gap-3 mb-6">
-                {[
-                  "Everything in Pro",
-                  "Unlimited contact unlocks",
-                  "Dedicated account manager",
-                  "Factory inspection support",
-                  "Bulk order handling",
-                  "Custom sourcing workflow",
-                  "Custom pricing",
-                ].map((item) => (
+                {["Everything in Pro", "Unlimited contact unlocks", "Dedicated account manager", "Factory inspection support", "Bulk order handling", "Custom sourcing workflow", "Custom pricing"].map((item) => (
                   <div key={item} className="flex items-start gap-3 text-sm text-slate-400">
-                    <span className="mt-0.5 shrink-0 font-bold text-amber-400">✓</span>
-                    {item}
+                    <span className="mt-0.5 shrink-0 font-bold text-amber-400">✓</span>{item}
                   </div>
                 ))}
               </div>
-              <a href={enterpriseSupportLink} target="_blank" rel="noreferrer" className="block rounded-xl border border-amber-500/20 bg-amber-500/10 py-3 text-center text-sm font-bold text-amber-400 no-underline transition-all hover:bg-amber-500/15">
-                Talk to us on WhatsApp
-              </a>
+              <a href={enterpriseSupportLink} target="_blank" rel="noreferrer" className="block rounded-xl border border-amber-500/20 bg-amber-500/10 py-3 text-center text-sm font-bold text-amber-400 no-underline transition-all hover:bg-amber-500/15">Talk to us on WhatsApp</a>
             </div>
           </div>
         </section>
 
         {/* ── TRUST ── */}
         <section className="rounded-3xl border border-white/7 bg-[#111827] p-6 md:p-10">
-          <span className="mb-3 inline-block rounded-full bg-indigo-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-indigo-400">
-            Why Weinly
-          </span>
-          <h2 className="mb-8 text-2xl font-black tracking-tight text-white md:text-3xl">
-            Built for serious fabric buyers
-          </h2>
-
+          <span className="mb-3 inline-block rounded-full bg-indigo-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-indigo-400">Why Weinly</span>
+          <h2 className="mb-8 text-2xl font-black tracking-tight text-white md:text-3xl">Built for serious fabric buyers</h2>
           <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             {[
               { title: "See quotes before paying", text: "Review price, MOQ and lead time before spending anything.", accent: "from-indigo-500 to-indigo-600" },
@@ -1272,7 +864,6 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {[
               { q: "Do I pay before seeing quotes?", a: "No. You submit your request first, then see quote previews. Payment is only required to unlock direct supplier contact." },
