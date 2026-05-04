@@ -36,6 +36,7 @@ type Quote = {
   id: string;
   request_id: string;
   supplier_name: string;
+  supplier_id?: string | null;
   price: string | null;
   moq: string | null;
   note: string | null;
@@ -46,6 +47,27 @@ type Quote = {
   supplier_region: string | null;
   lead_time: string | null;
   is_contact_released: boolean | null;
+};
+
+type Review = {
+  id: string;
+  request_id: string;
+  supplier_id: string;
+  quote_id: string;
+  buyer_email: string | null;
+  buyer_name: string | null;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+};
+
+type PublicReview = {
+  id: string;
+  supplier_name: string;
+  rating: number;
+  comment: string | null;
+  buyer_name: string | null;
+  created_at: string;
 };
 
 type BillingCycle = "monthly" | "yearly";
@@ -79,6 +101,128 @@ function getStagePill(request: FabricRequest, quoteCount: number) {
   return { bg: "bg-amber-900/60 text-amber-300 border border-amber-500/30", label: "In progress" };
 }
 
+function StarRating({ value, onChange, size = "lg" }: { value: number; onChange?: (v: number) => void; size?: "sm" | "lg" }) {
+  const [hovered, setHovered] = useState(0);
+  const active = hovered || value;
+  const sz = size === "lg" ? "text-2xl" : "text-base";
+
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button
+          key={star}
+          type="button"
+          onClick={() => onChange?.(star)}
+          onMouseEnter={() => onChange && setHovered(star)}
+          onMouseLeave={() => onChange && setHovered(0)}
+          className={`${sz} border-0 bg-transparent p-0 leading-none transition-all ${
+            onChange ? "cursor-pointer" : "cursor-default"
+          } ${star <= active ? "text-amber-400" : "text-slate-700"}`}
+        >
+          ★
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ReviewForm({
+  request,
+  quote,
+  onSubmitted,
+}: {
+  request: FabricRequest;
+  quote: Quote;
+  onSubmitted: () => void;
+}) {
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (rating === 0) { setError("Please select a star rating."); return; }
+    setSubmitting(true);
+    setError("");
+
+    try {
+      const { error: insertError } = await supabase.from("supplier_reviews").insert([{
+        request_id: request.id,
+        supplier_id: quote.supplier_id || quote.id,
+        quote_id: quote.id,
+        buyer_email: request.client_email,
+        buyer_name: request.client_name,
+        rating,
+        comment: comment.trim() || null,
+      }]);
+
+      if (insertError) {
+        if (insertError.code === "23505") {
+          setError("You've already reviewed this supplier.");
+        } else {
+          throw insertError;
+        }
+        return;
+      }
+
+      onSubmitted();
+    } catch {
+      setError("Failed to submit review. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const labels = ["", "Poor", "Fair", "Good", "Very good", "Excellent"];
+
+  return (
+    <form onSubmit={submit} className="flex flex-col gap-4 rounded-2xl border border-amber-500/20 bg-amber-500/6 p-5">
+      <div>
+        <h4 className="m-0 mb-1 text-base font-bold text-white">Rate this supplier</h4>
+        <p className="m-0 text-xs leading-relaxed text-slate-500">
+          Help other buyers by sharing your experience with {quote.supplier_name}.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Your rating</label>
+        <div className="flex items-center gap-3">
+          <StarRating value={rating} onChange={setRating} />
+          {rating > 0 && (
+            <span className="text-sm font-semibold text-amber-300">{labels[rating]}</span>
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
+          Comment <span className="text-slate-600 normal-case font-normal">(optional)</span>
+        </label>
+        <textarea
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          placeholder="How was the supplier's pricing, communication and product quality?"
+          rows={3}
+          className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-amber-500"
+        />
+      </div>
+
+      {error && (
+        <div className="rounded-xl border border-red-500/20 bg-red-500/8 p-3 text-xs text-red-300">{error}</div>
+      )}
+
+      <button
+        type="submit"
+        disabled={submitting || rating === 0}
+        className="self-start cursor-pointer rounded-xl border-0 bg-gradient-to-r from-amber-500 to-amber-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/25 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {submitting ? "Submitting..." : "Submit review →"}
+      </button>
+    </form>
+  );
+}
+
 export default function HomePage() {
   const prices = useCurrency();
 
@@ -100,6 +244,47 @@ export default function HomePage() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [realtimeFlash, setRealtimeFlash] = useState(false);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
+
+  // Reviews state
+  const [submittedReviews, setSubmittedReviews] = useState<Set<string>>(new Set());
+  const [existingReviews, setExistingReviews] = useState<Review[]>([]);
+  const [publicReviews, setPublicReviews] = useState<PublicReview[]>([]);
+  const [reviewsLoaded, setReviewsLoaded] = useState(false);
+
+  // Load public reviews once on mount
+  useEffect(() => {
+    async function loadPublicReviews() {
+      const { data } = await supabase
+        .from("supplier_reviews")
+        .select("id, rating, comment, buyer_name, created_at, supplier_id")
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (!data) return;
+
+      // Fetch supplier names
+      const supplierIds = [...new Set(data.map((r: any) => r.supplier_id))];
+      const { data: profiles } = await supabase
+        .from("supplier_profiles")
+        .select("id, company_name")
+        .in("id", supplierIds);
+
+      const nameMap: Record<string, string> = {};
+      (profiles || []).forEach((p: any) => { nameMap[p.id] = p.company_name; });
+
+      setPublicReviews(data.map((r: any) => ({
+        id: r.id,
+        supplier_name: nameMap[r.supplier_id] || "Verified Supplier",
+        rating: r.rating,
+        comment: r.comment,
+        buyer_name: r.buyer_name,
+        created_at: r.created_at,
+      })));
+      setReviewsLoaded(true);
+    }
+
+    loadPublicReviews();
+  }, []);
 
   async function generateAISpec(userInput: string) {
     try {
@@ -126,6 +311,15 @@ export default function HomePage() {
     return data as FabricRequest;
   }
 
+  async function fetchReviewsForRequest(id: string) {
+    const { data } = await supabase.from("supplier_reviews").select("*").eq("request_id", id);
+    if (data) {
+      setExistingReviews(data as Review[]);
+      const reviewed = new Set(data.map((r: Review) => r.quote_id));
+      setSubmittedReviews(reviewed);
+    }
+  }
+
   const syncState = useCallback(async (id: string, flash = false) => {
     const request = await fetchRequest(id);
     const quotes = await fetchQuotes(id);
@@ -141,6 +335,8 @@ export default function HomePage() {
       setRealtimeFlash(true);
       setTimeout(() => setRealtimeFlash(false), 1500);
     }
+    // Load reviews for this request
+    await fetchReviewsForRequest(id);
   }, [submittedRequest]);
 
   useEffect(() => {
@@ -168,6 +364,7 @@ export default function HomePage() {
       setLookupRequest(request);
       setLookupQuotes(quotes);
       setLastUpdated(new Date());
+      await fetchReviewsForRequest(requestIdFromUrl!);
     }
     load();
   }, []);
@@ -215,6 +412,7 @@ export default function HomePage() {
       setLookupQuotes(quotes);
       setLookupId(cleanId);
       setLastUpdated(new Date());
+      await fetchReviewsForRequest(cleanId);
       setTimeout(() => { document.getElementById("request-tracker")?.scrollIntoView({ behavior: "smooth" }); }, 100);
     } catch { alert("Failed to fetch request."); }
     finally { setLookupLoading(false); }
@@ -284,6 +482,10 @@ export default function HomePage() {
   const proPrice = billingCycle === "monthly" ? prices.proMonthly : prices.proYearly;
   const proPeriod = billingCycle === "monthly" ? "month" : "year";
 
+  const avgRating = publicReviews.length > 0
+    ? (publicReviews.reduce((sum, r) => sum + r.rating, 0) / publicReviews.length).toFixed(1)
+    : null;
+
   return (
     <main className="min-h-screen bg-[#0a0f1e] px-3 py-3 font-sans md:px-4 md:py-4">
       <div className="mx-auto flex max-w-5xl flex-col gap-3">
@@ -313,6 +515,7 @@ export default function HomePage() {
                   { v: "500+", l: "Verified suppliers" },
                   { v: "24hr", l: "Avg quote time" },
                   { v: prices.unlock, l: "Contact unlock" },
+                  ...(avgRating ? [{ v: `${avgRating}★`, l: "Avg supplier rating" }] : []),
                 ].map((s) => (
                   <div key={s.l} className="flex flex-col gap-0.5">
                     <span className="text-2xl font-black text-white">{s.v}</span>
@@ -461,7 +664,7 @@ export default function HomePage() {
                   )}
                   <div className="rounded-xl border border-indigo-500/15 bg-indigo-500/8 p-4">
                     <p className="m-0 text-sm leading-relaxed text-slate-400">
-                      <strong className="text-white">What happens next?</strong> We are matching your request to verified suppliers. Quotes appear within 24 hours. Use your request ID to check progress anytime.
+                      <strong className="text-white">What happens next?</strong> We are matching your request to verified suppliers. Quotes appear within 24 hours.
                     </p>
                   </div>
                 </div>
@@ -538,6 +741,7 @@ export default function HomePage() {
               </div>
             )}
 
+            {/* ── QUOTES ── */}
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <h3 className="m-0 text-lg font-bold text-white">Supplier quotes</h3>
@@ -559,6 +763,8 @@ export default function HomePage() {
                   const contactStatus = activeRequest.contact_request_status || "none";
                   const paymentStatus = activeRequest.payment_status || "unpaid";
                   const supportLink = buildWhatsappLink(`Hello Weinly, I need help with request ID: ${activeRequest.id}`);
+                  const alreadyReviewed = submittedReviews.has(quote.id);
+                  const existingReview = existingReviews.find((r) => r.quote_id === quote.id);
 
                   return (
                     <div key={quote.id} className="flex flex-col gap-4 rounded-2xl border border-white/7 bg-white/3 p-5">
@@ -612,16 +818,11 @@ export default function HomePage() {
                             <div className="relative overflow-hidden rounded-xl border border-violet-500/25 bg-violet-500/8 p-4">
                               <span className="absolute right-3 top-3 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white">Best value</span>
                               <div className="mb-2 text-xs font-bold uppercase tracking-widest text-violet-300">Weinly Pro</div>
-                              <div className="mb-1 text-2xl font-black text-white">
-                                {prices.proMonthly}
-                                <span className="ml-1 text-sm font-semibold text-slate-400">/month</span>
-                              </div>
+                              <div className="mb-1 text-2xl font-black text-white">{prices.proMonthly}<span className="ml-1 text-sm font-semibold text-slate-400">/month</span></div>
                               <div className="mb-3 text-sm leading-relaxed text-slate-300">Includes 3 contact unlocks every month plus priority matching and support.</div>
                               <div className="mb-4 flex flex-col gap-2">
                                 {["3 unlocks included monthly", "Priority supplier matching", "Dedicated support", "Better value for active buyers"].map((item) => (
-                                  <div key={item} className="flex items-start gap-2 text-sm text-slate-300">
-                                    <span className="text-emerald-400">✓</span><span>{item}</span>
-                                  </div>
+                                  <div key={item} className="flex items-start gap-2 text-sm text-slate-300"><span className="text-emerald-400">✓</span><span>{item}</span></div>
                                 ))}
                               </div>
                               <a href="/pricing" className="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-violet-500 to-indigo-600 px-5 py-3 text-sm font-bold text-white no-underline shadow-lg shadow-violet-500/20">
@@ -674,25 +875,49 @@ export default function HomePage() {
                       )}
 
                       {isReleased && (
-                        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/6 p-5">
-                          <div className="mb-4 flex items-center gap-3">
-                            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/20 text-sm font-black text-emerald-400">✓</span>
-                            <h4 className="m-0 text-base font-bold text-emerald-300">Supplier contact details</h4>
+                        <>
+                          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/6 p-5">
+                            <div className="mb-4 flex items-center gap-3">
+                              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/20 text-sm font-black text-emerald-400">✓</span>
+                              <h4 className="m-0 text-base font-bold text-emerald-300">Supplier contact details</h4>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
+                              {[
+                                { label: "Contact name", value: quote.contact_name || "—" },
+                                { label: "Phone", value: quote.contact_phone || "—" },
+                                { label: "WeChat", value: quote.contact_wechat || "—" },
+                                { label: "Email", value: quote.contact_email || "—" },
+                              ].map((c) => (
+                                <div key={c.label} className="rounded-xl border border-emerald-500/15 bg-emerald-500/8 p-3">
+                                  <div className="mb-1 text-xs font-bold uppercase tracking-wider text-emerald-600">{c.label}</div>
+                                  <div className="break-words text-sm font-semibold text-emerald-300">{c.value}</div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                          <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
-                            {[
-                              { label: "Contact name", value: quote.contact_name || "—" },
-                              { label: "Phone", value: quote.contact_phone || "—" },
-                              { label: "WeChat", value: quote.contact_wechat || "—" },
-                              { label: "Email", value: quote.contact_email || "—" },
-                            ].map((c) => (
-                              <div key={c.label} className="rounded-xl border border-emerald-500/15 bg-emerald-500/8 p-3">
-                                <div className="mb-1 text-xs font-bold uppercase tracking-wider text-emerald-600">{c.label}</div>
-                                <div className="break-words text-sm font-semibold text-emerald-300">{c.value}</div>
+
+                          {/* ── REVIEW SECTION ── */}
+                          {alreadyReviewed && existingReview ? (
+                            <div className="rounded-2xl border border-amber-500/20 bg-amber-500/6 p-5">
+                              <div className="mb-3 flex items-center gap-2">
+                                <span className="text-sm font-bold text-amber-300">Your review</span>
+                                <StarRating value={existingReview.rating} size="sm" />
                               </div>
-                            ))}
-                          </div>
-                        </div>
+                              {existingReview.comment && (
+                                <p className="m-0 text-sm leading-relaxed text-slate-400">{existingReview.comment}</p>
+                              )}
+                            </div>
+                          ) : (
+                            <ReviewForm
+                              request={activeRequest}
+                              quote={quote}
+                              onSubmitted={() => {
+                                setSubmittedReviews((prev) => new Set([...prev, quote.id]));
+                                syncState(activeRequest.id);
+                              }}
+                            />
+                          )}
+                        </>
                       )}
                     </div>
                   );
@@ -711,6 +936,55 @@ export default function HomePage() {
                 <a href="/history" className="flex items-center rounded-xl border border-white/10 bg-white/6 px-5 py-2.5 text-sm font-semibold text-slate-400 no-underline transition-all hover:bg-white/10">View history</a>
               </div>
             </div>
+          </section>
+        )}
+
+        {/* ── PUBLIC REVIEWS ── */}
+        {reviewsLoaded && publicReviews.length > 0 && (
+          <section className="rounded-3xl border border-white/7 bg-[#111827] p-6 md:p-10">
+            <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <span className="mb-3 inline-block rounded-full bg-amber-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-amber-400">Buyer reviews</span>
+                <h2 className="mb-1 text-2xl font-black tracking-tight text-white md:text-3xl">What buyers say about our suppliers</h2>
+                <p className="m-0 text-sm text-slate-500">Real reviews from verified buyers who unlocked supplier contact through Weinly.</p>
+              </div>
+              {avgRating && (
+                <div className="flex flex-col items-end gap-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-4xl font-black text-white">{avgRating}</span>
+                    <StarRating value={Math.round(Number(avgRating))} size="lg" />
+                  </div>
+                  <span className="text-xs text-slate-500">{publicReviews.length} verified {publicReviews.length === 1 ? "review" : "reviews"}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {publicReviews.slice(0, 6).map((review) => (
+                <div key={review.id} className="flex flex-col gap-3 rounded-2xl border border-white/7 bg-white/4 p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="mb-0.5 text-sm font-bold text-white">{review.supplier_name}</div>
+                      <div className="text-xs text-slate-500">
+                        {review.buyer_name ? `by ${review.buyer_name}` : "Verified buyer"}
+                        {" · "}
+                        {new Date(review.created_at).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <StarRating value={review.rating} size="sm" />
+                  </div>
+                  {review.comment && (
+                    <p className="m-0 text-sm leading-relaxed text-slate-400">{review.comment}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {publicReviews.length > 6 && (
+              <div className="mt-4 text-center">
+                <span className="text-xs text-slate-600">Showing 6 of {publicReviews.length} reviews</span>
+              </div>
+            )}
           </section>
         )}
 
@@ -745,7 +1019,6 @@ export default function HomePage() {
           <h2 className="mb-2 text-2xl font-black tracking-tight text-white md:text-3xl">Simple, transparent pricing</h2>
           <p className="m-0 mb-6 text-sm leading-relaxed text-slate-500">Start for free. Only pay when you want direct access to a supplier.</p>
 
-          {/* Billing toggle */}
           <div className="mb-8 flex justify-start">
             <div className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 p-1.5">
               {(["monthly", "yearly"] as const).map((cycle) => (
@@ -758,7 +1031,6 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-
             {/* Free */}
             <div className="flex flex-col rounded-2xl border border-white/7 bg-white/4 p-6">
               <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">Free</div>
@@ -769,6 +1041,12 @@ export default function HomePage() {
                 {["Submit sourcing requests", "AI sourcing spec", "Quote preview", "Track request progress"].map((item) => (
                   <div key={item} className="flex items-start gap-3 text-sm text-slate-400">
                     <span className="mt-0.5 shrink-0 font-bold text-emerald-400">✓</span>{item}
+                  </div>
+                ))}
+                <div className="my-1 h-px bg-white/7" />
+                {["Supplier contact unlocks billed separately", "No priority matching", "No dedicated support"].map((item) => (
+                  <div key={item} className="flex items-start gap-3 text-sm text-slate-600">
+                    <span className="mt-0.5 shrink-0 text-slate-700">✕</span>{item}
                   </div>
                 ))}
               </div>
