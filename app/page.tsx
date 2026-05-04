@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
@@ -109,6 +109,11 @@ export default function HomePage() {
   const [lookupQuotes, setLookupQuotes] = useState<Quote[]>([]);
   const [activeTab, setActiveTab] = useState<"submit" | "track">("submit");
 
+  // ── REALTIME STATE ──
+  const [isLive, setIsLive] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [realtimeFlash, setRealtimeFlash] = useState(false);
+
   async function generateAISpec(userInput: string) {
     try {
       const res = await fetch("/api/spec", {
@@ -130,7 +135,6 @@ export default function HomePage() {
       .select("*")
       .eq("request_id", id)
       .order("id", { ascending: false });
-
     if (error) return [];
     return (data || []) as Quote[];
   }
@@ -141,23 +145,95 @@ export default function HomePage() {
       .select("*")
       .eq("id", id)
       .single();
-
     if (error) return null;
     return data as FabricRequest;
   }
 
-  async function syncState(id: string) {
-  const request = await fetchRequest(id);
-  const quotes = await fetchQuotes(id);
-  setLookupRequest(request);
-  setLookupQuotes(quotes);
-  setLookupId(id);
+  const syncState = useCallback(
+    async (id: string, flash = false) => {
+      const request = await fetchRequest(id);
+      const quotes = await fetchQuotes(id);
+      setLookupRequest(request);
+      setLookupQuotes(quotes);
+      setLookupId(id);
+      setLastUpdated(new Date());
 
-  if (submittedRequest?.id === id) {
-    setSubmittedRequest(request);
-    setSubmittedQuotes(quotes);
-  }
-}
+      if (submittedRequest?.id === id) {
+        setSubmittedRequest(request);
+        setSubmittedQuotes(quotes);
+      }
+
+      if (flash) {
+        setRealtimeFlash(true);
+        setTimeout(() => setRealtimeFlash(false), 1500);
+      }
+    },
+    [submittedRequest]
+  );
+
+  // ── REALTIME SUBSCRIPTION ──
+  useEffect(() => {
+    const activeId = lookupId || requestId;
+    if (!activeId) return;
+
+    setIsLive(false);
+
+    const channel = supabase
+      .channel(`tracker-${activeId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "fabric_requests",
+          filter: `id=eq.${activeId}`,
+        },
+        async () => {
+          await syncState(activeId, true);
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "quotes",
+          filter: `request_id=eq.${activeId}`,
+        },
+        async () => {
+          await syncState(activeId, true);
+        }
+      )
+      .subscribe((status) => {
+        setIsLive(status === "SUBSCRIBED");
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+      setIsLive(false);
+    };
+  }, [lookupId, requestId, syncState]);
+
+  // ── URL PARAM LOAD ──
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const requestIdFromUrl = new URLSearchParams(window.location.search).get("requestId");
+    if (!requestIdFromUrl) return;
+
+    setLookupId(requestIdFromUrl);
+    setActiveTab("track");
+
+    async function load() {
+      const request = await fetchRequest(requestIdFromUrl!);
+      if (!request) return;
+      const quotes = await fetchQuotes(requestIdFromUrl!);
+      setLookupRequest(request);
+      setLookupQuotes(quotes);
+      setLastUpdated(new Date());
+    }
+
+    load();
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -197,6 +273,7 @@ export default function HomePage() {
       setRequestId(data.id);
       setLookupId(data.id);
       setActiveTab("track");
+      setLastUpdated(new Date());
 
       setTimeout(() => {
         document.getElementById("request-result")?.scrollIntoView({ behavior: "smooth" });
@@ -231,6 +308,8 @@ export default function HomePage() {
       const quotes = await fetchQuotes(cleanId);
       setLookupRequest(request);
       setLookupQuotes(quotes);
+      setLookupId(cleanId);
+      setLastUpdated(new Date());
 
       setTimeout(() => {
         document.getElementById("request-tracker")?.scrollIntoView({ behavior: "smooth" });
@@ -337,42 +416,6 @@ export default function HomePage() {
       alert("Failed to launch payment.");
     }
   }
-
-  useEffect(() => {
-    if (!requestId) return;
-
-    async function refresh() {
-      const request = await fetchRequest(requestId);
-      const quotes = await fetchQuotes(requestId);
-      setSubmittedRequest(request);
-      setSubmittedQuotes(quotes);
-    }
-
-    refresh();
-  }, [requestId]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const requestIdFromUrl = new URLSearchParams(window.location.search).get("requestId");
-    if (!requestIdFromUrl) return;
-
-    const safeRequestId = requestIdFromUrl;
-
-    setLookupId(safeRequestId);
-    setActiveTab("track");
-
-    async function load() {
-      const request = await fetchRequest(safeRequestId);
-      if (!request) return;
-
-      const quotes = await fetchQuotes(safeRequestId);
-      setLookupRequest(request);
-      setLookupQuotes(quotes);
-    }
-
-    load();
-  }, []);
 
   const activeRequest = useMemo(
     () => lookupRequest || submittedRequest,
@@ -489,9 +532,7 @@ export default function HomePage() {
                   <span className={`mt-0.5 shrink-0 text-xl ${f.color}`}>{f.icon}</span>
                   <div>
                     <div className="mb-1 text-sm font-bold text-white">{f.title}</div>
-                    <div className="text-xs leading-relaxed text-slate-400">
-                      {f.text}
-                    </div>
+                    <div className="text-xs leading-relaxed text-slate-400">{f.text}</div>
                   </div>
                 </div>
               ))}
@@ -539,9 +580,7 @@ export default function HomePage() {
                 key={step.n}
                 className="rounded-2xl border border-white/7 bg-white/4 p-6"
               >
-                <div
-                  className={`mb-3 text-xs font-black uppercase tracking-widest ${step.textColor}`}
-                >
+                <div className={`mb-3 text-xs font-black uppercase tracking-widest ${step.textColor}`}>
                   {step.n}
                 </div>
                 <div className={`mb-4 h-1 w-10 rounded-full bg-gradient-to-r ${step.color}`} />
@@ -580,8 +619,7 @@ export default function HomePage() {
                   Tell us what you need
                 </h2>
                 <p className="m-0 text-sm leading-relaxed text-slate-500">
-                  Be detailed — fabric type, color, quantity and quality. Better detail
-                  = better quotes.
+                  Be detailed — fabric type, color, quantity and quality. Better detail = better quotes.
                 </p>
               </div>
 
@@ -637,8 +675,7 @@ export default function HomePage() {
                     className="w-full resize-y rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-indigo-500 focus:bg-indigo-500/5"
                   />
                   <p className="m-0 text-xs text-slate-600">
-                    Include: fabric type · color · quantity · quality level · intended
-                    use
+                    Include: fabric type · color · quantity · quality level · intended use
                   </p>
                 </div>
 
@@ -671,8 +708,7 @@ export default function HomePage() {
                   Track your request
                 </h2>
                 <p className="m-0 text-sm leading-relaxed text-slate-500">
-                  Paste your request ID to see quotes, payment status and supplier
-                  contact.
+                  Paste your request ID to see quotes, payment status and supplier contact.
                 </p>
               </div>
 
@@ -719,12 +755,8 @@ export default function HomePage() {
                       ✓
                     </div>
                     <div>
-                      <div className="text-base font-bold text-white">
-                        Request submitted!
-                      </div>
-                      <div className="text-sm text-slate-500">
-                        Save your ID to track quotes
-                      </div>
+                      <div className="text-base font-bold text-white">Request submitted!</div>
+                      <div className="text-sm text-slate-500">Save your ID to track quotes</div>
                     </div>
                   </div>
 
@@ -765,23 +797,54 @@ export default function HomePage() {
         {activeRequest && stagePill && (
           <section
             id="request-tracker"
-            className="flex flex-col gap-5 rounded-3xl border border-indigo-500/15 bg-[#0d1424] p-5 shadow-xl shadow-indigo-500/8 md:p-8"
+            className={`flex flex-col gap-5 rounded-3xl border p-5 shadow-xl md:p-8 transition-all duration-500 ${
+              realtimeFlash
+                ? "border-emerald-500/40 bg-emerald-500/5 shadow-emerald-500/10"
+                : "border-indigo-500/15 bg-[#0d1424] shadow-indigo-500/8"
+            }`}
           >
+            {/* Tracker header */}
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <h2 className="mb-1 text-xl font-black tracking-tight text-white md:text-2xl">
+                <h2 className="mb-1 flex items-center gap-2 text-xl font-black tracking-tight text-white md:text-2xl">
                   Request tracker
+                  {/* ── LIVE INDICATOR ── */}
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-all ${
+                      isLive
+                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                        : "border-slate-700 bg-slate-800/50 text-slate-500"
+                    }`}
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        isLive ? "animate-pulse bg-emerald-400" : "bg-slate-600"
+                      }`}
+                    />
+                    {isLive ? "Live" : "Connecting..."}
+                  </span>
                 </h2>
                 <p className="m-0 text-sm text-slate-500">
                   Follow quotes, pay and unlock supplier contact
+                  {lastUpdated && (
+                    <span className="ml-2 text-xs text-slate-600">
+                      · Updated {lastUpdated.toLocaleTimeString()}
+                    </span>
+                  )}
                 </p>
               </div>
-              <span
-                className={`rounded-full px-4 py-2 text-xs font-bold ${stagePill.bg}`}
-              >
+              <span className={`rounded-full px-4 py-2 text-xs font-bold ${stagePill.bg}`}>
                 {stagePill.label}
               </span>
             </div>
+
+            {/* ── REALTIME UPDATE TOAST ── */}
+            {realtimeFlash && (
+              <div className="flex items-center gap-2 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-300">
+                <span className="h-2 w-2 animate-ping rounded-full bg-emerald-400" />
+                Tracker updated in real time
+              </div>
+            )}
 
             <div className="rounded-2xl border border-white/7 bg-white/4 p-4">
               <div className="mb-2 text-base font-bold text-white">
@@ -851,6 +914,7 @@ export default function HomePage() {
               </div>
             )}
 
+            {/* ── QUOTES ── */}
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <h3 className="m-0 text-lg font-bold text-white">Supplier quotes</h3>
@@ -862,13 +926,15 @@ export default function HomePage() {
               {activeQuotes.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-white/10 bg-white/2 p-10 text-center">
                   <div className="mb-3 text-4xl">◎</div>
-                  <div className="mb-2 font-bold text-slate-400">
-                    Sourcing in progress
-                  </div>
+                  <div className="mb-2 font-bold text-slate-400">Sourcing in progress</div>
                   <p className="m-0 text-sm leading-relaxed text-slate-600">
-                    Matching your request to verified suppliers. Quotes appear here
-                    shortly.
+                    Matching your request to verified suppliers. Quotes appear here shortly.
                   </p>
+                  {isLive && (
+                    <p className="m-0 mt-2 text-xs text-emerald-500">
+                      This page will update automatically when quotes arrive.
+                    </p>
+                  )}
                 </div>
               ) : (
                 activeQuotes.map((quote) => {
@@ -918,9 +984,7 @@ export default function HomePage() {
                             <div className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-600">
                               {s.label}
                             </div>
-                            <div className="text-sm font-semibold text-white">
-                              {s.value}
-                            </div>
+                            <div className="text-sm font-semibold text-white">{s.value}</div>
                           </div>
                         ))}
                       </div>
@@ -952,12 +1016,9 @@ export default function HomePage() {
                               <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">
                                 One-time unlock
                               </div>
-                              <div className="mb-2 text-2xl font-black text-white">
-                                ₦10,000
-                              </div>
+                              <div className="mb-2 text-2xl font-black text-white">₦10,000</div>
                               <div className="mb-4 text-sm leading-relaxed text-slate-400">
-                                Unlock this supplier’s phone, WeChat and email for this
-                                request.
+                                Unlock this supplier's phone, WeChat and email for this request.
                               </div>
                               <button
                                 onClick={() => requestContact(activeRequest.id)}
@@ -971,21 +1032,16 @@ export default function HomePage() {
                               <span className="absolute right-3 top-3 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
                                 Best value
                               </span>
-
                               <div className="mb-2 text-xs font-bold uppercase tracking-widest text-violet-300">
                                 Weinly Pro
                               </div>
                               <div className="mb-1 text-2xl font-black text-white">
                                 ₦25,000
-                                <span className="ml-1 text-sm font-semibold text-slate-400">
-                                  /month
-                                </span>
+                                <span className="ml-1 text-sm font-semibold text-slate-400">/month</span>
                               </div>
                               <div className="mb-3 text-sm leading-relaxed text-slate-300">
-                                Includes 3 contact unlocks every month plus priority
-                                matching and support.
+                                Includes 3 contact unlocks every month plus priority matching and support.
                               </div>
-
                               <div className="mb-4 flex flex-col gap-2">
                                 {[
                                   "3 unlocks included monthly",
@@ -993,16 +1049,12 @@ export default function HomePage() {
                                   "Dedicated support",
                                   "Better value for active buyers",
                                 ].map((item) => (
-                                  <div
-                                    key={item}
-                                    className="flex items-start gap-2 text-sm text-slate-300"
-                                  >
+                                  <div key={item} className="flex items-start gap-2 text-sm text-slate-300">
                                     <span className="text-emerald-400">✓</span>
                                     <span>{item}</span>
                                   </div>
                                 ))}
                               </div>
-
                               <a
                                 href="/pricing"
                                 className="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-violet-500 to-indigo-600 px-5 py-3 text-sm font-bold text-white no-underline shadow-lg shadow-violet-500/20"
@@ -1025,74 +1077,58 @@ export default function HomePage() {
                         </div>
                       )}
 
-                      {!isReleased &&
-                        contactStatus === "pending" &&
-                        paymentStatus === "unpaid" && (
-                          <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/6 p-5">
-                            <h4 className="m-0 mb-4 text-base font-bold text-white">
-                              Unlock supplier contact
-                            </h4>
-
-                            <div className="mb-4 flex flex-col gap-2 rounded-xl border border-indigo-500/15 bg-indigo-500/8 p-4">
-                              {[
-                                { label: "Access fee", value: ACCESS_FEE },
-                                { label: "Payment method", value: "Paystack" },
-                                { label: "Request ID", value: activeRequest.id },
-                              ].map((row) => (
-                                <div
-                                  key={row.label}
-                                  className="flex flex-wrap justify-between gap-3"
-                                >
-                                  <span className="text-sm text-slate-500">
-                                    {row.label}
-                                  </span>
-                                  <strong className="text-sm text-white">
-                                    {row.value}
-                                  </strong>
-                                </div>
-                              ))}
-                            </div>
-
-                            <p className="m-0 mb-4 text-sm leading-relaxed text-slate-500">
-                              Get direct access to supplier phone, WeChat and contact
-                              person. Negotiate better deals without middlemen.
-                            </p>
-
-                            <div className="flex flex-wrap gap-3">
-                              <button
-                                onClick={() => startPayment(activeRequest)}
-                                disabled={paymentLoading}
-                                className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-indigo-500 to-indigo-700 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-500/25 disabled:cursor-not-allowed disabled:opacity-60"
-                              >
-                                {paymentLoading
-                                  ? "Processing..."
-                                  : `Pay ${ACCESS_FEE} & unlock`}
-                              </button>
-                              <a
-                                href={supportLink}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="flex items-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-5 py-2.5 text-sm font-semibold text-emerald-400 no-underline transition-all hover:bg-emerald-500/15"
-                              >
-                                Need help?
-                              </a>
-                            </div>
+                      {!isReleased && contactStatus === "pending" && paymentStatus === "unpaid" && (
+                        <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/6 p-5">
+                          <h4 className="m-0 mb-4 text-base font-bold text-white">
+                            Unlock supplier contact
+                          </h4>
+                          <div className="mb-4 flex flex-col gap-2 rounded-xl border border-indigo-500/15 bg-indigo-500/8 p-4">
+                            {[
+                              { label: "Access fee", value: ACCESS_FEE },
+                              { label: "Payment method", value: "Paystack" },
+                              { label: "Request ID", value: activeRequest.id },
+                            ].map((row) => (
+                              <div key={row.label} className="flex flex-wrap justify-between gap-3">
+                                <span className="text-sm text-slate-500">{row.label}</span>
+                                <strong className="text-sm text-white">{row.value}</strong>
+                              </div>
+                            ))}
                           </div>
-                        )}
-
-                      {!isReleased &&
-                        contactStatus === "pending" &&
-                        paymentStatus === "paid" && (
-                          <div className="rounded-xl border border-amber-500/20 bg-amber-500/8 p-4 text-sm leading-relaxed text-amber-300">
-                            <strong>Payment confirmed.</strong> Awaiting admin approval —
-                            supplier contact will be released shortly.
+                          <p className="m-0 mb-4 text-sm leading-relaxed text-slate-500">
+                            Get direct access to supplier phone, WeChat and contact person.
+                            Negotiate better deals without middlemen.
+                          </p>
+                          <div className="flex flex-wrap gap-3">
+                            <button
+                              onClick={() => startPayment(activeRequest)}
+                              disabled={paymentLoading}
+                              className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-indigo-500 to-indigo-700 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-500/25 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {paymentLoading ? "Processing..." : `Pay ${ACCESS_FEE} & unlock`}
+                            </button>
+                            <a
+                              href={supportLink}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-5 py-2.5 text-sm font-semibold text-emerald-400 no-underline transition-all hover:bg-emerald-500/15"
+                            >
+                              Need help?
+                            </a>
                           </div>
-                        )}
+                        </div>
+                      )}
+
+                      {!isReleased && contactStatus === "pending" && paymentStatus === "paid" && (
+                        <div className="rounded-xl border border-amber-500/20 bg-amber-500/8 p-4 text-sm leading-relaxed text-amber-300">
+                          <strong>Payment confirmed.</strong> Awaiting admin approval —
+                          supplier contact will be released shortly.
+                        </div>
+                      )}
 
                       {!isReleased && contactStatus === "rejected" && (
                         <div className="rounded-xl border border-red-500/20 bg-red-500/8 p-4 text-sm leading-relaxed text-red-300">
-                          Contact release was not approved. Please contact support on
-                          WhatsApp for assistance.
+                          Contact release was not approved. Please contact support on WhatsApp
+                          for assistance.
                         </div>
                       )}
 
@@ -1106,13 +1142,9 @@ export default function HomePage() {
                               Supplier contact details
                             </h4>
                           </div>
-
                           <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
                             {[
-                              {
-                                label: "Contact name",
-                                value: quote.contact_name || "—",
-                              },
+                              { label: "Contact name", value: quote.contact_name || "—" },
                               { label: "Phone", value: quote.contact_phone || "—" },
                               { label: "WeChat", value: quote.contact_wechat || "—" },
                               { label: "Email", value: quote.contact_email || "—" },
@@ -1138,16 +1170,14 @@ export default function HomePage() {
               )}
             </div>
 
+            {/* Support footer */}
             <div className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-white/7 bg-white/4 p-5 md:flex-row md:items-center">
               <div>
-                <div className="mb-1 font-bold text-white">
-                  Need help with this request?
-                </div>
+                <div className="mb-1 font-bold text-white">Need help with this request?</div>
                 <p className="m-0 text-sm text-slate-500">
                   Our team is on WhatsApp for quotes, payment and contact release help.
                 </p>
               </div>
-
               <div className="flex shrink-0 flex-wrap gap-3">
                 <a
                   href={buildWhatsappLink(
@@ -1177,16 +1207,13 @@ export default function HomePage() {
               <span className="mb-3 inline-block rounded-full bg-indigo-500/15 px-3 py-1 text-xs font-bold uppercase tracking-widest text-indigo-400">
                 Weinly Pro
               </span>
-
               <h2 className="mb-3 text-2xl font-black tracking-tight text-white md:text-3xl">
                 Upgrade when you're ready to move faster
               </h2>
-
               <p className="mb-5 text-sm leading-relaxed text-slate-400 md:text-base">
                 Serious buyers use Weinly Pro to unlock suppliers faster, get priority
                 matching, and scale their sourcing business with less risk.
               </p>
-
               <div className="mb-6 flex flex-wrap gap-3">
                 <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
                   3 unlocks / month
@@ -1198,7 +1225,6 @@ export default function HomePage() {
                   Dedicated support
                 </span>
               </div>
-
               <a
                 href="/pricing"
                 className="inline-flex items-center rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 px-6 py-3 text-sm font-bold text-white no-underline shadow-lg shadow-indigo-500/20"
@@ -1208,27 +1234,19 @@ export default function HomePage() {
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-              <div className="mb-3 text-sm font-bold text-white">
-                Why buyers upgrade
-              </div>
-
+              <div className="mb-3 text-sm font-bold text-white">Why buyers upgrade</div>
               <div className="flex flex-col gap-3 text-sm text-slate-300">
-                <div className="flex gap-2">
-                  <span className="text-emerald-400">✓</span>
-                  <span>Access suppliers faster when ready to buy</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="text-emerald-400">✓</span>
-                  <span>Reduce delays and middlemen issues</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="text-emerald-400">✓</span>
-                  <span>Make better sourcing decisions</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="text-emerald-400">✓</span>
-                  <span>Scale your fabric business faster</span>
-                </div>
+                {[
+                  "Access suppliers faster when ready to buy",
+                  "Reduce delays and middlemen issues",
+                  "Make better sourcing decisions",
+                  "Scale your fabric business faster",
+                ].map((item) => (
+                  <div key={item} className="flex gap-2">
+                    <span className="text-emerald-400">✓</span>
+                    <span>{item}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -1251,30 +1269,20 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="rounded-2xl border border-white/7 bg-white/4 p-6">
-              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">
-                Free
-              </div>
-              <div className="mb-3 text-4xl font-black tracking-tight text-white">
-                ₦0
-              </div>
+              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">Free</div>
+              <div className="mb-3 text-4xl font-black tracking-tight text-white">₦0</div>
               <p className="mb-5 text-sm leading-relaxed text-slate-500">
                 Submit requests and get supplier quote previews at no cost.
               </p>
               <div className="mb-5 h-px bg-white/7" />
-              {[
-                "Submit fabric requests",
-                "AI sourcing spec",
-                "Quote preview",
-                "Request tracking",
-              ].map((item) => (
-                <div
-                  key={item}
-                  className="mb-3 flex items-start gap-3 text-sm text-slate-400"
-                >
-                  <span className="shrink-0 font-bold text-emerald-400">✓</span>
-                  {item}
-                </div>
-              ))}
+              {["Submit fabric requests", "AI sourcing spec", "Quote preview", "Request tracking"].map(
+                (item) => (
+                  <div key={item} className="mb-3 flex items-start gap-3 text-sm text-slate-400">
+                    <span className="shrink-0 font-bold text-emerald-400">✓</span>
+                    {item}
+                  </div>
+                )
+              )}
             </div>
 
             <div className="relative rounded-2xl border border-indigo-500/30 bg-gradient-to-b from-indigo-950 to-violet-950 p-6">
@@ -1284,9 +1292,7 @@ export default function HomePage() {
               <div className="mb-2 text-xs font-bold uppercase tracking-widest text-indigo-300">
                 Supplier Contact Unlock
               </div>
-              <div className="mb-3 text-4xl font-black tracking-tight text-white">
-                ₦10,000
-              </div>
+              <div className="mb-3 text-4xl font-black tracking-tight text-white">₦10,000</div>
               <p className="mb-5 text-sm leading-relaxed text-indigo-300/70">
                 Get direct access to your matched supplier after admin approval.
               </p>
@@ -1299,10 +1305,7 @@ export default function HomePage() {
                 "Contact person name",
                 "Controlled release process",
               ].map((item) => (
-                <div
-                  key={item}
-                  className="mb-3 flex items-start gap-3 text-sm text-indigo-200"
-                >
+                <div key={item} className="mb-3 flex items-start gap-3 text-sm text-indigo-200">
                   <span className="shrink-0 font-bold text-cyan-400">✓</span>
                   {item}
                 </div>
@@ -1313,9 +1316,7 @@ export default function HomePage() {
               <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">
                 Support
               </div>
-              <div className="mb-3 text-4xl font-black tracking-tight text-white">
-                Free
-              </div>
+              <div className="mb-3 text-4xl font-black tracking-tight text-white">Free</div>
               <p className="mb-5 text-sm leading-relaxed text-slate-500">
                 Talk to our team on WhatsApp before, during or after your request.
               </p>
@@ -1326,10 +1327,7 @@ export default function HomePage() {
                 "Quote clarification",
                 "Managed sourcing help",
               ].map((item) => (
-                <div
-                  key={item}
-                  className="mb-3 flex items-start gap-3 text-sm text-slate-400"
-                >
+                <div key={item} className="mb-3 flex items-start gap-3 text-sm text-slate-400">
                   <span className="shrink-0 font-bold text-emerald-400">✓</span>
                   {item}
                 </div>
@@ -1370,10 +1368,7 @@ export default function HomePage() {
                 accent: "from-pink-500 to-pink-600",
               },
             ].map((t) => (
-              <div
-                key={t.title}
-                className="rounded-2xl border border-white/7 bg-white/4 p-5"
-              >
+              <div key={t.title} className="rounded-2xl border border-white/7 bg-white/4 p-5">
                 <div className={`mb-4 h-1 w-full rounded-full bg-gradient-to-r ${t.accent}`} />
                 <h3 className="m-0 mb-2 text-sm font-bold text-white">{t.title}</h3>
                 <p className="m-0 text-xs leading-relaxed text-slate-500">{t.text}</p>
@@ -1400,10 +1395,7 @@ export default function HomePage() {
                 a: "Yes, always. Chat with us on WhatsApp at any point during your sourcing journey.",
               },
             ].map((faq) => (
-              <div
-                key={faq.q}
-                className="rounded-2xl border border-white/7 bg-white/4 p-5"
-              >
+              <div key={faq.q} className="rounded-2xl border border-white/7 bg-white/4 p-5">
                 <h3 className="m-0 mb-2 text-sm font-bold text-white">{faq.q}</h3>
                 <p className="m-0 text-xs leading-relaxed text-slate-500">{faq.a}</p>
               </div>
