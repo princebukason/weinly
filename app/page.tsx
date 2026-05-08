@@ -6,6 +6,7 @@ import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import { buildWhatsappLink } from "@/lib/config";
 import { useCurrency } from "@/hooks/useCurrency";
+import { FABRIC_CATEGORIES, getCategoryById, getCategoryColor, getCategoryLabel } from "@/lib/categories";
 
 let PaystackPop: any = null;
 
@@ -15,59 +16,30 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 const PAYSTACK_PUBLIC_KEY = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "";
 
 type FabricRequest = {
-  id: string;
-  created_at: string;
-  client_name: string | null;
-  client_email: string | null;
-  client_phone: string | null;
-  user_input: string;
-  ai_output: unknown;
-  status: string | null;
-  internal_note: string | null;
-  buyer_requested_contact: boolean | null;
-  contact_request_status: string | null;
-  contact_access_fee: string | null;
-  payment_status: string | null;
-  payment_reference: string | null;
-  paid_at: string | null;
+  id: string; created_at: string; client_name: string | null; client_email: string | null;
+  client_phone: string | null; user_input: string; ai_output: unknown; status: string | null;
+  internal_note: string | null; buyer_requested_contact: boolean | null;
+  contact_request_status: string | null; contact_access_fee: string | null;
+  payment_status: string | null; payment_reference: string | null; paid_at: string | null;
+  category: string | null; subcategory: string | null;
 };
 
 type Quote = {
-  id: string;
-  request_id: string;
-  supplier_name: string;
-  supplier_id?: string | null;
-  price: string | null;
-  moq: string | null;
-  note: string | null;
-  contact_name: string | null;
-  contact_phone: string | null;
-  contact_wechat: string | null;
-  contact_email: string | null;
-  supplier_region: string | null;
-  lead_time: string | null;
-  is_contact_released: boolean | null;
+  id: string; request_id: string; supplier_name: string; supplier_id?: string | null;
+  price: string | null; moq: string | null; note: string | null; contact_name: string | null;
+  contact_phone: string | null; contact_wechat: string | null; contact_email: string | null;
+  supplier_region: string | null; lead_time: string | null; is_contact_released: boolean | null;
 };
 
 type Review = {
-  id: string;
-  request_id: string;
-  supplier_id: string;
-  quote_id: string;
-  buyer_email: string | null;
-  buyer_name: string | null;
-  rating: number;
-  comment: string | null;
-  created_at: string;
+  id: string; request_id: string; supplier_id: string; quote_id: string;
+  buyer_email: string | null; buyer_name: string | null; rating: number;
+  comment: string | null; created_at: string;
 };
 
 type PublicReview = {
-  id: string;
-  supplier_name: string;
-  rating: number;
-  comment: string | null;
-  buyer_name: string | null;
-  created_at: string;
+  id: string; supplier_name: string; rating: number; comment: string | null;
+  buyer_name: string | null; created_at: string;
 };
 
 type BillingCycle = "monthly" | "yearly";
@@ -101,24 +73,25 @@ function getStagePill(request: FabricRequest, quoteCount: number) {
   return { bg: "bg-amber-900/60 text-amber-300 border border-amber-500/30", label: "In progress" };
 }
 
+function CategoryBadge({ categoryId, subcategory }: { categoryId: string; subcategory?: string | null }) {
+  const color = getCategoryColor(categoryId);
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${color.bg} ${color.text} ${color.border}`}>
+      {getCategoryLabel(categoryId)}{subcategory ? ` · ${subcategory}` : ""}
+    </span>
+  );
+}
+
 function StarRating({ value, onChange, size = "lg" }: { value: number; onChange?: (v: number) => void; size?: "sm" | "lg" }) {
   const [hovered, setHovered] = useState(0);
   const active = hovered || value;
   const sz = size === "lg" ? "text-2xl" : "text-base";
-
   return (
     <div className="flex gap-1">
       {[1, 2, 3, 4, 5].map((star) => (
-        <button
-          key={star}
-          type="button"
-          onClick={() => onChange?.(star)}
-          onMouseEnter={() => onChange && setHovered(star)}
-          onMouseLeave={() => onChange && setHovered(0)}
-          className={`${sz} border-0 bg-transparent p-0 leading-none transition-all ${
-            onChange ? "cursor-pointer" : "cursor-default"
-          } ${star <= active ? "text-amber-400" : "text-slate-700"}`}
-        >
+        <button key={star} type="button" onClick={() => onChange?.(star)}
+          onMouseEnter={() => onChange && setHovered(star)} onMouseLeave={() => onChange && setHovered(0)}
+          className={`${sz} border-0 bg-transparent p-0 leading-none transition-all ${onChange ? "cursor-pointer" : "cursor-default"} ${star <= active ? "text-amber-400" : "text-slate-700"}`}>
           ★
         </button>
       ))}
@@ -126,97 +99,55 @@ function StarRating({ value, onChange, size = "lg" }: { value: number; onChange?
   );
 }
 
-function ReviewForm({
-  request,
-  quote,
-  onSubmitted,
-}: {
-  request: FabricRequest;
-  quote: Quote;
-  onSubmitted: () => void;
-}) {
+function ReviewForm({ request, quote, onSubmitted }: { request: FabricRequest; quote: Quote; onSubmitted: () => void }) {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const labels = ["", "Poor", "Fair", "Good", "Very good", "Excellent"];
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (rating === 0) { setError("Please select a star rating."); return; }
-    setSubmitting(true);
-    setError("");
-
+    setSubmitting(true); setError("");
     try {
       const { error: insertError } = await supabase.from("supplier_reviews").insert([{
-        request_id: request.id,
-        supplier_id: quote.supplier_id || quote.id,
-        quote_id: quote.id,
-        buyer_email: request.client_email,
-        buyer_name: request.client_name,
-        rating,
-        comment: comment.trim() || null,
+        request_id: request.id, supplier_id: quote.supplier_id || quote.id,
+        quote_id: quote.id, buyer_email: request.client_email, buyer_name: request.client_name,
+        rating, comment: comment.trim() || null,
       }]);
-
       if (insertError) {
-        if (insertError.code === "23505") {
-          setError("You've already reviewed this supplier.");
-        } else {
-          throw insertError;
-        }
+        if (insertError.code === "23505") { setError("You've already reviewed this supplier."); }
+        else throw insertError;
         return;
       }
-
       onSubmitted();
-    } catch {
-      setError("Failed to submit review. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
+    } catch { setError("Failed to submit review. Please try again."); }
+    finally { setSubmitting(false); }
   }
-
-  const labels = ["", "Poor", "Fair", "Good", "Very good", "Excellent"];
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-4 rounded-2xl border border-amber-500/20 bg-amber-500/6 p-5">
       <div>
         <h4 className="m-0 mb-1 text-base font-bold text-white">Rate this supplier</h4>
-        <p className="m-0 text-xs leading-relaxed text-slate-500">
-          Help other buyers by sharing your experience with {quote.supplier_name}.
-        </p>
+        <p className="m-0 text-xs leading-relaxed text-slate-500">Help other buyers by sharing your experience with {quote.supplier_name}.</p>
       </div>
-
       <div className="flex flex-col gap-1.5">
         <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Your rating</label>
         <div className="flex items-center gap-3">
           <StarRating value={rating} onChange={setRating} />
-          {rating > 0 && (
-            <span className="text-sm font-semibold text-amber-300">{labels[rating]}</span>
-          )}
+          {rating > 0 && <span className="text-sm font-semibold text-amber-300">{labels[rating]}</span>}
         </div>
       </div>
-
       <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
-          Comment <span className="text-slate-600 normal-case font-normal">(optional)</span>
-        </label>
-        <textarea
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          placeholder="How was the supplier's pricing, communication and product quality?"
-          rows={3}
-          className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-amber-500"
-        />
+        <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Comment <span className="text-slate-600 normal-case font-normal">(optional)</span></label>
+        <textarea value={comment} onChange={(e) => setComment(e.target.value)}
+          placeholder="How was the supplier's pricing, communication and product quality?" rows={3}
+          className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-amber-500" />
       </div>
-
-      {error && (
-        <div className="rounded-xl border border-red-500/20 bg-red-500/8 p-3 text-xs text-red-300">{error}</div>
-      )}
-
-      <button
-        type="submit"
-        disabled={submitting || rating === 0}
-        className="self-start cursor-pointer rounded-xl border-0 bg-gradient-to-r from-amber-500 to-amber-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/25 disabled:cursor-not-allowed disabled:opacity-60"
-      >
+      {error && <div className="rounded-xl border border-red-500/20 bg-red-500/8 p-3 text-xs text-red-300">{error}</div>}
+      <button type="submit" disabled={submitting || rating === 0}
+        className="self-start cursor-pointer rounded-xl border-0 bg-gradient-to-r from-amber-500 to-amber-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/25 disabled:cursor-not-allowed disabled:opacity-60">
         {submitting ? "Submitting..." : "Submit review →"}
       </button>
     </form>
@@ -230,6 +161,8 @@ export default function HomePage() {
   const [clientName, setClientName] = useState("");
   const [clientEmail, setClientEmail] = useState("");
   const [clientPhone, setClientPhone] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedSubcategory, setSelectedSubcategory] = useState("");
   const [loading, setLoading] = useState(false);
   const [lookupLoading, setLookupLoading] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
@@ -244,55 +177,30 @@ export default function HomePage() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [realtimeFlash, setRealtimeFlash] = useState(false);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
-
-  // Reviews state
   const [submittedReviews, setSubmittedReviews] = useState<Set<string>>(new Set());
   const [existingReviews, setExistingReviews] = useState<Review[]>([]);
   const [publicReviews, setPublicReviews] = useState<PublicReview[]>([]);
   const [reviewsLoaded, setReviewsLoaded] = useState(false);
 
-  // Load public reviews once on mount
+  const activeCategory = useMemo(() => getCategoryById(selectedCategory), [selectedCategory]);
+
   useEffect(() => {
     async function loadPublicReviews() {
-      const { data } = await supabase
-        .from("supplier_reviews")
-        .select("id, rating, comment, buyer_name, created_at, supplier_id")
-        .order("created_at", { ascending: false })
-        .limit(20);
-
+      const { data } = await supabase.from("supplier_reviews").select("id, rating, comment, buyer_name, created_at, supplier_id").order("created_at", { ascending: false }).limit(20);
       if (!data) return;
-
-      // Fetch supplier names
       const supplierIds = [...new Set(data.map((r: any) => r.supplier_id))];
-      const { data: profiles } = await supabase
-        .from("supplier_profiles")
-        .select("id, company_name")
-        .in("id", supplierIds);
-
+      const { data: profiles } = await supabase.from("supplier_profiles").select("id, company_name").in("id", supplierIds);
       const nameMap: Record<string, string> = {};
       (profiles || []).forEach((p: any) => { nameMap[p.id] = p.company_name; });
-
-      setPublicReviews(data.map((r: any) => ({
-        id: r.id,
-        supplier_name: nameMap[r.supplier_id] || "Verified Supplier",
-        rating: r.rating,
-        comment: r.comment,
-        buyer_name: r.buyer_name,
-        created_at: r.created_at,
-      })));
+      setPublicReviews(data.map((r: any) => ({ id: r.id, supplier_name: nameMap[r.supplier_id] || "Verified Supplier", rating: r.rating, comment: r.comment, buyer_name: r.buyer_name, created_at: r.created_at })));
       setReviewsLoaded(true);
     }
-
     loadPublicReviews();
   }, []);
 
   async function generateAISpec(userInput: string) {
     try {
-      const res = await fetch("/api/spec", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input: userInput }),
-      });
+      const res = await fetch("/api/spec", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ input: userInput }) });
       if (!res.ok) return null;
       const data = await res.json();
       return data?.output || null;
@@ -315,8 +223,7 @@ export default function HomePage() {
     const { data } = await supabase.from("supplier_reviews").select("*").eq("request_id", id);
     if (data) {
       setExistingReviews(data as Review[]);
-      const reviewed = new Set(data.map((r: Review) => r.quote_id));
-      setSubmittedReviews(reviewed);
+      setSubmittedReviews(new Set(data.map((r: Review) => r.quote_id)));
     }
   }
 
@@ -327,15 +234,8 @@ export default function HomePage() {
     setLookupQuotes(quotes);
     setLookupId(id);
     setLastUpdated(new Date());
-    if (submittedRequest?.id === id) {
-      setSubmittedRequest(request);
-      setSubmittedQuotes(quotes);
-    }
-    if (flash) {
-      setRealtimeFlash(true);
-      setTimeout(() => setRealtimeFlash(false), 1500);
-    }
-    // Load reviews for this request
+    if (submittedRequest?.id === id) { setSubmittedRequest(request); setSubmittedQuotes(quotes); }
+    if (flash) { setRealtimeFlash(true); setTimeout(() => setRealtimeFlash(false), 1500); }
     await fetchReviewsForRequest(id);
   }, [submittedRequest]);
 
@@ -343,8 +243,7 @@ export default function HomePage() {
     const activeId = lookupId || requestId;
     if (!activeId) return;
     setIsLive(false);
-    const channel = supabase
-      .channel(`tracker-${activeId}`)
+    const channel = supabase.channel(`tracker-${activeId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "fabric_requests", filter: `id=eq.${activeId}` }, async () => { await syncState(activeId, true); })
       .on("postgres_changes", { event: "*", schema: "public", table: "quotes", filter: `request_id=eq.${activeId}` }, async () => { await syncState(activeId, true); })
       .subscribe((status) => { setIsLive(status === "SUBSCRIBED"); });
@@ -372,19 +271,16 @@ export default function HomePage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!description.trim()) { alert("Please describe the fabric you need."); return; }
+    if (!selectedCategory) { alert("Please select a fabric category."); return; }
     setLoading(true);
     try {
       const aiOutput = await generateAISpec(description.trim());
       const { data, error } = await supabase.from("fabric_requests").insert([{
-        client_name: clientName || null,
-        client_email: clientEmail || null,
-        client_phone: clientPhone || null,
-        user_input: description.trim(),
-        ai_output: aiOutput,
-        status: "submitted",
-        buyer_requested_contact: false,
-        contact_request_status: "none",
-        payment_status: "unpaid",
+        client_name: clientName || null, client_email: clientEmail || null,
+        client_phone: clientPhone || null, user_input: description.trim(),
+        ai_output: aiOutput, status: "submitted", buyer_requested_contact: false,
+        contact_request_status: "none", payment_status: "unpaid",
+        category: selectedCategory, subcategory: selectedSubcategory || null,
       }]).select().single();
       if (error) throw error;
       setSubmittedRequest(data as FabricRequest);
@@ -420,12 +316,7 @@ export default function HomePage() {
 
   async function requestContact(reqId: string) {
     try {
-      const { error } = await supabase.from("fabric_requests").update({
-        buyer_requested_contact: true,
-        contact_request_status: "pending",
-        payment_status: "unpaid",
-        contact_access_fee: prices.unlock,
-      }).eq("id", reqId);
+      const { error } = await supabase.from("fabric_requests").update({ buyer_requested_contact: true, contact_request_status: "pending", payment_status: "unpaid", contact_access_fee: prices.unlock }).eq("id", reqId);
       if (error) throw error;
       await syncState(reqId);
     } catch { alert("Failed to request supplier contact."); }
@@ -436,18 +327,7 @@ export default function HomePage() {
     if (!PAYSTACK_PUBLIC_KEY) { alert("Payment configuration missing."); return; }
     setPaymentLoading(true);
     try {
-      const initRes = await fetch("/api/paystack/initialize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: request.client_email,
-          amount: prices.unlockRaw,
-          requestId: request.id,
-          name: request.client_name,
-          phone: request.client_phone,
-          currency: prices.currency,
-        }),
-      });
+      const initRes = await fetch("/api/paystack/initialize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: request.client_email, amount: prices.unlockRaw, requestId: request.id, name: request.client_name, phone: request.client_phone, currency: prices.currency }) });
       const initData = await initRes.json();
       if (!initRes.ok || !initData?.access_code) { alert(initData?.error || "Failed to initialize payment."); setPaymentLoading(false); return; }
       if (!PaystackPop) { const m = await import("@paystack/inline-js"); PaystackPop = m.default; }
@@ -455,11 +335,7 @@ export default function HomePage() {
       popup.resumeTransaction(initData.access_code, {
         onSuccess: async (transaction: { reference: string }) => {
           try {
-            const verifyRes = await fetch("/api/paystack/verify", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ reference: transaction.reference, requestId: request.id, expectedAmount: prices.unlockRaw }),
-            });
+            const verifyRes = await fetch("/api/paystack/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reference: transaction.reference, requestId: request.id, expectedAmount: prices.unlockRaw }) });
             const verifyData = await verifyRes.json();
             if (!verifyRes.ok) { alert(verifyData?.error || "Verification failed."); return; }
             await syncState(request.id);
@@ -475,16 +351,12 @@ export default function HomePage() {
   const activeRequest = useMemo(() => lookupRequest || submittedRequest, [lookupRequest, submittedRequest]);
   const activeQuotes = useMemo(() => (lookupRequest ? lookupQuotes : submittedQuotes), [lookupRequest, lookupQuotes, submittedQuotes]);
   const stagePill = useMemo(() => (activeRequest ? getStagePill(activeRequest, activeQuotes.length) : null), [activeRequest, activeQuotes.length]);
-
   const genericSupportLink = buildWhatsappLink("Hello Weinly, I need help with fabric sourcing.");
   const proSupportLink = buildWhatsappLink("Hello Weinly, I want to upgrade to Weinly Pro.");
   const enterpriseSupportLink = buildWhatsappLink("Hello Weinly, I am interested in an Enterprise arrangement.");
   const proPrice = billingCycle === "monthly" ? prices.proMonthly : prices.proYearly;
   const proPeriod = billingCycle === "monthly" ? "month" : "year";
-
-  const avgRating = publicReviews.length > 0
-    ? (publicReviews.reduce((sum, r) => sum + r.rating, 0) / publicReviews.length).toFixed(1)
-    : null;
+  const avgRating = publicReviews.length > 0 ? (publicReviews.reduce((sum, r) => sum + r.rating, 0) / publicReviews.length).toFixed(1) : null;
 
   return (
     <main className="min-h-screen bg-[#0a0f1e] px-3 py-3 font-sans md:px-4 md:py-4">
@@ -503,17 +375,13 @@ export default function HomePage() {
               </div>
               <h1 className="text-4xl font-black leading-[1.05] tracking-tight text-white md:text-5xl lg:text-6xl">
                 Source premium fabrics{" "}
-                <span className="bg-gradient-to-r from-indigo-400 via-sky-400 to-emerald-400 bg-clip-text text-transparent">
-                  directly from China
-                </span>
+                <span className="bg-gradient-to-r from-indigo-400 via-sky-400 to-emerald-400 bg-clip-text text-transparent">directly from China</span>
               </h1>
-              <p className="max-w-lg text-base leading-relaxed text-slate-400 md:text-lg">
-                Describe what you need. Get verified supplier quotes. Unlock direct contact and negotiate the best deals — no middlemen.
-              </p>
+              <p className="max-w-lg text-base leading-relaxed text-slate-400 md:text-lg">Describe what you need. Get verified supplier quotes. Unlock direct contact and negotiate the best deals — no middlemen.</p>
               <div className="flex flex-wrap gap-6">
                 {[
                   { v: "500+", l: "Verified suppliers" },
-                  { v: "24hr", l: "Avg quote time" },
+                  { v: "9", l: "Fabric categories" },
                   { v: prices.unlock, l: "Contact unlock" },
                   ...(avgRating ? [{ v: `${avgRating}★`, l: "Avg supplier rating" }] : []),
                 ].map((s) => (
@@ -524,20 +392,16 @@ export default function HomePage() {
                 ))}
               </div>
               <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={() => { setActiveTab("submit"); document.getElementById("main-tabs")?.scrollIntoView({ behavior: "smooth" }); }}
-                  className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-indigo-500 to-indigo-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-500/30 transition-all hover:shadow-indigo-500/50"
-                >
+                <button onClick={() => { setActiveTab("submit"); document.getElementById("main-tabs")?.scrollIntoView({ behavior: "smooth" }); }}
+                  className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-indigo-500 to-indigo-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-500/30 transition-all hover:shadow-indigo-500/50">
                   Start sourcing →
                 </button>
-                <a href={genericSupportLink} target="_blank" rel="noreferrer" className="flex items-center rounded-xl border border-white/12 bg-white/6 px-6 py-3 text-sm font-semibold text-slate-300 no-underline transition-all hover:bg-white/10">
-                  WhatsApp us
-                </a>
+                <a href={genericSupportLink} target="_blank" rel="noreferrer" className="flex items-center rounded-xl border border-white/12 bg-white/6 px-6 py-3 text-sm font-semibold text-slate-300 no-underline transition-all hover:bg-white/10">WhatsApp us</a>
               </div>
             </div>
             <div className="flex flex-col gap-3">
               {[
-                { icon: "✦", title: "AI spec formatting", text: "Turn rough descriptions into professional sourcing specs instantly.", color: "text-indigo-400" },
+                { icon: "✦", title: "9 fabric categories", text: "Luxury, African, Sports, Casual, Men's, Furniture, Industrial, Kids and Eco fabrics.", color: "text-indigo-400" },
                 { icon: "◈", title: "Verified quotes first", text: "See price, MOQ and lead time before paying anything.", color: "text-emerald-400" },
                 { icon: "⬡", title: "Direct supplier access", text: `Pay ${prices.unlock} to unlock phone, WeChat and email directly.`, color: "text-amber-400" },
               ].map((f) => (
@@ -553,14 +417,32 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ── CATEGORIES SHOWCASE ── */}
+        <section className="rounded-3xl border border-white/7 bg-[#111827] p-6 md:p-8">
+          <span className="mb-3 inline-block rounded-full bg-indigo-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-indigo-400">What we source</span>
+          <h2 className="mb-6 text-2xl font-black tracking-tight text-white md:text-3xl">9 fabric categories</h2>
+          <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {FABRIC_CATEGORIES.map((cat) => {
+              const color = getCategoryColor(cat.id);
+              return (
+                <button key={cat.id} onClick={() => { setSelectedCategory(cat.id); setSelectedSubcategory(""); setActiveTab("submit"); document.getElementById("main-tabs")?.scrollIntoView({ behavior: "smooth" }); }}
+                  className={`flex flex-col gap-2 rounded-2xl border p-4 text-left transition-all cursor-pointer hover:scale-[1.02] ${color.bg} ${color.border}`}>
+                  <span className={`text-sm font-bold ${color.text}`}>{cat.label}</span>
+                  <span className="text-xs text-slate-500">{cat.subcategories.length} types</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
         {/* ── HOW IT WORKS ── */}
         <section id="how-it-works" className="rounded-3xl border border-white/7 bg-[#111827] p-6 md:p-10">
           <span className="mb-3 inline-block rounded-full bg-indigo-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-indigo-400">How it works</span>
           <h2 className="mb-8 text-2xl font-black tracking-tight text-white md:text-3xl">Three steps to your supplier</h2>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {[
-              { n: "01", title: "Submit your request", text: "Describe the fabric you need. AI formats it into a professional sourcing spec.", color: "from-indigo-500 to-indigo-600", textColor: "text-indigo-400" },
-              { n: "02", title: "Review supplier quotes", text: "We match you to verified Chinese suppliers. See price, MOQ and lead time first.", color: "from-emerald-500 to-emerald-600", textColor: "text-emerald-400" },
+              { n: "01", title: "Submit your request", text: "Choose a fabric category, describe what you need. AI formats it into a professional sourcing spec.", color: "from-indigo-500 to-indigo-600", textColor: "text-indigo-400" },
+              { n: "02", title: "Review supplier quotes", text: "We match you to verified Chinese suppliers in your category. See price, MOQ and lead time first.", color: "from-emerald-500 to-emerald-600", textColor: "text-emerald-400" },
               { n: "03", title: "Unlock & connect", text: `Pay ${prices.unlock} to unlock direct supplier contact — phone, WeChat, email.`, color: "from-amber-500 to-amber-600", textColor: "text-amber-400" },
             ].map((step) => (
               <div key={step.n} className="rounded-2xl border border-white/7 bg-white/4 p-6">
@@ -588,9 +470,11 @@ export default function HomePage() {
             <div className="flex flex-col gap-5">
               <div>
                 <h2 className="mb-1 text-xl font-black tracking-tight text-white md:text-2xl">Tell us what you need</h2>
-                <p className="m-0 text-sm leading-relaxed text-slate-500">Be detailed — fabric type, color, quantity and quality. Better detail = better quotes.</p>
+                <p className="m-0 text-sm leading-relaxed text-slate-500">Select a fabric category, then describe your requirement in detail.</p>
               </div>
-              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+
+              <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+                {/* Contact fields */}
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                   {[
                     { label: "Your name", value: clientName, setter: setClientName, placeholder: "e.g. Amaka Obi", type: "text" },
@@ -604,22 +488,75 @@ export default function HomePage() {
                     </div>
                   ))}
                 </div>
+
+                {/* Category selection */}
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Fabric category <span className="text-red-400">*</span></label>
+                    <p className="mt-1 text-xs text-slate-600">Select the category that best matches your fabric need.</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-5">
+                    {FABRIC_CATEGORIES.map((cat) => {
+                      const color = getCategoryColor(cat.id);
+                      const isSelected = selectedCategory === cat.id;
+                      return (
+                        <button key={cat.id} type="button" onClick={() => { setSelectedCategory(cat.id); setSelectedSubcategory(""); }}
+                          className={`rounded-xl border px-3 py-2.5 text-left text-xs font-bold transition-all cursor-pointer ${isSelected ? `${color.bg} ${color.text} ${color.border} ring-1 ring-offset-1 ring-offset-[#111827] ring-current` : "border-white/10 bg-white/4 text-slate-500 hover:border-white/20 hover:text-slate-300"}`}>
+                          {cat.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Subcategory selection */}
+                {activeCategory && (
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Fabric type <span className="text-slate-600 normal-case font-normal">(optional — be more specific)</span></label>
+                    <div className="flex flex-wrap gap-2">
+                      {activeCategory.subcategories.map((sub) => {
+                        const color = getCategoryColor(activeCategory.id);
+                        const isSelected = selectedSubcategory === sub;
+                        return (
+                          <button key={sub} type="button" onClick={() => setSelectedSubcategory(isSelected ? "" : sub)}
+                            className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${isSelected ? `${color.bg} ${color.text} ${color.border}` : "border-white/10 bg-white/4 text-slate-500 hover:text-slate-300"}`}>
+                            {sub}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Description */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Fabric description</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Fabric description <span className="text-red-400">*</span></label>
                   <textarea value={description} onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Example: premium beaded lace for wedding asoebi, navy blue, soft handfeel, 5-yard packs, high-end quality, need at least 50 packs..."
+                    placeholder={
+                      selectedCategory === "luxury" ? "Example: Swiss lace for bridal asoebi, ivory/cream, intricate floral pattern, soft handfeel, 5-yard packs, need 50+ packs..."
+                      : selectedCategory === "african" ? "Example: Ankara wax print, vibrant geometric patterns, 6-yard bolt, 100% cotton, minimum 100 bolts..."
+                      : selectedCategory === "sports" ? "Example: Dry-fit fabric for football jerseys, moisture-wicking, polyester blend, various colors, MOQ 500 meters..."
+                      : "Describe the fabric type, color, quantity, quality and intended use..."
+                    }
                     rows={5} className="w-full resize-y rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-indigo-500 focus:bg-indigo-500/5" />
                   <p className="m-0 text-xs text-slate-600">Include: fabric type · color · quantity · quality level · intended use</p>
                 </div>
+
+                {/* Selected category preview */}
+                {selectedCategory && (
+                  <div className="flex items-center gap-2 rounded-xl border border-white/7 bg-white/4 px-4 py-3">
+                    <span className="text-xs text-slate-500">Your request:</span>
+                    <CategoryBadge categoryId={selectedCategory} subcategory={selectedSubcategory} />
+                  </div>
+                )}
+
                 <div className="flex flex-wrap gap-3">
-                  <button type="submit" disabled={loading}
+                  <button type="submit" disabled={loading || !selectedCategory}
                     className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-indigo-500 to-indigo-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-500/25 disabled:cursor-not-allowed disabled:opacity-60">
                     {loading ? "Processing..." : "Submit fabric request →"}
                   </button>
                   <a href={genericSupportLink} target="_blank" rel="noreferrer"
-                    className="flex items-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-6 py-3 text-sm font-bold text-emerald-400 no-underline transition-all hover:bg-emerald-500/15">
-                    Need help?
-                  </a>
+                    className="flex items-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-6 py-3 text-sm font-bold text-emerald-400 no-underline transition-all hover:bg-emerald-500/15">Need help?</a>
                 </div>
               </form>
             </div>
@@ -652,6 +589,12 @@ export default function HomePage() {
                       <div className="text-sm text-slate-500">Save your ID to track quotes</div>
                     </div>
                   </div>
+                  {submittedRequest.category && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-500">Category:</span>
+                      <CategoryBadge categoryId={submittedRequest.category} subcategory={submittedRequest.subcategory} />
+                    </div>
+                  )}
                   <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/8 p-4">
                     <div className="mb-1 text-xs font-bold uppercase tracking-widest text-emerald-400">Request ID</div>
                     <div className="break-all text-sm font-semibold text-emerald-300">{submittedRequest.id}</div>
@@ -691,7 +634,10 @@ export default function HomePage() {
                   {lastUpdated && <span className="ml-2 text-xs text-slate-600">· Updated {lastUpdated.toLocaleTimeString()}</span>}
                 </p>
               </div>
-              <span className={`rounded-full px-4 py-2 text-xs font-bold ${stagePill.bg}`}>{stagePill.label}</span>
+              <div className="flex flex-wrap items-center gap-2">
+                {activeRequest.category && <CategoryBadge categoryId={activeRequest.category} subcategory={activeRequest.subcategory} />}
+                <span className={`rounded-full px-4 py-2 text-xs font-bold ${stagePill.bg}`}>{stagePill.label}</span>
+              </div>
             </div>
 
             {realtimeFlash && (
@@ -741,7 +687,7 @@ export default function HomePage() {
               </div>
             )}
 
-            {/* ── QUOTES ── */}
+            {/* QUOTES */}
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <h3 className="m-0 text-lg font-bold text-white">Supplier quotes</h3>
@@ -749,7 +695,6 @@ export default function HomePage() {
                   {activeQuotes.length} {activeQuotes.length === 1 ? "quote" : "quotes"}
                 </span>
               </div>
-
               {activeQuotes.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-white/10 bg-white/2 p-10 text-center">
                   <div className="mb-3 text-4xl">◎</div>
@@ -777,7 +722,6 @@ export default function HomePage() {
                           {isReleased ? "Contact released" : "Protected"}
                         </span>
                       </div>
-
                       <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
                         {[
                           { label: "Price", value: quote.price || "Pending" },
@@ -791,14 +735,12 @@ export default function HomePage() {
                           </div>
                         ))}
                       </div>
-
                       {quote.note && (
                         <div className="rounded-xl border border-white/7 bg-white/4 p-4">
                           <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">Supplier note</div>
                           <p className="m-0 whitespace-pre-wrap text-sm leading-relaxed text-slate-400">{quote.note}</p>
                         </div>
                       )}
-
                       {!isReleased && contactStatus === "none" && (
                         <div className="rounded-2xl border border-indigo-500/20 bg-gradient-to-br from-[#111827] to-[#161b2f] p-5">
                           <div className="mb-4">
@@ -825,26 +767,19 @@ export default function HomePage() {
                                   <div key={item} className="flex items-start gap-2 text-sm text-slate-300"><span className="text-emerald-400">✓</span><span>{item}</span></div>
                                 ))}
                               </div>
-                              <a href="/pricing" className="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-violet-500 to-indigo-600 px-5 py-3 text-sm font-bold text-white no-underline shadow-lg shadow-violet-500/20">
-                                Upgrade to Pro
-                              </a>
+                              <a href="/pricing" className="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-violet-500 to-indigo-600 px-5 py-3 text-sm font-bold text-white no-underline shadow-lg shadow-violet-500/20">Upgrade to Pro</a>
                             </div>
                           </div>
-                          <div className="mt-4 flex flex-wrap gap-3">
-                            <a href={supportLink} target="_blank" rel="noreferrer" className="flex items-center rounded-xl border border-white/10 bg-white/6 px-5 py-2.5 text-sm font-semibold text-slate-400 no-underline transition-all hover:bg-white/10">Ask support</a>
+                          <div className="mt-4">
+                            <a href={supportLink} target="_blank" rel="noreferrer" className="inline-flex items-center rounded-xl border border-white/10 bg-white/6 px-5 py-2.5 text-sm font-semibold text-slate-400 no-underline transition-all hover:bg-white/10">Ask support</a>
                           </div>
                         </div>
                       )}
-
                       {!isReleased && contactStatus === "pending" && paymentStatus === "unpaid" && (
                         <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/6 p-5">
                           <h4 className="m-0 mb-4 text-base font-bold text-white">Unlock supplier contact</h4>
                           <div className="mb-4 flex flex-col gap-2 rounded-xl border border-indigo-500/15 bg-indigo-500/8 p-4">
-                            {[
-                              { label: "Access fee", value: prices.unlock },
-                              { label: "Payment method", value: "Paystack" },
-                              { label: "Request ID", value: activeRequest.id },
-                            ].map((row) => (
+                            {[{ label: "Access fee", value: prices.unlock }, { label: "Payment method", value: "Paystack" }, { label: "Request ID", value: activeRequest.id }].map((row) => (
                               <div key={row.label} className="flex flex-wrap justify-between gap-3">
                                 <span className="text-sm text-slate-500">{row.label}</span>
                                 <strong className="text-sm text-white">{row.value}</strong>
@@ -861,19 +796,14 @@ export default function HomePage() {
                           </div>
                         </div>
                       )}
-
                       {!isReleased && contactStatus === "pending" && paymentStatus === "paid" && (
                         <div className="rounded-xl border border-amber-500/20 bg-amber-500/8 p-4 text-sm leading-relaxed text-amber-300">
                           <strong>Payment confirmed.</strong> Awaiting admin approval — supplier contact will be released shortly.
                         </div>
                       )}
-
                       {!isReleased && contactStatus === "rejected" && (
-                        <div className="rounded-xl border border-red-500/20 bg-red-500/8 p-4 text-sm leading-relaxed text-red-300">
-                          Contact release was not approved. Please contact support on WhatsApp.
-                        </div>
+                        <div className="rounded-xl border border-red-500/20 bg-red-500/8 p-4 text-sm leading-relaxed text-red-300">Contact release was not approved. Please contact support on WhatsApp.</div>
                       )}
-
                       {isReleased && (
                         <>
                           <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/6 p-5">
@@ -895,27 +825,16 @@ export default function HomePage() {
                               ))}
                             </div>
                           </div>
-
-                          {/* ── REVIEW SECTION ── */}
                           {alreadyReviewed && existingReview ? (
                             <div className="rounded-2xl border border-amber-500/20 bg-amber-500/6 p-5">
                               <div className="mb-3 flex items-center gap-2">
                                 <span className="text-sm font-bold text-amber-300">Your review</span>
                                 <StarRating value={existingReview.rating} size="sm" />
                               </div>
-                              {existingReview.comment && (
-                                <p className="m-0 text-sm leading-relaxed text-slate-400">{existingReview.comment}</p>
-                              )}
+                              {existingReview.comment && <p className="m-0 text-sm leading-relaxed text-slate-400">{existingReview.comment}</p>}
                             </div>
                           ) : (
-                            <ReviewForm
-                              request={activeRequest}
-                              quote={quote}
-                              onSubmitted={() => {
-                                setSubmittedReviews((prev) => new Set([...prev, quote.id]));
-                                syncState(activeRequest.id);
-                              }}
-                            />
+                            <ReviewForm request={activeRequest} quote={quote} onSubmitted={() => { setSubmittedReviews((prev) => new Set([...prev, quote.id])); syncState(activeRequest.id); }} />
                           )}
                         </>
                       )}
@@ -958,33 +877,20 @@ export default function HomePage() {
                 </div>
               )}
             </div>
-
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {publicReviews.slice(0, 6).map((review) => (
                 <div key={review.id} className="flex flex-col gap-3 rounded-2xl border border-white/7 bg-white/4 p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="mb-0.5 text-sm font-bold text-white">{review.supplier_name}</div>
-                      <div className="text-xs text-slate-500">
-                        {review.buyer_name ? `by ${review.buyer_name}` : "Verified buyer"}
-                        {" · "}
-                        {new Date(review.created_at).toLocaleDateString()}
-                      </div>
+                      <div className="text-xs text-slate-500">{review.buyer_name ? `by ${review.buyer_name}` : "Verified buyer"} · {new Date(review.created_at).toLocaleDateString()}</div>
                     </div>
                     <StarRating value={review.rating} size="sm" />
                   </div>
-                  {review.comment && (
-                    <p className="m-0 text-sm leading-relaxed text-slate-400">{review.comment}</p>
-                  )}
+                  {review.comment && <p className="m-0 text-sm leading-relaxed text-slate-400">{review.comment}</p>}
                 </div>
               ))}
             </div>
-
-            {publicReviews.length > 6 && (
-              <div className="mt-4 text-center">
-                <span className="text-xs text-slate-600">Showing 6 of {publicReviews.length} reviews</span>
-              </div>
-            )}
           </section>
         )}
 
@@ -1018,7 +924,6 @@ export default function HomePage() {
           <span className="mb-3 inline-block rounded-full bg-indigo-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-indigo-400">Pricing</span>
           <h2 className="mb-2 text-2xl font-black tracking-tight text-white md:text-3xl">Simple, transparent pricing</h2>
           <p className="m-0 mb-6 text-sm leading-relaxed text-slate-500">Start for free. Only pay when you want direct access to a supplier.</p>
-
           <div className="mb-8 flex justify-start">
             <div className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 p-1.5">
               {(["monthly", "yearly"] as const).map((cycle) => (
@@ -1029,9 +934,7 @@ export default function HomePage() {
               ))}
             </div>
           </div>
-
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-            {/* Free */}
             <div className="flex flex-col rounded-2xl border border-white/7 bg-white/4 p-6">
               <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">Free</div>
               <div className="mb-3 text-4xl font-black tracking-tight text-white">{prices.symbol}0</div>
@@ -1039,21 +942,15 @@ export default function HomePage() {
               <div className="mb-5 h-px bg-white/7" />
               <div className="flex flex-1 flex-col gap-3 mb-6">
                 {["Submit sourcing requests", "AI sourcing spec", "Quote preview", "Track request progress"].map((item) => (
-                  <div key={item} className="flex items-start gap-3 text-sm text-slate-400">
-                    <span className="mt-0.5 shrink-0 font-bold text-emerald-400">✓</span>{item}
-                  </div>
+                  <div key={item} className="flex items-start gap-3 text-sm text-slate-400"><span className="mt-0.5 shrink-0 font-bold text-emerald-400">✓</span>{item}</div>
                 ))}
                 <div className="my-1 h-px bg-white/7" />
                 {["Supplier contact unlocks billed separately", "No priority matching", "No dedicated support"].map((item) => (
-                  <div key={item} className="flex items-start gap-3 text-sm text-slate-600">
-                    <span className="mt-0.5 shrink-0 text-slate-700">✕</span>{item}
-                  </div>
+                  <div key={item} className="flex items-start gap-3 text-sm text-slate-600"><span className="mt-0.5 shrink-0 text-slate-700">✕</span>{item}</div>
                 ))}
               </div>
               <a href="/#main-tabs" className="block rounded-xl border border-white/10 bg-white/6 py-3 text-center text-sm font-bold text-slate-300 no-underline transition-all hover:bg-white/10">Start free</a>
             </div>
-
-            {/* Contact Unlock */}
             <div className="flex flex-col rounded-2xl border border-white/7 bg-white/4 p-6">
               <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">Contact Unlock</div>
               <div className="mb-1 text-4xl font-black tracking-tight text-white">{prices.unlock}</div>
@@ -1062,9 +959,7 @@ export default function HomePage() {
               <div className="mb-5 h-px bg-white/7" />
               <div className="flex flex-1 flex-col gap-3 mb-6">
                 {["Everything in Free", "Direct phone number", "WeChat ID", "Email address", "Contact person name", "Controlled release process"].map((item) => (
-                  <div key={item} className="flex items-start gap-3 text-sm text-slate-400">
-                    <span className="mt-0.5 shrink-0 font-bold text-emerald-400">✓</span>{item}
-                  </div>
+                  <div key={item} className="flex items-start gap-3 text-sm text-slate-400"><span className="mt-0.5 shrink-0 font-bold text-emerald-400">✓</span>{item}</div>
                 ))}
               </div>
               <button onClick={() => { setActiveTab("submit"); document.getElementById("main-tabs")?.scrollIntoView({ behavior: "smooth" }); }}
@@ -1072,8 +967,6 @@ export default function HomePage() {
                 Submit a request
               </button>
             </div>
-
-            {/* Pro */}
             <div className="relative flex flex-col rounded-2xl border border-indigo-500/30 bg-gradient-to-b from-indigo-950 to-violet-950 p-6 shadow-2xl shadow-indigo-500/15">
               <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-1.5 text-xs font-bold text-white">Most popular</span>
               <div className="mb-2 text-xs font-bold uppercase tracking-widest text-indigo-300">Weinly Pro</div>
@@ -1083,9 +976,7 @@ export default function HomePage() {
               </div>
               <p className="mb-3 text-sm leading-relaxed text-indigo-200/80">Best for active buyers who want faster supplier access and more support.</p>
               {billingCycle === "yearly" && (
-                <div className="mb-4 inline-flex w-fit items-center gap-1 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-bold text-emerald-400">
-                  Save {prices.currency === "NGN" ? "₦100,000" : "$120"} yearly
-                </div>
+                <div className="mb-4 inline-flex w-fit items-center gap-1 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-bold text-emerald-400">Save {prices.currency === "NGN" ? "₦100,000" : "$120"} yearly</div>
               )}
               <div className="mb-5 rounded-2xl border border-indigo-400/20 bg-white/5 p-4">
                 <div className="mb-1 text-xs font-bold uppercase tracking-widest text-indigo-300">What you get</div>
@@ -1095,9 +986,7 @@ export default function HomePage() {
               <div className="mb-5 h-px bg-white/10" />
               <div className="flex flex-1 flex-col gap-3 mb-6">
                 {["Everything in Free", "3 contact unlocks / month", "Priority supplier matching", "Dedicated WhatsApp support", "Reorder from past requests", "Price intelligence on quotes", "Faster turnaround", "Early access to new features"].map((item) => (
-                  <div key={item} className="flex items-start gap-3 text-sm text-indigo-100">
-                    <span className="mt-0.5 shrink-0 font-bold text-cyan-400">✓</span>{item}
-                  </div>
+                  <div key={item} className="flex items-start gap-3 text-sm text-indigo-100"><span className="mt-0.5 shrink-0 font-bold text-cyan-400">✓</span>{item}</div>
                 ))}
               </div>
               <div className="flex flex-col gap-2">
@@ -1105,8 +994,6 @@ export default function HomePage() {
                 <a href={proSupportLink} target="_blank" rel="noreferrer" className="block w-full rounded-xl border border-emerald-500/20 bg-emerald-500/10 py-3 text-center text-sm font-bold text-emerald-400 no-underline transition-all hover:bg-emerald-500/15">Pay via bank transfer</a>
               </div>
             </div>
-
-            {/* Enterprise */}
             <div className="flex flex-col rounded-2xl border border-white/7 bg-white/4 p-6">
               <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">Enterprise</div>
               <div className="mb-3 text-4xl font-black tracking-tight text-white">Custom</div>
@@ -1114,9 +1001,7 @@ export default function HomePage() {
               <div className="mb-5 h-px bg-white/7" />
               <div className="flex flex-1 flex-col gap-3 mb-6">
                 {["Everything in Pro", "Unlimited contact unlocks", "Dedicated account manager", "Factory inspection support", "Bulk order handling", "Custom sourcing workflow", "Custom pricing"].map((item) => (
-                  <div key={item} className="flex items-start gap-3 text-sm text-slate-400">
-                    <span className="mt-0.5 shrink-0 font-bold text-amber-400">✓</span>{item}
-                  </div>
+                  <div key={item} className="flex items-start gap-3 text-sm text-slate-400"><span className="mt-0.5 shrink-0 font-bold text-amber-400">✓</span>{item}</div>
                 ))}
               </div>
               <a href={enterpriseSupportLink} target="_blank" rel="noreferrer" className="block rounded-xl border border-amber-500/20 bg-amber-500/10 py-3 text-center text-sm font-bold text-amber-400 no-underline transition-all hover:bg-amber-500/15">Talk to us on WhatsApp</a>
