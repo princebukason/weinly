@@ -56,7 +56,7 @@ export default function SiteFooter() {
 
       {/* Bottom bar */}
       <div className="mt-8 pt-6 border-t border-white/6 flex flex-col md:flex-row justify-between items-center gap-3">
-        <p className="text-slate-600 text-xs">© 2025 Weinly. Built for fabric buyers sourcing from China.</p>
+        <p className="text-slate-600 text-xs">© 2026 Weinly. Built for fabric buyers sourcing from China.</p>
         <div className="flex items-center gap-4">
           <span className="text-slate-600 text-xs">Powered by AI</span>
           <span className="text-slate-600 text-xs">·</span>

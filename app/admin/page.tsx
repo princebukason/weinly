@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { FABRIC_CATEGORIES, getCategoryColor, getCategoryLabel } from "@/lib/categories";
+import { getCategoryColor, getCategoryLabel } from "@/lib/categories";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -17,25 +17,38 @@ type FabricRequest = {
   payment_status: string | null; payment_reference: string | null; paid_at: string | null;
   category: string | null; subcategory: string | null;
 };
+
 type Quote = {
   id: string; request_id: string; supplier_name: string; price: string | null; moq: string | null;
   note: string | null; contact_name: string | null; contact_phone: string | null;
   contact_wechat: string | null; contact_email: string | null; supplier_region: string | null;
   lead_time: string | null; is_contact_released: boolean | null;
 };
+
 type SupplierProfile = {
   id: string; user_id: string; company_name: string; contact_name: string | null;
   email: string | null; phone: string | null; wechat: string | null; region: string | null;
-  is_active: boolean | null; created_at: string; categories?: string[] | null;
+  is_active: boolean | null; is_verified: boolean | null; verified_at: string | null;
+  bio: string | null; categories: string[] | null; created_at: string;
 };
+
 type SupplierInvite = {
   id: string; code: string; email: string | null; used: boolean; used_at: string | null; created_at: string;
 };
+
 type SupplierReview = {
   id: string; request_id: string; supplier_id: string; quote_id: string;
   buyer_name: string | null; buyer_email: string | null; rating: number;
   comment: string | null; created_at: string;
 };
+
+type ReadyStockItem = {
+  id: string; supplier_id: string; name: string; description: string | null;
+  category: string; subcategory: string | null; price_per_unit: string; unit: string;
+  moq: string; available_quantity: string | null; is_active: boolean | null; is_sold_out: boolean | null;
+  created_at: string;
+};
+
 type NewQuoteForm = {
   supplier_name: string; price: string; moq: string; note: string; contact_name: string;
   contact_phone: string; contact_wechat: string; contact_email: string; supplier_region: string; lead_time: string;
@@ -80,7 +93,10 @@ function StarDisplay({ rating }: { rating: number }) {
 
 async function sendPushNotification(buyerEmail: string, title: string, message: string, requestId: string) {
   try {
-    await fetch("/api/push/notify-buyer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ buyerEmail, title, message, requestId }) });
+    await fetch("/api/push/notify-buyer", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ buyerEmail, title, message, requestId }),
+    });
   } catch (e) { console.error("Push notification failed:", e); }
 }
 
@@ -88,14 +104,16 @@ export default function AdminPage() {
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"requests" | "suppliers" | "invites" | "reviews">("requests");
+  const [activeTab, setActiveTab] = useState<"requests" | "suppliers" | "invites" | "reviews" | "stock">("requests");
+
   const [requests, setRequests] = useState<FabricRequest[]>([]);
   const [quotesMap, setQuotesMap] = useState<Record<string, Quote[]>>({});
   const [suppliers, setSuppliers] = useState<SupplierProfile[]>([]);
   const [invites, setInvites] = useState<SupplierInvite[]>([]);
   const [reviews, setReviews] = useState<SupplierReview[]>([]);
+  const [readyStock, setReadyStock] = useState<ReadyStockItem[]>([]);
   const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [newQuotes, setNewQuotes] = useState<Record<string, NewQuoteForm>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [expandedSupplierId, setExpandedSupplierId] = useState<string | null>(null);
@@ -112,12 +130,13 @@ export default function AdminPage() {
   async function fetchAll() {
     setLoading(true);
     try {
-      const [reqRes, quotesRes, suppliersRes, invitesRes, reviewsRes] = await Promise.all([
+      const [reqRes, quotesRes, suppliersRes, invitesRes, reviewsRes, stockRes] = await Promise.all([
         supabase.from("fabric_requests").select("*").order("created_at", { ascending: false }),
         supabase.from("quotes").select("*").order("id", { ascending: false }),
         supabase.from("supplier_profiles").select("*").order("created_at", { ascending: false }),
         supabase.from("supplier_invites").select("*").order("created_at", { ascending: false }),
         supabase.from("supplier_reviews").select("*").order("created_at", { ascending: false }),
+        supabase.from("ready_stock").select("*").order("created_at", { ascending: false }),
       ]);
       setRequests((reqRes.data || []) as FabricRequest[]);
       const grouped: Record<string, Quote[]> = {};
@@ -130,32 +149,52 @@ export default function AdminPage() {
       setSuppliers((suppliersRes.data || []) as SupplierProfile[]);
       setInvites((invitesRes.data || []) as SupplierInvite[]);
       setReviews((reviewsRes.data || []) as SupplierReview[]);
+      setReadyStock((stockRes.data || []) as ReadyStockItem[]);
     } catch { alert("Failed to load admin data."); }
     finally { setLoading(false); }
   }
 
   function handleLogin() {
-    if (password === ADMIN_PASSWORD) { setAuthenticated(true); localStorage.setItem("weinly_admin_auth", "true"); fetchAll(); }
-    else alert("Wrong password.");
+    if (password === ADMIN_PASSWORD) {
+      setAuthenticated(true);
+      localStorage.setItem("weinly_admin_auth", "true");
+      fetchAll();
+    } else { alert("Wrong password."); }
   }
 
-  function handleLogout() { localStorage.removeItem("weinly_admin_auth"); setAuthenticated(false); }
+  function handleLogout() {
+    localStorage.removeItem("weinly_admin_auth");
+    setAuthenticated(false);
+  }
 
   function updateNewQuoteField(requestId: string, field: keyof NewQuoteForm, value: string) {
-    setNewQuotes((prev) => ({ ...prev, [requestId]: { ...(prev[requestId] || { ...emptyQuoteForm }), [field]: value } }));
+    setNewQuotes((prev) => ({
+      ...prev,
+      [requestId]: { ...(prev[requestId] || { ...emptyQuoteForm }), [field]: value },
+    }));
   }
 
   async function addQuote(requestId: string) {
     const form = newQuotes[requestId];
     if (!form?.supplier_name?.trim()) { alert("Supplier name is required."); return; }
     try {
-      const { error } = await supabase.from("quotes").insert([{ request_id: requestId, supplier_name: form.supplier_name.trim(), price: form.price || null, moq: form.moq || null, note: form.note || null, contact_name: form.contact_name || null, contact_phone: form.contact_phone || null, contact_wechat: form.contact_wechat || null, contact_email: form.contact_email || null, supplier_region: form.supplier_region || null, lead_time: form.lead_time || null, is_contact_released: false }]);
+      const { error } = await supabase.from("quotes").insert([{
+        request_id: requestId, supplier_name: form.supplier_name.trim(),
+        price: form.price || null, moq: form.moq || null, note: form.note || null,
+        contact_name: form.contact_name || null, contact_phone: form.contact_phone || null,
+        contact_wechat: form.contact_wechat || null, contact_email: form.contact_email || null,
+        supplier_region: form.supplier_region || null, lead_time: form.lead_time || null,
+        is_contact_released: false,
+      }]);
       if (error) throw error;
       await supabase.from("fabric_requests").update({ status: "quoted" }).eq("id", requestId);
       try {
         const request = requests.find((r) => r.id === requestId);
         if (request?.client_email) {
-          await fetch("/api/email/notify-quotes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ buyerEmail: request.client_email, buyerName: request.client_name, requestId, quoteCount: (quotesMap[requestId]?.length || 0) + 1 }) });
+          await fetch("/api/email/notify-quotes", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ buyerEmail: request.client_email, buyerName: request.client_name, requestId, quoteCount: (quotesMap[requestId]?.length || 0) + 1 }),
+          });
           await sendPushNotification(request.client_email, "Your quotes are ready 🎉", "A verified supplier has responded to your fabric request. Tap to review.", requestId);
         }
       } catch (e) { console.error("Notification failed:", e); }
@@ -172,8 +211,13 @@ export default function AdminPage() {
 
   async function updatePaymentStatus(requestId: string, paymentStatus: "paid" | "unpaid") {
     try {
-      await supabase.from("fabric_requests").update(paymentStatus === "paid" ? { payment_status: "paid", paid_at: new Date().toISOString() } : { payment_status: "unpaid", paid_at: null }).eq("id", requestId);
-      await fetchAll(); alert(`Payment marked as ${paymentStatus}.`);
+      await supabase.from("fabric_requests").update(
+        paymentStatus === "paid"
+          ? { payment_status: "paid", paid_at: new Date().toISOString() }
+          : { payment_status: "unpaid", paid_at: null }
+      ).eq("id", requestId);
+      await fetchAll();
+      alert(`Payment marked as ${paymentStatus}.`);
     } catch { alert("Failed to update payment status."); }
   }
 
@@ -190,33 +234,59 @@ export default function AdminPage() {
       try {
         const request = requests.find((r) => r.id === requestId);
         if (request?.client_email) {
-          await fetch("/api/email/notify-contact-approved", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ buyerEmail: request.client_email, buyerName: request.client_name, requestId }) });
+          await fetch("/api/email/notify-contact-approved", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ buyerEmail: request.client_email, buyerName: request.client_name, requestId }),
+          });
           await sendPushNotification(request.client_email, "Supplier contact approved ✓", "Your supplier contact details are now available. Tap to view.", requestId);
         }
       } catch (e) { console.error("Notification failed:", e); }
-      await fetchAll(); alert("Supplier contact approved, released and buyer notified.");
+      await fetchAll();
+      alert("Supplier contact approved, released and buyer notified.");
     } catch { alert("Failed to approve contact release."); }
   }
 
   async function rejectContactRelease(requestId: string) {
-    try { await supabase.from("fabric_requests").update({ contact_request_status: "rejected" }).eq("id", requestId); await supabase.from("quotes").update({ is_contact_released: false }).eq("request_id", requestId); await fetchAll(); alert("Contact request rejected."); }
-    catch { alert("Failed to reject."); }
+    try {
+      await supabase.from("fabric_requests").update({ contact_request_status: "rejected" }).eq("id", requestId);
+      await supabase.from("quotes").update({ is_contact_released: false }).eq("request_id", requestId);
+      await fetchAll();
+      alert("Contact request rejected.");
+    } catch { alert("Failed to reject."); }
   }
 
   async function revokeContactAccess(requestId: string) {
-    try { await supabase.from("fabric_requests").update({ contact_request_status: "rejected" }).eq("id", requestId); await supabase.from("quotes").update({ is_contact_released: false }).eq("request_id", requestId); await fetchAll(); alert("Contact access revoked."); }
-    catch { alert("Failed to revoke."); }
+    try {
+      await supabase.from("fabric_requests").update({ contact_request_status: "rejected" }).eq("id", requestId);
+      await supabase.from("quotes").update({ is_contact_released: false }).eq("request_id", requestId);
+      await fetchAll();
+      alert("Contact access revoked.");
+    } catch { alert("Failed to revoke."); }
   }
 
   async function deleteRequest(requestId: string) {
     if (!window.confirm("Delete this request and all related quotes?")) return;
-    try { await supabase.from("quotes").delete().eq("request_id", requestId); await supabase.from("fabric_requests").delete().eq("id", requestId); await fetchAll(); }
-    catch { alert("Failed to delete request."); }
+    try {
+      await supabase.from("quotes").delete().eq("request_id", requestId);
+      await supabase.from("fabric_requests").delete().eq("id", requestId);
+      await fetchAll();
+    } catch { alert("Failed to delete request."); }
   }
 
   async function toggleSupplierActive(supplierId: string, current: boolean) {
     try { await supabase.from("supplier_profiles").update({ is_active: !current }).eq("id", supplierId); await fetchAll(); }
     catch { alert("Failed to update supplier."); }
+  }
+
+  async function toggleSupplierVerified(supplierId: string, current: boolean) {
+    try {
+      await supabase.from("supplier_profiles").update({
+        is_verified: !current,
+        verified_at: !current ? new Date().toISOString() : null,
+      }).eq("id", supplierId);
+      await fetchAll();
+      alert(!current ? "Supplier verified successfully." : "Supplier verification removed.");
+    } catch { alert("Failed to update verification."); }
   }
 
   async function deleteReview(reviewId: string) {
@@ -225,13 +295,23 @@ export default function AdminPage() {
     catch { alert("Failed to delete review."); }
   }
 
+  async function toggleStockActive(itemId: string, current: boolean | null) {
+    try { await supabase.from("ready_stock").update({ is_active: !current }).eq("id", itemId); await fetchAll(); }
+    catch { alert("Failed to update stock item."); }
+  }
+
   async function createInvite() {
     if (!newInviteCode.trim()) { alert("Enter an invite code."); return; }
     setCreatingInvite(true);
     try {
-      const { error } = await supabase.from("supplier_invites").insert([{ code: newInviteCode.trim().toUpperCase(), email: newInviteEmail.trim() || null }]);
+      const { error } = await supabase.from("supplier_invites").insert([{
+        code: newInviteCode.trim().toUpperCase(),
+        email: newInviteEmail.trim() || null,
+      }]);
       if (error) throw error;
-      setNewInviteCode(""); setNewInviteEmail(""); await fetchAll(); alert("Invite code created.");
+      setNewInviteCode(""); setNewInviteEmail("");
+      await fetchAll();
+      alert("Invite code created.");
     } catch (err: any) { alert(err.message || "Failed to create invite."); }
     finally { setCreatingInvite(false); }
   }
@@ -254,20 +334,15 @@ export default function AdminPage() {
     return requests.filter((r) => {
       if (categoryFilter !== "all" && r.category !== categoryFilter) return false;
       if (!q) return true;
-      return r.id.toLowerCase().includes(q) || (r.client_name || "").toLowerCase().includes(q) || (r.client_email || "").toLowerCase().includes(q) || (r.client_phone || "").toLowerCase().includes(q) || r.user_input.toLowerCase().includes(q);
+      return (
+        r.id.toLowerCase().includes(q) ||
+        (r.client_name || "").toLowerCase().includes(q) ||
+        (r.client_email || "").toLowerCase().includes(q) ||
+        (r.client_phone || "").toLowerCase().includes(q) ||
+        r.user_input.toLowerCase().includes(q)
+      );
     });
   }, [requests, search, categoryFilter]);
-
-  const stats = useMemo(() => ({
-    total: requests.length,
-    pendingApproval: requests.filter((r) => r.payment_status === "paid" && r.contact_request_status === "pending").length,
-    released: requests.filter((r) => r.contact_request_status === "approved").length,
-    totalRevenue: requests.filter((r) => r.payment_status === "paid").length * 10000,
-    activeSuppliers: suppliers.filter((s) => s.is_active).length,
-    unusedInvites: invites.filter((i) => !i.used).length,
-    totalReviews: reviews.length,
-    avgRating: reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : "—",
-  }), [requests, suppliers, invites, reviews]);
 
   const reviewsBySupplier = useMemo(() => {
     const map: Record<string, SupplierReview[]> = {};
@@ -275,36 +350,71 @@ export default function AdminPage() {
     return map;
   }, [reviews]);
 
-  const activeCategoriesInRequests = useMemo(() =>
-    FABRIC_CATEGORIES.filter((c) => categoryCounts[c.id] > 0),
-    [categoryCounts]
-  );
+  const stockBySupplier = useMemo(() => {
+    const map: Record<string, ReadyStockItem[]> = {};
+    readyStock.forEach((s) => { if (!map[s.supplier_id]) map[s.supplier_id] = []; map[s.supplier_id].push(s); });
+    return map;
+  }, [readyStock]);
 
-  if (loading) return <main className="min-h-screen bg-[#0a0f1e] flex items-center justify-center font-sans"><div className="text-slate-400 text-sm">Loading...</div></main>;
+  // Categories that have requests
+  const activeCategoriesInRequests = useMemo(() => {
+    const { FABRIC_CATEGORIES } = require("@/lib/categories");
+    return FABRIC_CATEGORIES.filter((c: any) => categoryCounts[c.id] > 0);
+  }, [categoryCounts]);
 
-  if (!authenticated) return (
-    <main className="min-h-screen bg-[#0a0f1e] flex items-center justify-center px-4 font-sans">
-      <div className="w-full max-w-sm bg-[#111827] border border-white/7 rounded-3xl p-8 shadow-xl">
-        <div className="flex items-center gap-2 mb-6">
-          <span className="w-9 h-9 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white font-black text-sm">W</span>
-          <span className="text-white font-black text-xl">Weinly Admin</span>
+  const stats = useMemo(() => ({
+    total: requests.length,
+    pendingApproval: requests.filter((r) => r.payment_status === "paid" && r.contact_request_status === "pending").length,
+    released: requests.filter((r) => r.contact_request_status === "approved").length,
+    totalRevenue: requests.filter((r) => r.payment_status === "paid").length * 10000,
+    activeSuppliers: suppliers.filter((s) => s.is_active).length,
+    verifiedSuppliers: suppliers.filter((s) => s.is_verified).length,
+    unusedInvites: invites.filter((i) => !i.used).length,
+    totalReviews: reviews.length,
+    avgRating: reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : "—",
+    activeStock: readyStock.filter((s) => s.is_active && !s.is_sold_out).length,
+  }), [requests, suppliers, invites, reviews, readyStock]);
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-[#0a0f1e] flex items-center justify-center font-sans">
+        <div className="text-slate-400 text-sm">Loading...</div>
+      </main>
+    );
+  }
+
+  if (!authenticated) {
+    return (
+      <main className="min-h-screen bg-[#0a0f1e] flex items-center justify-center px-4 font-sans">
+        <div className="w-full max-w-sm bg-[#111827] border border-white/7 rounded-3xl p-8 shadow-xl">
+          <div className="flex items-center gap-2 mb-6">
+            <span className="w-9 h-9 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white font-black text-sm">W</span>
+            <span className="text-white font-black text-xl">Weinly Admin</span>
+          </div>
+          <p className="text-slate-500 text-sm mb-4">Enter admin password to continue.</p>
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+            placeholder="Admin password"
+            className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-red-500 transition-all mb-3" />
+          <button onClick={handleLogin} className="w-full bg-gradient-to-r from-red-500 to-red-700 text-white font-bold text-sm py-3 rounded-xl border-0 cursor-pointer shadow-lg shadow-red-500/25">
+            Login to Admin
+          </button>
         </div>
-        <p className="text-slate-500 text-sm mb-4">Enter admin password to continue.</p>
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleLogin()} placeholder="Admin password"
-          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-red-500 transition-all mb-3" />
-        <button onClick={handleLogin} className="w-full bg-gradient-to-r from-red-500 to-red-700 text-white font-bold text-sm py-3 rounded-xl border-0 cursor-pointer shadow-lg shadow-red-500/25">Login to Admin</button>
-      </div>
-    </main>
-  );
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#0a0f1e] px-3 py-3 md:px-4 md:py-4 font-sans">
       <div className="max-w-6xl mx-auto flex flex-col gap-3">
 
+        {/* Header */}
         <nav className="bg-[#0d1424] border border-white/8 rounded-2xl px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <span className="w-9 h-9 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white font-black text-sm shadow-lg shadow-red-500/30">W</span>
-            <div><span className="text-white font-black text-lg">Weinly Admin</span><span className="ml-2 bg-red-500/15 text-red-400 text-xs font-bold px-2 py-0.5 rounded-full border border-red-500/25">Admin</span></div>
+            <div>
+              <span className="text-white font-black text-lg">Weinly Admin</span>
+              <span className="ml-2 bg-red-500/15 text-red-400 text-xs font-bold px-2 py-0.5 rounded-full border border-red-500/25">Admin</span>
+            </div>
           </div>
           <div className="flex gap-2">
             <button onClick={fetchAll} className="bg-white/6 border border-white/10 text-slate-400 font-semibold text-xs px-4 py-2 rounded-xl cursor-pointer hover:bg-white/10 transition-all">Refresh</button>
@@ -313,39 +423,47 @@ export default function AdminPage() {
         </nav>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-10 gap-2">
           {[
-            { label: "Total requests", value: String(stats.total), color: "text-indigo-400", bg: "bg-indigo-500/8 border-indigo-500/20" },
+            { label: "Requests", value: String(stats.total), color: "text-indigo-400", bg: "bg-indigo-500/8 border-indigo-500/20" },
             { label: "Needs approval", value: String(stats.pendingApproval), color: "text-violet-400", bg: "bg-violet-500/8 border-violet-500/20" },
-            { label: "Contacts released", value: String(stats.released), color: "text-emerald-400", bg: "bg-emerald-500/8 border-emerald-500/20" },
-            { label: "Total revenue", value: `₦${stats.totalRevenue.toLocaleString()}`, color: "text-amber-400", bg: "bg-amber-500/8 border-amber-500/20" },
-            { label: "Active suppliers", value: String(stats.activeSuppliers), color: "text-sky-400", bg: "bg-sky-500/8 border-sky-500/20" },
-            { label: "Unused invites", value: String(stats.unusedInvites), color: "text-pink-400", bg: "bg-pink-500/8 border-pink-500/20" },
-            { label: "Total reviews", value: String(stats.totalReviews), color: "text-amber-300", bg: "bg-amber-500/8 border-amber-500/20" },
+            { label: "Released", value: String(stats.released), color: "text-emerald-400", bg: "bg-emerald-500/8 border-emerald-500/20" },
+            { label: "Revenue", value: `₦${stats.totalRevenue.toLocaleString()}`, color: "text-amber-400", bg: "bg-amber-500/8 border-amber-500/20" },
+            { label: "Suppliers", value: String(stats.activeSuppliers), color: "text-sky-400", bg: "bg-sky-500/8 border-sky-500/20" },
+            { label: "Verified", value: String(stats.verifiedSuppliers), color: "text-emerald-300", bg: "bg-emerald-500/8 border-emerald-500/20" },
+            { label: "Invites left", value: String(stats.unusedInvites), color: "text-pink-400", bg: "bg-pink-500/8 border-pink-500/20" },
+            { label: "Reviews", value: String(stats.totalReviews), color: "text-amber-300", bg: "bg-amber-500/8 border-amber-500/20" },
             { label: "Avg rating", value: stats.avgRating === "—" ? "—" : `${stats.avgRating}★`, color: "text-amber-400", bg: "bg-amber-500/8 border-amber-500/20" },
+            { label: "Stock items", value: String(stats.activeStock), color: "text-teal-400", bg: "bg-teal-500/8 border-teal-500/20" },
           ].map((stat) => (
             <div key={stat.label} className={`${stat.bg} border rounded-2xl p-3`}>
-              <div className={`text-xl font-black ${stat.color} mb-0.5`}>{stat.value}</div>
-              <div className="text-slate-600 text-xs font-semibold">{stat.label}</div>
+              <div className={`text-lg font-black ${stat.color} mb-0.5`}>{stat.value}</div>
+              <div className="text-slate-600 text-xs font-semibold leading-tight">{stat.label}</div>
             </div>
           ))}
         </div>
 
+        {/* Tabs */}
         <div className="bg-[#111827] border border-white/7 rounded-3xl p-4 md:p-6">
           <div className="flex gap-2 mb-6 bg-white/4 border border-white/7 rounded-2xl p-1.5 overflow-x-auto">
-            {(["requests", "suppliers", "invites", "reviews"] as const).map((tab) => (
+            {(["requests", "suppliers", "invites", "reviews", "stock"] as const).map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
                 className={`shrink-0 flex-1 py-2.5 px-3 rounded-xl text-xs md:text-sm font-bold border-0 cursor-pointer transition-all ${activeTab === tab ? "bg-gradient-to-r from-red-500 to-red-700 text-white shadow-lg shadow-red-500/25" : "text-slate-500 bg-transparent hover:text-slate-300"}`}>
-                {tab === "requests" ? `Requests (${requests.length})` : tab === "suppliers" ? `Suppliers (${suppliers.length})` : tab === "invites" ? `Invites (${invites.length})` : `Reviews (${reviews.length})`}
+                {tab === "requests" ? `Requests (${requests.length})`
+                  : tab === "suppliers" ? `Suppliers (${suppliers.length})`
+                  : tab === "invites" ? `Invites (${invites.length})`
+                  : tab === "reviews" ? `Reviews (${reviews.length})`
+                  : `Stock (${readyStock.filter((s) => s.is_active).length})`}
               </button>
             ))}
           </div>
 
-          {/* REQUESTS TAB */}
+          {/* ── REQUESTS TAB ── */}
           {activeTab === "requests" && (
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-3 md:flex-row md:items-center">
-                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by ID, name, email, phone or request text..."
+                <input value={search} onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search by ID, name, email, phone or request text..."
                   className="flex-1 w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-red-500 transition-all" />
               </div>
 
@@ -356,12 +474,11 @@ export default function AdminPage() {
                     className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${categoryFilter === "all" ? "bg-white/15 border-white/30 text-white" : "border-white/10 bg-white/4 text-slate-500 hover:text-slate-300"}`}>
                     All ({requests.length})
                   </button>
-                  {activeCategoriesInRequests.map((cat) => {
+                  {activeCategoriesInRequests.map((cat: any) => {
                     const color = getCategoryColor(cat.id);
-                    const isActive = categoryFilter === cat.id;
                     return (
                       <button key={cat.id} onClick={() => setCategoryFilter(cat.id)}
-                        className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${isActive ? `${color.bg} ${color.text} ${color.border}` : "border-white/10 bg-white/4 text-slate-500 hover:text-slate-300"}`}>
+                        className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${categoryFilter === cat.id ? `${color.bg} ${color.text} ${color.border}` : "border-white/10 bg-white/4 text-slate-500 hover:text-slate-300"}`}>
                         {cat.label} ({categoryCounts[cat.id] || 0})
                       </button>
                     );
@@ -376,9 +493,11 @@ export default function AdminPage() {
                   const quotes = quotesMap[request.id] || [];
                   const pill = getStagePill(request, quotes.length);
                   const isExpanded = expandedId === request.id;
+
                   return (
                     <div key={request.id} className="bg-white/3 border border-white/7 rounded-2xl overflow-hidden">
-                      <div className="p-4 flex justify-between gap-3 flex-wrap items-start cursor-pointer hover:bg-white/2 transition-all" onClick={() => setExpandedId(isExpanded ? null : request.id)}>
+                      <div className="p-4 flex justify-between gap-3 flex-wrap items-start cursor-pointer hover:bg-white/2 transition-all"
+                        onClick={() => setExpandedId(isExpanded ? null : request.id)}>
                         <div className="flex flex-col gap-1.5 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-white font-bold text-sm">{request.client_name || "Unnamed buyer"}</span>
@@ -392,7 +511,10 @@ export default function AdminPage() {
                           <div className="text-slate-600 text-xs font-mono">{request.id}</div>
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
-                          <div className="text-center"><div className="text-white font-black text-lg">{quotes.length}</div><div className="text-slate-600 text-xs">quotes</div></div>
+                          <div className="text-center">
+                            <div className="text-white font-black text-lg">{quotes.length}</div>
+                            <div className="text-slate-600 text-xs">quotes</div>
+                          </div>
                           <span className={`text-slate-400 text-lg transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}>↓</span>
                         </div>
                       </div>
@@ -401,10 +523,14 @@ export default function AdminPage() {
                         <div className="border-t border-white/6 p-4 flex flex-col gap-4">
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
                             {[
-                              { label: "Email", value: request.client_email || "—" }, { label: "Phone", value: request.client_phone || "—" },
-                              { label: "Status", value: request.status || "submitted" }, { label: "Payment", value: request.payment_status || "unpaid" },
-                              { label: "Contact status", value: request.contact_request_status || "none" }, { label: "Access fee", value: request.contact_access_fee || "—" },
-                              { label: "Reference", value: request.payment_reference || "—" }, { label: "Paid at", value: request.paid_at ? new Date(request.paid_at).toLocaleDateString() : "—" },
+                              { label: "Email", value: request.client_email || "—" },
+                              { label: "Phone", value: request.client_phone || "—" },
+                              { label: "Status", value: request.status || "submitted" },
+                              { label: "Payment", value: request.payment_status || "unpaid" },
+                              { label: "Contact status", value: request.contact_request_status || "none" },
+                              { label: "Access fee", value: request.contact_access_fee || "—" },
+                              { label: "Reference", value: request.payment_reference || "—" },
+                              { label: "Paid at", value: request.paid_at ? new Date(request.paid_at).toLocaleDateString() : "—" },
                             ].map((info) => (
                               <div key={info.label} className="bg-white/4 border border-white/7 rounded-xl p-3">
                                 <div className="text-slate-600 text-xs font-bold uppercase tracking-wider mb-1">{info.label}</div>
@@ -412,21 +538,26 @@ export default function AdminPage() {
                               </div>
                             ))}
                           </div>
+
                           <div className="bg-white/4 border border-white/7 rounded-xl p-4">
                             <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">Fabric request</div>
                             <p className="text-slate-300 text-sm leading-relaxed m-0 whitespace-pre-wrap">{request.user_input}</p>
                           </div>
+
                           {request.ai_output != null && (
                             <div className="bg-white/4 border border-white/7 rounded-xl p-4">
                               <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">AI sourcing spec</div>
                               <p className="text-slate-400 text-sm leading-relaxed m-0 whitespace-pre-wrap">{formatAiOutput(request.ai_output)}</p>
                             </div>
                           )}
+
                           <div className="flex flex-col gap-1.5">
                             <label className="text-slate-500 text-xs font-bold uppercase tracking-widest">Internal note</label>
-                            <textarea defaultValue={request.internal_note || ""} onBlur={(e) => saveInternalNote(request.id, e.target.value)} placeholder="Add internal notes here..." rows={3}
+                            <textarea defaultValue={request.internal_note || ""} onBlur={(e) => saveInternalNote(request.id, e.target.value)}
+                              placeholder="Add internal notes here..." rows={3}
                               className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-red-500 transition-all resize-none" />
                           </div>
+
                           <div className="flex flex-col gap-3">
                             <div className="text-slate-500 text-xs font-bold uppercase tracking-widest">Request status</div>
                             <div className="flex gap-2 flex-wrap">
@@ -437,23 +568,26 @@ export default function AdminPage() {
                                 </button>
                               ))}
                             </div>
+
                             <div className="text-slate-500 text-xs font-bold uppercase tracking-widest">Payment</div>
                             <div className="flex gap-2 flex-wrap">
                               <button onClick={() => updatePaymentStatus(request.id, "paid")} className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-xs px-4 py-2 rounded-xl cursor-pointer hover:bg-emerald-500/15 transition-all">Mark paid</button>
                               <button onClick={() => updatePaymentStatus(request.id, "unpaid")} className="bg-white/6 text-slate-400 font-bold text-xs px-4 py-2 rounded-xl cursor-pointer hover:bg-white/10 transition-all">Mark unpaid</button>
                             </div>
+
                             <div className="text-slate-500 text-xs font-bold uppercase tracking-widest">Contact release</div>
                             <div className="flex gap-2 flex-wrap">
                               {request.contact_request_status === "pending" && (
                                 <>
-                                  <button onClick={() => approveContactRelease(request.id, request.payment_status)} className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-xs px-4 py-2.5 rounded-xl cursor-pointer hover:bg-emerald-500/15 transition-all shadow-lg shadow-emerald-500/10">✓ Approve & release contact</button>
+                                  <button onClick={() => approveContactRelease(request.id, request.payment_status)} className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-xs px-4 py-2.5 rounded-xl cursor-pointer hover:bg-emerald-500/15 transition-all shadow-lg shadow-emerald-500/10">✓ Approve & release</button>
                                   <button onClick={() => rejectContactRelease(request.id)} className="bg-red-500/10 border border-red-500/20 text-red-400 font-bold text-xs px-4 py-2.5 rounded-xl cursor-pointer hover:bg-red-500/15 transition-all">✕ Reject</button>
                                 </>
                               )}
                               {request.contact_request_status === "approved" && (
-                                <button onClick={() => revokeContactAccess(request.id)} className="bg-red-500/10 border border-red-500/20 text-red-400 font-bold text-xs px-4 py-2.5 rounded-xl cursor-pointer hover:bg-red-500/15 transition-all">Revoke contact access</button>
+                                <button onClick={() => revokeContactAccess(request.id)} className="bg-red-500/10 border border-red-500/20 text-red-400 font-bold text-xs px-4 py-2.5 rounded-xl cursor-pointer hover:bg-red-500/15 transition-all">Revoke access</button>
                               )}
                             </div>
+
                             <div className="pt-2 border-t border-white/6">
                               <button onClick={() => deleteRequest(request.id)} className="bg-red-500/8 border border-red-500/15 text-red-500 font-bold text-xs px-4 py-2 rounded-xl cursor-pointer hover:bg-red-500/15 transition-all">Delete request</button>
                             </div>
@@ -474,7 +608,7 @@ export default function AdminPage() {
                                     {[
                                       { label: "Price", value: quote.price || "—" }, { label: "MOQ", value: quote.moq || "—" },
                                       { label: "Lead time", value: quote.lead_time || "—" }, { label: "Region", value: quote.supplier_region || "—" },
-                                      { label: "Contact name", value: quote.contact_name || "—" }, { label: "Phone", value: quote.contact_phone || "—" },
+                                      { label: "Contact", value: quote.contact_name || "—" }, { label: "Phone", value: quote.contact_phone || "—" },
                                       { label: "WeChat", value: quote.contact_wechat || "—" }, { label: "Email", value: quote.contact_email || "—" },
                                     ].map((s) => (
                                       <div key={s.label} className="bg-white/4 border border-white/7 rounded-lg p-2.5">
@@ -483,31 +617,47 @@ export default function AdminPage() {
                                       </div>
                                     ))}
                                   </div>
+                                  {quote.note && (
+                                    <div className="bg-white/4 border border-white/7 rounded-lg p-3">
+                                      <div className="text-slate-600 text-xs font-bold uppercase tracking-widest mb-1">Note</div>
+                                      <p className="text-slate-400 text-xs leading-relaxed m-0">{quote.note}</p>
+                                    </div>
+                                  )}
                                 </div>
                               ))}
                             </div>
                           )}
 
+                          {/* Add quote manually */}
                           <div className="bg-indigo-500/6 border border-indigo-500/20 rounded-2xl p-5 flex flex-col gap-4">
                             <div className="text-indigo-300 font-bold text-sm">Add new quote manually</div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                               {[
-                                { label: "Supplier name *", key: "supplier_name", placeholder: "Company name" }, { label: "Price", key: "price", placeholder: "e.g. $2.50/yard" },
-                                { label: "MOQ", key: "moq", placeholder: "e.g. 500 yards" }, { label: "Lead time", key: "lead_time", placeholder: "e.g. 15-20 days" },
-                                { label: "Supplier region", key: "supplier_region", placeholder: "e.g. Guangzhou" }, { label: "Contact name", key: "contact_name", placeholder: "Contact person" },
-                                { label: "Contact phone", key: "contact_phone", placeholder: "Phone number" }, { label: "Contact WeChat", key: "contact_wechat", placeholder: "WeChat ID" },
+                                { label: "Supplier name *", key: "supplier_name", placeholder: "Company name" },
+                                { label: "Price", key: "price", placeholder: "e.g. $2.50/yard" },
+                                { label: "MOQ", key: "moq", placeholder: "e.g. 500 yards" },
+                                { label: "Lead time", key: "lead_time", placeholder: "e.g. 15-20 days" },
+                                { label: "Supplier region", key: "supplier_region", placeholder: "e.g. Guangzhou" },
+                                { label: "Contact name", key: "contact_name", placeholder: "Contact person" },
+                                { label: "Contact phone", key: "contact_phone", placeholder: "Phone number" },
+                                { label: "Contact WeChat", key: "contact_wechat", placeholder: "WeChat ID" },
                                 { label: "Contact email", key: "contact_email", placeholder: "Email address" },
                               ].map((field) => (
                                 <div key={field.key} className="flex flex-col gap-1.5">
                                   <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">{field.label}</label>
-                                  <input value={newQuotes[request.id]?.[field.key as keyof NewQuoteForm] || ""} onChange={(e) => updateNewQuoteField(request.id, field.key as keyof NewQuoteForm, e.target.value)} placeholder={field.placeholder}
+                                  <input value={newQuotes[request.id]?.[field.key as keyof NewQuoteForm] || ""}
+                                    onChange={(e) => updateNewQuoteField(request.id, field.key as keyof NewQuoteForm, e.target.value)}
+                                    placeholder={field.placeholder}
                                     className="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-indigo-500 transition-all" />
                                 </div>
                               ))}
                             </div>
-                            <textarea value={newQuotes[request.id]?.note || ""} onChange={(e) => updateNewQuoteField(request.id, "note", e.target.value)} placeholder="Supplier note..." rows={3}
+                            <textarea value={newQuotes[request.id]?.note || ""} onChange={(e) => updateNewQuoteField(request.id, "note", e.target.value)}
+                              placeholder="Supplier note..." rows={3}
                               className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-indigo-500 transition-all resize-none" />
-                            <button onClick={() => addQuote(request.id)} className="self-start bg-gradient-to-r from-indigo-500 to-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl border-0 cursor-pointer shadow-lg shadow-indigo-500/25">Add quote & notify buyer →</button>
+                            <button onClick={() => addQuote(request.id)} className="self-start bg-gradient-to-r from-indigo-500 to-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl border-0 cursor-pointer shadow-lg shadow-indigo-500/25">
+                              Add quote & notify buyer →
+                            </button>
                           </div>
                         </div>
                       )}
@@ -518,36 +668,70 @@ export default function AdminPage() {
             </div>
           )}
 
-          {/* SUPPLIERS TAB */}
+          {/* ── SUPPLIERS TAB ── */}
           {activeTab === "suppliers" && (
             <div className="flex flex-col gap-4">
               <div>
                 <h2 className="text-xl font-black text-white tracking-tight mb-1">Registered suppliers</h2>
-                <p className="text-slate-500 text-sm m-0">{suppliers.length} supplier{suppliers.length === 1 ? "" : "s"} registered on the platform.</p>
+                <p className="text-slate-500 text-sm m-0">{suppliers.length} supplier{suppliers.length === 1 ? "" : "s"} · {stats.verifiedSuppliers} verified</p>
               </div>
+
               {suppliers.length === 0 ? (
                 <div className="border border-dashed border-white/10 rounded-2xl p-10 text-center text-slate-600 text-sm">No suppliers registered yet.</div>
               ) : (
                 suppliers.map((supplier) => {
                   const supplierReviews = reviewsBySupplier[supplier.id] || [];
-                  const avgRating = supplierReviews.length > 0 ? (supplierReviews.reduce((s, r) => s + r.rating, 0) / supplierReviews.length).toFixed(1) : null;
+                  const supplierStock = stockBySupplier[supplier.id] || [];
+                  const avgRating = supplierReviews.length > 0
+                    ? (supplierReviews.reduce((s, r) => s + r.rating, 0) / supplierReviews.length).toFixed(1)
+                    : null;
                   const isExpanded = expandedSupplierId === supplier.id;
                   const supplierCategories: string[] = supplier.categories || [];
+
                   return (
                     <div key={supplier.id} className="bg-white/3 border border-white/7 rounded-2xl p-5 flex flex-col gap-4">
+                      {/* Supplier header */}
                       <div className="flex justify-between gap-3 flex-wrap items-start">
                         <div>
-                          <div className="text-white font-bold text-base mb-1">{supplier.company_name}</div>
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <div className="text-white font-bold text-base">{supplier.company_name}</div>
+                            {supplier.is_verified && (
+                              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-400">✓ Verified</span>
+                            )}
+                          </div>
                           <div className="text-slate-500 text-xs mb-0.5">{supplier.contact_name || "—"} · {supplier.email || "—"}</div>
                           <div className="text-slate-600 text-xs">{supplier.region || "Region not set"} · Joined {new Date(supplier.created_at).toLocaleDateString()}</div>
+                          {supplier.bio && <p className="text-slate-500 text-xs mt-1 leading-relaxed max-w-lg">{supplier.bio}</p>}
                           {supplierCategories.length > 0 && (
                             <div className="mt-2 flex flex-wrap gap-1.5">
                               {supplierCategories.map((catId) => <CategoryBadge key={catId} categoryId={catId} />)}
                             </div>
                           )}
                         </div>
+
+                        {/* Action buttons */}
                         <div className="flex gap-2 items-center flex-wrap">
-                          {avgRating && <span className="bg-amber-500/15 text-amber-300 border border-amber-500/25 text-xs font-bold px-3 py-1.5 rounded-full">{avgRating}★ ({supplierReviews.length})</span>}
+                          {avgRating && (
+                            <span className="bg-amber-500/15 text-amber-300 border border-amber-500/25 text-xs font-bold px-3 py-1.5 rounded-full">
+                              {avgRating}★ ({supplierReviews.length})
+                            </span>
+                          )}
+                          {supplierStock.filter((s) => s.is_active && !s.is_sold_out).length > 0 && (
+                            <span className="bg-teal-500/15 text-teal-300 border border-teal-500/25 text-xs font-bold px-3 py-1.5 rounded-full">
+                              {supplierStock.filter((s) => s.is_active && !s.is_sold_out).length} in stock
+                            </span>
+                          )}
+
+                          {/* Verify toggle */}
+                          <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${supplier.is_verified ? "bg-emerald-900/60 text-emerald-300 border border-emerald-500/30" : "bg-slate-800 text-slate-400 border border-slate-600/30"}`}>
+                            {supplier.is_verified ? "✓ Verified" : "Unverified"}
+                          </span>
+                          <button onClick={() => toggleSupplierVerified(supplier.id, !!supplier.is_verified)}
+                            className={`text-xs font-bold px-3 py-1.5 rounded-xl border-0 cursor-pointer transition-all ${supplier.is_verified ? "bg-amber-500/10 text-amber-400 hover:bg-amber-500/15" : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/15"}`}>
+                            {supplier.is_verified ? "Unverify" : "Verify ✓"}
+                          </button>
+
+                          {/* Active toggle */}
                           <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${supplier.is_active ? "bg-emerald-900/60 text-emerald-300 border border-emerald-500/30" : "bg-red-900/60 text-red-300 border border-red-500/30"}`}>
                             {supplier.is_active ? "Active" : "Inactive"}
                           </span>
@@ -557,14 +741,21 @@ export default function AdminPage() {
                           </button>
                         </div>
                       </div>
+
+                      {/* Contact grid */}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-                        {[{ label: "Phone", value: supplier.phone || "—" }, { label: "WeChat", value: supplier.wechat || "—" }, { label: "Region", value: supplier.region || "—" }, { label: "Email", value: supplier.email || "—" }].map((info) => (
+                        {[
+                          { label: "Phone", value: supplier.phone || "—" }, { label: "WeChat", value: supplier.wechat || "—" },
+                          { label: "Region", value: supplier.region || "—" }, { label: "Email", value: supplier.email || "—" },
+                        ].map((info) => (
                           <div key={info.label} className="bg-white/4 border border-white/7 rounded-xl p-3">
                             <div className="text-slate-600 text-xs font-bold uppercase tracking-wider mb-1">{info.label}</div>
                             <div className="text-slate-300 text-xs break-words">{info.value}</div>
                           </div>
                         ))}
                       </div>
+
+                      {/* Reviews expandable */}
                       {supplierReviews.length > 0 && (
                         <div>
                           <button onClick={() => setExpandedSupplierId(isExpanded ? null : supplier.id)}
@@ -589,6 +780,14 @@ export default function AdminPage() {
                           )}
                         </div>
                       )}
+
+                      {/* View public profile link */}
+                      <div className="flex gap-3">
+                        <a href={`/suppliers/${supplier.id}`} target="_blank" rel="noreferrer"
+                          className="text-xs font-semibold text-indigo-400 no-underline hover:text-indigo-300 transition-colors">
+                          View public profile →
+                        </a>
+                      </div>
                     </div>
                   );
                 })
@@ -596,13 +795,14 @@ export default function AdminPage() {
             </div>
           )}
 
-          {/* INVITES TAB */}
+          {/* ── INVITES TAB ── */}
           {activeTab === "invites" && (
             <div className="flex flex-col gap-4">
               <div>
                 <h2 className="text-xl font-black text-white tracking-tight mb-1">Supplier invite codes</h2>
                 <p className="text-slate-500 text-sm m-0">Generate and manage invite codes for new suppliers.</p>
               </div>
+
               <div className="bg-amber-500/6 border border-amber-500/20 rounded-2xl p-5 flex flex-col gap-4">
                 <div className="text-amber-300 font-bold text-sm">Create new invite code</div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -617,10 +817,12 @@ export default function AdminPage() {
                       className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-amber-500 transition-all" />
                   </div>
                 </div>
-                <button onClick={createInvite} disabled={creatingInvite} className="self-start bg-gradient-to-r from-amber-500 to-amber-700 text-white font-bold text-sm px-6 py-3 rounded-xl border-0 cursor-pointer shadow-lg shadow-amber-500/25 disabled:opacity-60">
+                <button onClick={createInvite} disabled={creatingInvite}
+                  className="self-start bg-gradient-to-r from-amber-500 to-amber-700 text-white font-bold text-sm px-6 py-3 rounded-xl border-0 cursor-pointer shadow-lg shadow-amber-500/25 disabled:opacity-60">
                   {creatingInvite ? "Creating..." : "Create invite code →"}
                 </button>
               </div>
+
               {invites.length === 0 ? (
                 <div className="border border-dashed border-white/10 rounded-2xl p-10 text-center text-slate-600 text-sm">No invite codes yet.</div>
               ) : (
@@ -634,11 +836,22 @@ export default function AdminPage() {
                             {invite.used ? "Used" : "Available"}
                           </span>
                         </div>
-                        <div className="text-slate-500 text-xs">{invite.email || "No email assigned"} · Created {new Date(invite.created_at).toLocaleDateString()}{invite.used_at && ` · Used ${new Date(invite.used_at).toLocaleDateString()}`}</div>
+                        <div className="text-slate-500 text-xs">
+                          {invite.email || "No email assigned"} · Created {new Date(invite.created_at).toLocaleDateString()}
+                          {invite.used_at && ` · Used ${new Date(invite.used_at).toLocaleDateString()}`}
+                        </div>
                       </div>
                       <div className="flex gap-2">
-                        {!invite.used && <button onClick={() => navigator.clipboard.writeText(invite.code).then(() => alert("Code copied!"))} className="bg-white/6 border border-white/10 text-slate-400 font-semibold text-xs px-4 py-2 rounded-xl cursor-pointer hover:bg-white/10 transition-all">Copy code</button>}
-                        <button onClick={() => deleteInvite(invite.id)} className="bg-red-500/8 border border-red-500/15 text-red-400 font-semibold text-xs px-4 py-2 rounded-xl cursor-pointer hover:bg-red-500/15 transition-all">Delete</button>
+                        {!invite.used && (
+                          <button onClick={() => navigator.clipboard.writeText(invite.code).then(() => alert("Code copied!"))}
+                            className="bg-white/6 border border-white/10 text-slate-400 font-semibold text-xs px-4 py-2 rounded-xl cursor-pointer hover:bg-white/10 transition-all">
+                            Copy code
+                          </button>
+                        )}
+                        <button onClick={() => deleteInvite(invite.id)}
+                          className="bg-red-500/8 border border-red-500/15 text-red-400 font-semibold text-xs px-4 py-2 rounded-xl cursor-pointer hover:bg-red-500/15 transition-all">
+                          Delete
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -647,13 +860,14 @@ export default function AdminPage() {
             </div>
           )}
 
-          {/* REVIEWS TAB */}
+          {/* ── REVIEWS TAB ── */}
           {activeTab === "reviews" && (
             <div className="flex flex-col gap-4">
               <div>
                 <h2 className="text-xl font-black text-white tracking-tight mb-1">All reviews</h2>
-                <p className="text-slate-500 text-sm m-0">All buyer reviews across all suppliers. You can delete any review that violates guidelines.</p>
+                <p className="text-slate-500 text-sm m-0">All buyer reviews across all suppliers. Delete any that violate guidelines.</p>
               </div>
+
               {reviews.length === 0 ? (
                 <div className="border border-dashed border-white/10 rounded-2xl p-10 text-center text-slate-600 text-sm">No reviews yet.</div>
               ) : (
@@ -664,16 +878,93 @@ export default function AdminPage() {
                       <div key={review.id} className="bg-white/3 border border-white/7 rounded-2xl p-4 flex flex-col gap-3">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div>
-                            <div className="mb-1 flex items-center gap-2">
+                            <div className="mb-1 flex items-center gap-2 flex-wrap">
                               <span className="text-white font-bold text-sm">{supplier?.company_name || "Unknown supplier"}</span>
+                              {supplier?.is_verified && <span className="text-xs font-bold text-emerald-400">✓ Verified</span>}
                               <StarDisplay rating={review.rating} />
                             </div>
-                            <div className="text-slate-500 text-xs">by {review.buyer_name || "Verified buyer"} ({review.buyer_email || "—"}) · {new Date(review.created_at).toLocaleDateString()}</div>
+                            <div className="text-slate-500 text-xs">
+                              by {review.buyer_name || "Verified buyer"} ({review.buyer_email || "—"}) · {new Date(review.created_at).toLocaleDateString()}
+                            </div>
                             <div className="text-slate-600 text-xs font-mono mt-0.5">Request: {review.request_id.slice(0, 12)}...</div>
                           </div>
-                          <button onClick={() => deleteReview(review.id)} className="bg-red-500/8 border border-red-500/15 text-red-400 font-semibold text-xs px-4 py-2 rounded-xl cursor-pointer hover:bg-red-500/15 transition-all">Delete</button>
+                          <button onClick={() => deleteReview(review.id)}
+                            className="bg-red-500/8 border border-red-500/15 text-red-400 font-semibold text-xs px-4 py-2 rounded-xl cursor-pointer hover:bg-red-500/15 transition-all">
+                            Delete
+                          </button>
                         </div>
                         {review.comment && <p className="m-0 text-sm leading-relaxed text-slate-400">{review.comment}</p>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── READY STOCK TAB ── */}
+          {activeTab === "stock" && (
+            <div className="flex flex-col gap-4">
+              <div>
+                <h2 className="text-xl font-black text-white tracking-tight mb-1">Ready stock listings</h2>
+                <p className="text-slate-500 text-sm m-0">
+                  {readyStock.filter((s) => s.is_active && !s.is_sold_out).length} items available ·
+                  {" "}{readyStock.filter((s) => s.is_active && s.is_sold_out).length} sold out ·
+                  {" "}{readyStock.filter((s) => !s.is_active).length} hidden
+                </p>
+              </div>
+
+              {readyStock.length === 0 ? (
+                <div className="border border-dashed border-white/10 rounded-2xl p-10 text-center text-slate-600 text-sm">No ready stock listings yet.</div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {readyStock.map((item) => {
+                    const supplier = suppliers.find((s) => s.id === item.supplier_id);
+                    const color = getCategoryColor(item.category);
+                    return (
+                      <div key={item.id} className={`bg-white/3 border border-white/7 rounded-2xl p-4 flex flex-col gap-3 ${!item.is_active ? "opacity-50" : ""}`}>
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <span className={`text-sm font-bold ${color.text}`}>{item.name}</span>
+                              <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${color.bg} ${color.border} ${color.text}`}>
+                                {getCategoryLabel(item.category)}{item.subcategory ? ` · ${item.subcategory}` : ""}
+                              </span>
+                              {item.is_sold_out ? (
+                                <span className="rounded-full border border-red-500/25 bg-red-500/15 px-2.5 py-1 text-xs font-bold text-red-400">Sold out</span>
+                              ) : item.is_active ? (
+                                <span className="rounded-full border border-emerald-500/25 bg-emerald-500/15 px-2.5 py-1 text-xs font-bold text-emerald-400">In stock</span>
+                              ) : (
+                                <span className="rounded-full border border-slate-600/30 bg-slate-800 px-2.5 py-1 text-xs font-bold text-slate-400">Hidden</span>
+                              )}
+                            </div>
+                            <div className="text-slate-500 text-xs">
+                              {supplier?.company_name || "Unknown supplier"}
+                              {supplier?.is_verified && <span className="ml-1 text-emerald-400">✓</span>}
+                              {supplier?.region && ` · ${supplier.region}`}
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button onClick={() => toggleStockActive(item.id, item.is_active)}
+                              className={`text-xs font-bold px-3 py-1.5 rounded-xl border-0 cursor-pointer transition-all ${item.is_active ? "bg-slate-800 text-slate-400 hover:bg-slate-700" : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/15"}`}>
+                              {item.is_active ? "Hide" : "Show"}
+                            </button>
+                          </div>
+                        </div>
+                        {item.description && <p className="m-0 text-xs leading-relaxed text-slate-400">{item.description}</p>}
+                        <div className="grid grid-cols-3 gap-2 md:grid-cols-4">
+                          {[
+                            { label: "Price", value: `${item.price_per_unit}/${item.unit}` },
+                            { label: "MOQ", value: item.moq },
+                            { label: "Available", value: item.available_quantity || "—" },
+                            { label: "Added", value: new Date(item.created_at).toLocaleDateString() },
+                          ].map((s) => (
+                            <div key={s.label} className="bg-white/4 border border-white/7 rounded-xl p-2.5">
+                              <div className="text-slate-600 text-xs font-bold uppercase tracking-wider mb-0.5">{s.label}</div>
+                              <div className="text-slate-300 text-xs font-semibold">{s.value}</div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     );
                   })}

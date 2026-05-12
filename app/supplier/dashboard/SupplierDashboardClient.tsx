@@ -10,6 +10,7 @@ type User = { id: string; email: string; name: string | null; };
 type Profile = {
   company_name: string; contact_name: string | null; region: string | null;
   phone: string | null; wechat: string | null; categories?: string[] | null;
+  is_verified?: boolean | null; bio?: string | null;
 } | null;
 type FabricRequest = {
   id: string; created_at: string; client_name: string | null; client_email: string | null;
@@ -24,6 +25,11 @@ type Quote = {
 type Review = {
   id: string; request_id: string; quote_id: string; buyer_name: string | null;
   buyer_email: string | null; rating: number; comment: string | null; created_at: string;
+};
+type ReadyStockItem = {
+  id: string; name: string; description: string | null; category: string;
+  subcategory: string | null; price_per_unit: string; unit: string; moq: string;
+  available_quantity: string | null; is_sold_out: boolean | null; is_active: boolean | null;
 };
 type Props = { user: User; profile: Profile; requests: FabricRequest[]; myQuotes: Quote[]; };
 
@@ -48,21 +54,21 @@ function getRequestAge(createdAt: string) {
   return new Date(createdAt).toLocaleDateString();
 }
 
-function getIntentScore(request: FabricRequest) {
-  const text = request.user_input.toLowerCase();
-  let score = 0;
-  if (text.length > 80) score++;
-  if (text.includes("qty") || text.includes("quantity") || text.includes("yards") || text.includes("packs") || text.includes("moq") || text.includes("meters")) score++;
-  if (text.includes("urgent") || text.includes("asap") || text.includes("fast")) score++;
-  if (text.includes("premium") || text.includes("high quality") || text.includes("high-end")) score++;
-  return score;
+function getIntentScore(r: FabricRequest) {
+  const t = r.user_input.toLowerCase();
+  let s = 0;
+  if (t.length > 80) s++;
+  if (t.includes("qty") || t.includes("yards") || t.includes("packs") || t.includes("moq")) s++;
+  if (t.includes("urgent") || t.includes("asap") || t.includes("fast")) s++;
+  if (t.includes("premium") || t.includes("high quality") || t.includes("high-end")) s++;
+  return s;
 }
 
-function getIntentLevel(request: FabricRequest) {
-  const score = getIntentScore(request);
-  if (score >= 3) return { label: "High intent", cls: "bg-emerald-900/60 text-emerald-300 border border-emerald-500/30", score };
-  if (score >= 2) return { label: "Warm buyer", cls: "bg-blue-900/60 text-blue-300 border border-blue-500/30", score };
-  return { label: "General inquiry", cls: "bg-slate-800/80 text-slate-300 border border-slate-600/30", score };
+function getIntentLevel(r: FabricRequest) {
+  const s = getIntentScore(r);
+  if (s >= 3) return { label: "High intent", cls: "bg-emerald-900/60 text-emerald-300 border border-emerald-500/30" };
+  if (s >= 2) return { label: "Warm buyer", cls: "bg-blue-900/60 text-blue-300 border border-blue-500/30" };
+  return { label: "General inquiry", cls: "bg-slate-800/80 text-slate-300 border border-slate-600/30" };
 }
 
 function getUrgencyLevel(createdAt: string) {
@@ -73,9 +79,9 @@ function getUrgencyLevel(createdAt: string) {
 }
 
 function CategoryBadge({ categoryId, subcategory }: { categoryId: string; subcategory?: string | null }) {
-  const color = getCategoryColor(categoryId);
+  const c = getCategoryColor(categoryId);
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold ${color.bg} ${color.text} ${color.border}`}>
+    <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold ${c.bg} ${c.text} ${c.border}`}>
       {getCategoryLabel(categoryId)}{subcategory ? ` · ${subcategory}` : ""}
     </span>
   );
@@ -85,18 +91,20 @@ function StarDisplay({ rating, size = "sm" }: { rating: number; size?: "sm" | "l
   const sz = size === "lg" ? "text-xl" : "text-sm";
   return (
     <div className="flex gap-0.5">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <span key={star} className={`${sz} ${star <= rating ? "text-amber-400" : "text-slate-700"}`}>★</span>
+      {[1, 2, 3, 4, 5].map((s) => (
+        <span key={s} className={`${sz} ${s <= rating ? "text-amber-400" : "text-slate-700"}`}>★</span>
       ))}
     </div>
   );
 }
 
+const emptyStockForm = { name: "", description: "", category: "", subcategory: "", price_per_unit: "", unit: "yard", moq: "", available_quantity: "" };
+
 export default function SupplierDashboardClient({ user, profile, requests, myQuotes }: Props) {
-  const [activeTab, setActiveTab] = useState<"requests" | "quotes" | "reviews" | "profile">("requests");
+  const [activeTab, setActiveTab] = useState<"requests" | "quotes" | "stock" | "reviews" | "profile">("requests");
   const [loggingOut, setLoggingOut] = useState(false);
   const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [quoteForm, setQuoteForm] = useState<{ requestId: string; open: boolean }>({ requestId: "", open: false });
   const [editingQuoteId, setEditingQuoteId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ price: "", moq: "", lead_time: "", note: "", supplier_region: profile?.region || "" });
@@ -109,6 +117,7 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
     phone: profile?.phone || "",
     wechat: profile?.wechat || "",
     region: profile?.region || "",
+    bio: profile?.bio || "",
     categories: profile?.categories || [],
   });
   const [savingProfile, setSavingProfile] = useState(false);
@@ -117,6 +126,14 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
   const [reviews, setReviews] = useState<Review[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
 
+  // Ready stock state
+  const [stock, setStock] = useState<ReadyStockItem[]>([]);
+  const [stockLoading, setStockLoading] = useState(false);
+  const [stockForm, setStockForm] = useState({ ...emptyStockForm });
+  const [editingStockId, setEditingStockId] = useState<string | null>(null);
+  const [showStockForm, setShowStockForm] = useState(false);
+  const [savingStock, setSavingStock] = useState(false);
+
   const router = useRouter();
   const supabase = createClient();
 
@@ -124,7 +141,6 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
     profile?.company_name?.trim() && profile?.contact_name?.trim() &&
     profile?.phone?.trim() && profile?.wechat?.trim() && profile?.region?.trim()
   );
-
   const supplierCategories: string[] = profile?.categories || [];
 
   useEffect(() => {
@@ -132,29 +148,80 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
   }, [profileComplete]);
 
   useEffect(() => {
-    if (activeTab !== "reviews") return;
+    if (activeTab === "reviews") loadReviews();
+    if (activeTab === "stock") loadStock();
+  }, [activeTab]);
+
+  async function loadReviews() {
     setReviewsLoading(true);
-    async function loadReviews() {
-      try {
-        const quoteIds = myQuotes.map((q) => q.id);
-        if (quoteIds.length === 0) { setReviews([]); return; }
-        const { data } = await supabase.from("supplier_reviews").select("*").in("quote_id", quoteIds).order("created_at", { ascending: false });
-        setReviews((data || []) as Review[]);
-      } finally { setReviewsLoading(false); }
+    const quoteIds = myQuotes.map((q) => q.id);
+    if (quoteIds.length === 0) { setReviews([]); setReviewsLoading(false); return; }
+    const { data } = await supabase.from("supplier_reviews").select("*").in("quote_id", quoteIds).order("created_at", { ascending: false });
+    setReviews((data || []) as Review[]);
+    setReviewsLoading(false);
+  }
+
+  async function loadStock() {
+    setStockLoading(true);
+    const { data } = await supabase.from("ready_stock").select("*").eq("supplier_user_id", user.id).order("created_at", { ascending: false });
+    setStock((data || []) as ReadyStockItem[]);
+    setStockLoading(false);
+  }
+
+  async function saveStock(e: React.FormEvent) {
+    e.preventDefault();
+    if (!stockForm.name.trim() || !stockForm.category || !stockForm.price_per_unit.trim() || !stockForm.moq.trim()) {
+      alert("Name, category, price and MOQ are required."); return;
     }
-    loadReviews();
-  }, [activeTab, myQuotes]);
+    setSavingStock(true);
+    try {
+      if (editingStockId) {
+        const { error } = await supabase.from("ready_stock").update({
+          name: stockForm.name.trim(), description: stockForm.description.trim() || null,
+          category: stockForm.category, subcategory: stockForm.subcategory || null,
+          price_per_unit: stockForm.price_per_unit.trim(), unit: stockForm.unit,
+          moq: stockForm.moq.trim(), available_quantity: stockForm.available_quantity.trim() || null,
+        }).eq("id", editingStockId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("ready_stock").insert([{
+          supplier_id: user.id, supplier_user_id: user.id,
+          name: stockForm.name.trim(), description: stockForm.description.trim() || null,
+          category: stockForm.category, subcategory: stockForm.subcategory || null,
+          price_per_unit: stockForm.price_per_unit.trim(), unit: stockForm.unit,
+          moq: stockForm.moq.trim(), available_quantity: stockForm.available_quantity.trim() || null,
+          is_active: true, is_sold_out: false,
+        }]);
+        if (error) throw error;
+      }
+      setStockForm({ ...emptyStockForm });
+      setEditingStockId(null);
+      setShowStockForm(false);
+      await loadStock();
+      setSuccessMessage(editingStockId ? "Stock item updated." : "Stock item added to ready stock.");
+    } catch (err: any) { alert(err.message || "Failed to save stock item."); }
+    finally { setSavingStock(false); }
+  }
+
+  async function toggleSoldOut(item: ReadyStockItem) {
+    await supabase.from("ready_stock").update({ is_sold_out: !item.is_sold_out }).eq("id", item.id);
+    await loadStock();
+  }
+
+  async function deleteStockItem(id: string) {
+    if (!window.confirm("Remove this item from ready stock?")) return;
+    await supabase.from("ready_stock").update({ is_active: false }).eq("id", id);
+    await loadStock();
+  }
 
   const quotedRequestIds = new Set(myQuotes.map((q) => q.request_id));
   const pendingRequests = requests.filter((r) => !quotedRequestIds.has(r.id));
 
-  // Requests that match supplier's categories (or all if supplier has no categories set)
   const matchingRequests = useMemo(() => {
     if (supplierCategories.length === 0) return pendingRequests;
     return pendingRequests.filter((r) => !r.category || supplierCategories.includes(r.category));
   }, [pendingRequests, supplierCategories]);
 
-  // Unique categories present in matching requests (for filter tabs)
   const availableCategories = useMemo(() => {
     const ids = new Set(matchingRequests.map((r) => r.category).filter(Boolean) as string[]);
     return FABRIC_CATEGORIES.filter((c) => ids.has(c.id));
@@ -166,21 +233,15 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
       .filter((r) => {
         if (categoryFilter !== "all" && r.category !== categoryFilter) return false;
         if (!q) return true;
-        return [r.id, r.user_input, r.client_name || "", typeof r.ai_output === "string" ? r.ai_output : ""].join(" ").toLowerCase().includes(q);
+        return [r.id, r.user_input, r.client_name || ""].join(" ").toLowerCase().includes(q);
       })
-      .sort((a, b) => {
-        const urgencyA = getUrgencyLevel(a.created_at).priority;
-        const urgencyB = getUrgencyLevel(b.created_at).priority;
-        return (getIntentScore(b) * 10 + urgencyB) - (getIntentScore(a) * 10 + urgencyA);
-      });
+      .sort((a, b) => (getIntentScore(b) * 10 + getUrgencyLevel(b.created_at).priority) - (getIntentScore(a) * 10 + getUrgencyLevel(a.created_at).priority));
   }, [matchingRequests, search, categoryFilter]);
 
   const filteredQuotes = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return myQuotes.filter((quote) => {
-      if (!q) return true;
-      return [quote.request_id, quote.supplier_name, quote.price || "", quote.moq || "", quote.note || "", quote.supplier_region || ""].join(" ").toLowerCase().includes(q);
-    });
+    if (!q) return myQuotes;
+    return myQuotes.filter((qt) => [qt.request_id, qt.supplier_name, qt.price || "", qt.moq || ""].join(" ").toLowerCase().includes(q));
   }, [myQuotes, search]);
 
   const closedDeals = myQuotes.filter((q) => q.is_contact_released).length;
@@ -204,35 +265,11 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
     setFormData({ price: "", moq: "", lead_time: "", note: "", supplier_region: profile?.region || "" });
   }
 
-  function openNewQuote(requestId: string) {
-    setEditingQuoteId(null);
-    setQuoteForm({ requestId, open: true });
-    setFormData({ price: "", moq: "", lead_time: "", note: "", supplier_region: profile?.region || "" });
-    setSuccessMessage(null);
-  }
-
-  function openEditQuote(quote: Quote) {
-    setActiveTab("quotes");
-    setEditingQuoteId(quote.id);
-    setQuoteForm({ requestId: quote.request_id, open: true });
-    setFormData({ price: quote.price || "", moq: quote.moq || "", lead_time: quote.lead_time || "", note: quote.note || "", supplier_region: quote.supplier_region || profile?.region || "" });
-    setSuccessMessage(null);
-  }
-
-  function toggleCategoryInProfile(catId: string) {
-    setProfileForm((prev) => ({
-      ...prev,
-      categories: prev.categories.includes(catId)
-        ? prev.categories.filter((c) => c !== catId)
-        : [...prev.categories, catId],
-    }));
-  }
-
   async function submitQuote(e: React.FormEvent) {
     e.preventDefault();
     if (!formData.price.trim() || !formData.moq.trim()) { alert("Price and MOQ are required."); return; }
     if (!profileComplete) { setActiveTab("profile"); setEditProfile(true); alert("Please complete your supplier profile first."); return; }
-    setSubmitting(true); setSuccessMessage(null);
+    setSubmitting(true);
     try {
       if (editingQuoteId) {
         const { error } = await supabase.from("quotes").update({ price: formData.price.trim(), moq: formData.moq.trim(), lead_time: formData.lead_time.trim() || null, note: formData.note.trim() || null, supplier_region: formData.supplier_region.trim() || null }).eq("id", editingQuoteId);
@@ -242,13 +279,11 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
         const { error } = await supabase.from("quotes").insert([{ request_id: quoteForm.requestId, supplier_user_id: user.id, supplier_name: profile?.company_name || user.name || "Supplier", price: formData.price.trim(), moq: formData.moq.trim(), lead_time: formData.lead_time.trim() || null, note: formData.note.trim() || null, supplier_region: formData.supplier_region.trim() || null, is_contact_released: false }]);
         if (error) throw error;
         try {
-          const { data: requestData } = await supabase.from("fabric_requests").select("client_email, client_name, id").eq("id", quoteForm.requestId).single();
-          if (requestData?.client_email) {
-            await fetch("/api/email/notify-quotes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ buyerEmail: requestData.client_email, buyerName: requestData.client_name, requestId: requestData.id, quoteCount: 1 }) });
-          }
-        } catch (e) { console.error("Quote email notification failed:", e); }
+          const { data: rd } = await supabase.from("fabric_requests").select("client_email, client_name, id").eq("id", quoteForm.requestId).single();
+          if (rd?.client_email) await fetch("/api/email/notify-quotes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ buyerEmail: rd.client_email, buyerName: rd.client_name, requestId: rd.id, quoteCount: 1 }) });
+        } catch { }
         await supabase.from("fabric_requests").update({ status: "quoted" }).eq("id", quoteForm.requestId);
-        setSuccessMessage("Quote submitted and buyer notified successfully.");
+        setSuccessMessage("Quote submitted and buyer notified.");
       }
       resetQuoteForm();
       router.refresh();
@@ -260,10 +295,9 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
     if (!window.confirm("Delete this quote?")) return;
     setDeletingQuoteId(quoteId);
     try {
-      const { error } = await supabase.from("quotes").delete().eq("id", quoteId);
-      if (error) throw error;
+      await supabase.from("quotes").delete().eq("id", quoteId);
       if (editingQuoteId === quoteId) resetQuoteForm();
-      setSuccessMessage("Quote deleted successfully.");
+      setSuccessMessage("Quote deleted.");
       router.refresh();
     } catch (err: any) { alert(err.message || "Failed to delete quote."); }
     finally { setDeletingQuoteId(null); }
@@ -271,23 +305,28 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
 
   async function saveProfile(e: React.FormEvent) {
     e.preventDefault();
-    setSavingProfile(true); setProfileMsg(null);
+    setSavingProfile(true);
     try {
       const { error } = await supabase.from("supplier_profiles").update({
-        company_name: profileForm.company_name.trim(),
-        contact_name: profileForm.contact_name.trim() || null,
-        phone: profileForm.phone.trim() || null,
-        wechat: profileForm.wechat.trim() || null,
-        region: profileForm.region.trim() || null,
+        company_name: profileForm.company_name.trim(), contact_name: profileForm.contact_name.trim() || null,
+        phone: profileForm.phone.trim() || null, wechat: profileForm.wechat.trim() || null,
+        region: profileForm.region.trim() || null, bio: profileForm.bio.trim() || null,
         categories: profileForm.categories,
       }).eq("user_id", user.id);
       if (error) throw error;
-      setProfileMsg("Profile updated successfully.");
-      setEditProfile(false);
-      router.refresh();
+      setProfileMsg("Profile updated."); setEditProfile(false); router.refresh();
     } catch (err: any) { setProfileMsg(err.message || "Failed to update profile."); }
     finally { setSavingProfile(false); }
   }
+
+  const quoteFormFields = [
+    { label: "Price per yard/piece *", key: "price", placeholder: "e.g. $2.50/yard" },
+    { label: "Minimum order qty *", key: "moq", placeholder: "e.g. 500 yards" },
+    { label: "Lead time", key: "lead_time", placeholder: "e.g. 15-20 days" },
+    { label: "Your region", key: "supplier_region", placeholder: "e.g. Guangzhou, China" },
+  ];
+
+  const activeStockCategory = FABRIC_CATEGORIES.find((c) => c.id === stockForm.category);
 
   const stats = [
     { value: String(filteredRequests.length), label: "Matching requests", color: "text-amber-400" },
@@ -297,35 +336,19 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
     ...(avgRating ? [{ value: `${avgRating}★`, label: "Avg rating", color: "text-amber-300" }] : []),
   ];
 
-  const quoteFormFields = [
-    { label: "Price per yard/piece *", key: "price", placeholder: "e.g. $2.50/yard" },
-    { label: "Minimum order qty *", key: "moq", placeholder: "e.g. 500 yards" },
-    { label: "Lead time", key: "lead_time", placeholder: "e.g. 15-20 days" },
-    { label: "Your region", key: "supplier_region", placeholder: "e.g. Guangzhou, China" },
-  ];
-
-  const profileTextFields = [
-    { label: "Company name", key: "company_name", placeholder: "Your company name" },
-    { label: "Contact name", key: "contact_name", placeholder: "Your name" },
-    { label: "Phone / WhatsApp", key: "phone", placeholder: "+86 138 0000 0000" },
-    { label: "WeChat ID", key: "wechat", placeholder: "WeChat username" },
-    { label: "Region / city", key: "region", placeholder: "e.g. Guangzhou, China" },
-  ];
-
   return (
     <main className="min-h-screen bg-[#0a0f1e] px-3 py-3 font-sans md:px-4 md:py-4">
       <div className="mx-auto flex max-w-5xl flex-col gap-3">
 
-        {/* Nav */}
         <nav className="flex items-center justify-between gap-4 rounded-2xl border border-white/8 bg-[#0d1424] px-4 py-3">
           <a href="/" className="flex shrink-0 items-center gap-2 no-underline">
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-amber-700 text-sm font-black text-white shadow-lg shadow-amber-500/30">W</span>
             <span className="text-xl font-black tracking-tight text-white">Weinly</span>
           </a>
           <div className="flex items-center gap-3">
+            <a href={`/suppliers/${user.id}`} className="hidden text-xs font-semibold text-indigo-400 no-underline hover:text-indigo-300 md:block">View public profile →</a>
             <span className="hidden text-sm text-slate-500 md:block">{user.email}</span>
-            <button onClick={handleLogout} disabled={loggingOut}
-              className="cursor-pointer rounded-xl border border-white/10 bg-white/6 px-4 py-2 text-sm font-semibold text-slate-400 transition-all hover:bg-white/10 disabled:opacity-60">
+            <button onClick={handleLogout} disabled={loggingOut} className="cursor-pointer rounded-xl border border-white/10 bg-white/6 px-4 py-2 text-sm font-semibold text-slate-400 transition-all hover:bg-white/10 disabled:opacity-60">
               {loggingOut ? "..." : "Log out"}
             </button>
           </div>
@@ -336,19 +359,20 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
           <div className="pointer-events-none absolute right-0 top-0 h-64 w-64 translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-500/8 blur-3xl" />
           <div className="relative z-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-start">
             <div>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-amber-500/25 bg-amber-500/10 px-4 py-1.5">
-                <span className="h-2 w-2 rounded-full bg-amber-400" />
-                <span className="text-xs font-semibold text-amber-300">Supplier portal</span>
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/25 bg-amber-500/10 px-4 py-1.5">
+                  <span className="h-2 w-2 rounded-full bg-amber-400" />
+                  <span className="text-xs font-semibold text-amber-300">Supplier portal</span>
+                </div>
+                {profile?.is_verified && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-400">✓ Verified Supplier</span>
+                )}
               </div>
-              <h1 className="mb-1 text-2xl font-black tracking-tight text-white md:text-3xl">
-                {profile?.company_name || user.name || "Supplier dashboard"}
-              </h1>
+              <h1 className="mb-1 text-2xl font-black tracking-tight text-white md:text-3xl">{profile?.company_name || user.name || "Supplier dashboard"}</h1>
               <p className="m-0 text-sm text-slate-400">{profile?.region || user.email}</p>
               {supplierCategories.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1.5">
-                  {supplierCategories.map((catId) => (
-                    <CategoryBadge key={catId} categoryId={catId} />
-                  ))}
+                  {supplierCategories.map((catId) => <CategoryBadge key={catId} categoryId={catId} />)}
                 </div>
               )}
               {!profileComplete && (
@@ -373,21 +397,23 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
         )}
 
         <section className="rounded-3xl border border-white/7 bg-[#111827] p-4 md:p-6">
-          {/* Tab bar */}
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="flex gap-1.5 overflow-x-auto rounded-2xl border border-white/7 bg-white/4 p-1.5">
-              {(["requests", "quotes", "reviews", "profile"] as const).map((tab) => (
+              {(["requests", "quotes", "stock", "reviews", "profile"] as const).map((tab) => (
                 <button key={tab} onClick={() => setActiveTab(tab)}
                   className={`shrink-0 cursor-pointer rounded-xl px-3 py-2.5 text-xs font-bold transition-all md:text-sm ${activeTab === tab ? "bg-gradient-to-r from-amber-500 to-amber-700 text-white shadow-lg shadow-amber-500/25" : "bg-transparent text-slate-500 hover:text-slate-300"}`}>
-                  {tab === "requests" ? `Open requests (${filteredRequests.length})`
-                    : tab === "quotes" ? `My quotes (${myQuotes.length})`
+                  {tab === "requests" ? `Requests (${filteredRequests.length})`
+                    : tab === "quotes" ? `Quotes (${myQuotes.length})`
+                    : tab === "stock" ? `Ready Stock (${stock.filter((s) => !s.is_sold_out && s.is_active !== false).length})`
                     : tab === "reviews" ? `Reviews (${reviews.length})`
                     : "Profile"}
                 </button>
               ))}
             </div>
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search requests or quotes"
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-amber-500 md:max-w-sm" />
+            {(activeTab === "requests" || activeTab === "quotes") && (
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search..."
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-amber-500 md:max-w-xs" />
+            )}
           </div>
 
           {/* REQUESTS TAB */}
@@ -395,47 +421,33 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
             <div className="flex flex-col gap-4">
               <div>
                 <h2 className="mb-1 text-xl font-black tracking-tight text-white">Open buyer requests</h2>
-                <p className="m-0 text-sm text-slate-500">
-                  {supplierCategories.length > 0
-                    ? `Showing requests matching your ${supplierCategories.length} selected ${supplierCategories.length === 1 ? "category" : "categories"}. Higher intent requests appear first.`
-                    : "All buyer requests. Set your categories in Profile to see only relevant requests."}
-                </p>
+                <p className="m-0 text-sm text-slate-500">{supplierCategories.length > 0 ? `Showing requests matching your ${supplierCategories.length} selected categories.` : "All buyer requests."}</p>
               </div>
-
-              {/* Category filter tabs */}
               {availableCategories.length > 1 && (
                 <div className="flex flex-wrap gap-2">
-                  <button onClick={() => setCategoryFilter("all")}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${categoryFilter === "all" ? "bg-white/15 border-white/30 text-white" : "border-white/10 bg-white/4 text-slate-500 hover:text-slate-300"}`}>
+                  <button onClick={() => setCategoryFilter("all")} className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${categoryFilter === "all" ? "border-white/30 bg-white/15 text-white" : "border-white/10 bg-white/4 text-slate-500 hover:text-slate-300"}`}>
                     All ({matchingRequests.length})
                   </button>
                   {availableCategories.map((cat) => {
                     const color = getCategoryColor(cat.id);
                     const count = matchingRequests.filter((r) => r.category === cat.id).length;
-                    const isActive = categoryFilter === cat.id;
                     return (
                       <button key={cat.id} onClick={() => setCategoryFilter(cat.id)}
-                        className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${isActive ? `${color.bg} ${color.text} ${color.border}` : "border-white/10 bg-white/4 text-slate-500 hover:text-slate-300"}`}>
+                        className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${categoryFilter === cat.id ? `${color.bg} ${color.text} ${color.border}` : "border-white/10 bg-white/4 text-slate-500 hover:text-slate-300"}`}>
                         {cat.label} ({count})
                       </button>
                     );
                   })}
                 </div>
               )}
-
               <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/6 p-4 text-xs leading-relaxed text-indigo-300">
                 Tip: Fast response, clear MOQ, and competitive pricing improve your win rate.
               </div>
-
               {filteredRequests.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-white/10 bg-white/2 p-10 text-center">
                   <div className="mb-3 text-4xl">◎</div>
                   <div className="mb-2 font-bold text-slate-400">No matching requests</div>
-                  <p className="m-0 text-sm text-slate-600">
-                    {supplierCategories.length > 0
-                      ? "No new requests in your categories right now. Check back soon or update your categories in Profile."
-                      : "No new requests right now. Check back soon."}
-                  </p>
+                  <p className="m-0 text-sm text-slate-600">{supplierCategories.length > 0 ? "No new requests in your categories. Check back soon or update your categories in Profile." : "No new requests right now."}</p>
                 </div>
               ) : (
                 filteredRequests.map((request) => {
@@ -479,7 +491,8 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                           </div>
                           <div className="flex flex-col gap-1.5">
                             <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Additional note</label>
-                            <textarea value={formData.note} onChange={(e) => setFormData({ ...formData, note: e.target.value })} placeholder="Any additional details about your product, certifications, samples, etc." rows={3}
+                            <textarea value={formData.note} onChange={(e) => setFormData({ ...formData, note: e.target.value })} rows={3}
+                              placeholder="Any additional details about your product, certifications, samples, etc."
                               className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-amber-500" />
                           </div>
                           <div className="flex flex-wrap gap-3">
@@ -487,12 +500,11 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                               className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-amber-500 to-amber-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/25 disabled:opacity-60">
                               {submitting ? "Submitting..." : "Submit quote & notify buyer →"}
                             </button>
-                            <button type="button" onClick={resetQuoteForm}
-                              className="cursor-pointer rounded-xl border border-white/10 bg-white/6 px-6 py-3 text-sm font-semibold text-slate-400 transition-all hover:bg-white/10">Cancel</button>
+                            <button type="button" onClick={resetQuoteForm} className="cursor-pointer rounded-xl border border-white/10 bg-white/6 px-6 py-3 text-sm font-semibold text-slate-400 transition-all hover:bg-white/10">Cancel</button>
                           </div>
                         </form>
                       ) : (
-                        <button onClick={() => openNewQuote(request.id)}
+                        <button onClick={() => { setEditingQuoteId(null); setQuoteForm({ requestId: request.id, open: true }); setFormData({ price: "", moq: "", lead_time: "", note: "", supplier_region: profile?.region || "" }); setSuccessMessage(null); }}
                           className="cursor-pointer self-start rounded-xl border-0 bg-gradient-to-r from-amber-500 to-amber-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/20">
                           Submit a quote →
                         </button>
@@ -509,7 +521,7 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
             <div className="flex flex-col gap-4">
               <div>
                 <h2 className="mb-1 text-xl font-black tracking-tight text-white">My submitted quotes</h2>
-                <p className="m-0 text-sm text-slate-500">Track your quotes, update them, or remove them if needed.</p>
+                <p className="m-0 text-sm text-slate-500">Track, update or remove your quotes.</p>
               </div>
               {filteredQuotes.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-white/10 bg-white/2 p-10 text-center">
@@ -530,10 +542,7 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                       </span>
                     </div>
                     <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
-                      {[
-                        { label: "Price", value: quote.price || "—" }, { label: "MOQ", value: quote.moq || "—" },
-                        { label: "Lead time", value: quote.lead_time || "—" }, { label: "Region", value: quote.supplier_region || "—" },
-                      ].map((s) => (
+                      {[{ label: "Price", value: quote.price || "—" }, { label: "MOQ", value: quote.moq || "—" }, { label: "Lead time", value: quote.lead_time || "—" }, { label: "Region", value: quote.supplier_region || "—" }].map((s) => (
                         <div key={s.label} className="rounded-xl border border-white/7 bg-white/4 p-3">
                           <div className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-600">{s.label}</div>
                           <div className="text-sm font-semibold text-white">{s.value}</div>
@@ -548,15 +557,15 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                     )}
                     {quote.is_contact_released && (
                       <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/6 p-3 text-sm leading-relaxed text-emerald-300">
-                        <strong>Buyer has unlocked your contact.</strong> They may reach out directly via the contact details on your profile.
+                        <strong>Buyer has unlocked your contact.</strong> They may reach out directly.
                       </div>
                     )}
                     <div className="flex flex-wrap gap-3 pt-1">
-                      <button onClick={() => openEditQuote(quote)}
+                      <button onClick={() => { setActiveTab("quotes"); setEditingQuoteId(quote.id); setQuoteForm({ requestId: quote.request_id, open: true }); setFormData({ price: quote.price || "", moq: quote.moq || "", lead_time: quote.lead_time || "", note: quote.note || "", supplier_region: quote.supplier_region || profile?.region || "" }); setSuccessMessage(null); }}
                         className="cursor-pointer rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-2.5 text-sm font-bold text-amber-400 transition-all hover:bg-amber-500/15">Edit quote</button>
                       <button onClick={() => deleteQuote(quote.id)} disabled={deletingQuoteId === quote.id}
                         className="cursor-pointer rounded-xl border border-red-500/20 bg-red-500/8 px-4 py-2.5 text-sm font-bold text-red-400 transition-all hover:bg-red-500/12 disabled:opacity-60">
-                        {deletingQuoteId === quote.id ? "Deleting..." : "Delete quote"}
+                        {deletingQuoteId === quote.id ? "Deleting..." : "Delete"}
                       </button>
                     </div>
                   </div>
@@ -574,20 +583,155 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                       </div>
                     ))}
                   </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Additional note</label>
-                    <textarea value={formData.note} onChange={(e) => setFormData({ ...formData, note: e.target.value })} placeholder="Any additional details..." rows={3}
-                      className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-amber-500" />
-                  </div>
+                  <textarea value={formData.note} onChange={(e) => setFormData({ ...formData, note: e.target.value })} rows={3} placeholder="Additional note..."
+                    className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-amber-500" />
                   <div className="flex flex-wrap gap-3">
-                    <button type="submit" disabled={submitting}
-                      className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-amber-500 to-amber-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/25 disabled:opacity-60">
+                    <button type="submit" disabled={submitting} className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-amber-500 to-amber-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/25 disabled:opacity-60">
                       {submitting ? "Updating..." : "Update quote →"}
                     </button>
-                    <button type="button" onClick={resetQuoteForm}
+                    <button type="button" onClick={resetQuoteForm} className="cursor-pointer rounded-xl border border-white/10 bg-white/6 px-6 py-3 text-sm font-semibold text-slate-400 transition-all hover:bg-white/10">Cancel</button>
+                  </div>
+                </form>
+              )}
+            </div>
+          )}
+
+          {/* READY STOCK TAB */}
+          {activeTab === "stock" && (
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="mb-1 text-xl font-black tracking-tight text-white">Ready stock</h2>
+                  <p className="m-0 text-sm text-slate-500">List fabric you have available right now. Buyers can browse and enquire directly.</p>
+                </div>
+                <button onClick={() => { setShowStockForm(true); setEditingStockId(null); setStockForm({ ...emptyStockForm }); }}
+                  className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-emerald-500 to-emerald-700 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-500/20">
+                  + Add fabric
+                </button>
+              </div>
+
+              {/* Add/edit form */}
+              {showStockForm && (
+                <form onSubmit={saveStock} className="flex flex-col gap-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/6 p-5">
+                  <h4 className="m-0 text-base font-bold text-white">{editingStockId ? "Edit stock item" : "Add fabric to ready stock"}</h4>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div className="flex flex-col gap-1.5 md:col-span-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Fabric name *</label>
+                      <input value={stockForm.name} onChange={(e) => setStockForm({ ...stockForm, name: e.target.value })} placeholder="e.g. Premium Swiss Lace — Ivory"
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-emerald-500" />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Category *</label>
+                      <select value={stockForm.category} onChange={(e) => setStockForm({ ...stockForm, category: e.target.value, subcategory: "" })}
+                        className="w-full rounded-xl border border-white/10 bg-[#111827] px-4 py-3 text-sm text-white outline-none transition-all focus:border-emerald-500">
+                        <option value="">Select category</option>
+                        {FABRIC_CATEGORIES.map((cat) => <option key={cat.id} value={cat.id}>{cat.label}</option>)}
+                      </select>
+                    </div>
+                    {activeStockCategory && (
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Fabric type</label>
+                        <select value={stockForm.subcategory} onChange={(e) => setStockForm({ ...stockForm, subcategory: e.target.value })}
+                          className="w-full rounded-xl border border-white/10 bg-[#111827] px-4 py-3 text-sm text-white outline-none transition-all focus:border-emerald-500">
+                          <option value="">Select type (optional)</option>
+                          {activeStockCategory.subcategories.map((sub) => <option key={sub} value={sub}>{sub}</option>)}
+                        </select>
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Price per unit *</label>
+                      <input value={stockForm.price_per_unit} onChange={(e) => setStockForm({ ...stockForm, price_per_unit: e.target.value })} placeholder="e.g. $4.50"
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-emerald-500" />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Unit</label>
+                      <select value={stockForm.unit} onChange={(e) => setStockForm({ ...stockForm, unit: e.target.value })}
+                        className="w-full rounded-xl border border-white/10 bg-[#111827] px-4 py-3 text-sm text-white outline-none transition-all focus:border-emerald-500">
+                        {["yard", "meter", "roll", "kg", "piece", "set"].map((u) => <option key={u} value={u}>{u}</option>)}
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-400">MOQ *</label>
+                      <input value={stockForm.moq} onChange={(e) => setStockForm({ ...stockForm, moq: e.target.value })} placeholder="e.g. 50 yards"
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-emerald-500" />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Available quantity</label>
+                      <input value={stockForm.available_quantity} onChange={(e) => setStockForm({ ...stockForm, available_quantity: e.target.value })} placeholder="e.g. 500 yards in stock"
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-emerald-500" />
+                    </div>
+                    <div className="flex flex-col gap-1.5 md:col-span-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Description</label>
+                      <textarea value={stockForm.description} onChange={(e) => setStockForm({ ...stockForm, description: e.target.value })} rows={3}
+                        placeholder="Describe the fabric — GSM, width, color options, feel, usage..."
+                        className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-emerald-500" />
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    <button type="submit" disabled={savingStock}
+                      className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-emerald-500 to-emerald-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/25 disabled:opacity-60">
+                      {savingStock ? "Saving..." : editingStockId ? "Update item →" : "Add to ready stock →"}
+                    </button>
+                    <button type="button" onClick={() => { setShowStockForm(false); setEditingStockId(null); setStockForm({ ...emptyStockForm }); }}
                       className="cursor-pointer rounded-xl border border-white/10 bg-white/6 px-6 py-3 text-sm font-semibold text-slate-400 transition-all hover:bg-white/10">Cancel</button>
                   </div>
                 </form>
+              )}
+
+              {stockLoading ? (
+                <div className="py-10 text-center text-sm text-slate-500">Loading...</div>
+              ) : stock.filter((s) => s.is_active !== false).length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-white/10 bg-white/2 p-10 text-center">
+                  <div className="mb-3 text-4xl">◎</div>
+                  <div className="mb-2 font-bold text-slate-400">No ready stock listed</div>
+                  <p className="m-0 mb-4 text-sm text-slate-600">Add fabric you have in stock right now to attract buyers who need fast delivery.</p>
+                  <button onClick={() => setShowStockForm(true)}
+                    className="inline-flex cursor-pointer items-center rounded-xl border-0 bg-gradient-to-r from-emerald-500 to-emerald-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/20">
+                    Add your first fabric →
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  {stock.filter((s) => s.is_active !== false).map((item) => {
+                    const color = getCategoryColor(item.category);
+                    return (
+                      <div key={item.id} className={`flex flex-col gap-3 rounded-2xl border p-4 ${item.is_sold_out ? "opacity-60" : ""} ${color.bg} ${color.border}`}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className={`text-sm font-bold ${color.text} mb-0.5`}>{item.name}</div>
+                            <div className="text-xs text-slate-500">{getCategoryLabel(item.category)}{item.subcategory ? ` · ${item.subcategory}` : ""}</div>
+                          </div>
+                          <span className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-bold ${item.is_sold_out ? "border-red-500/25 bg-red-500/15 text-red-400" : "border-emerald-500/25 bg-emerald-500/15 text-emerald-400"}`}>
+                            {item.is_sold_out ? "Sold out" : "In stock"}
+                          </span>
+                        </div>
+                        {item.description && <p className="m-0 text-xs leading-relaxed text-slate-400">{item.description}</p>}
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            { label: "Price", value: `${item.price_per_unit}/${item.unit}` },
+                            { label: "MOQ", value: item.moq },
+                            { label: "Stock", value: item.available_quantity || "—" },
+                          ].map((s) => (
+                            <div key={s.label} className="rounded-xl border border-white/7 bg-black/20 p-2.5">
+                              <div className="mb-0.5 text-xs font-bold uppercase tracking-wider text-slate-600">{s.label}</div>
+                              <div className="text-sm font-semibold text-white">{s.value}</div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button onClick={() => toggleSoldOut(item)}
+                            className={`cursor-pointer rounded-xl border px-3 py-2 text-xs font-bold transition-all ${item.is_sold_out ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/15" : "border-amber-500/20 bg-amber-500/10 text-amber-400 hover:bg-amber-500/15"}`}>
+                            {item.is_sold_out ? "Mark available" : "Mark sold out"}
+                          </button>
+                          <button onClick={() => { setEditingStockId(item.id); setStockForm({ name: item.name, description: item.description || "", category: item.category, subcategory: item.subcategory || "", price_per_unit: item.price_per_unit, unit: item.unit, moq: item.moq, available_quantity: item.available_quantity || "" }); setShowStockForm(true); }}
+                            className="cursor-pointer rounded-xl border border-white/10 bg-white/6 px-3 py-2 text-xs font-bold text-slate-400 transition-all hover:bg-white/10">Edit</button>
+                          <button onClick={() => deleteStockItem(item.id)}
+                            className="cursor-pointer rounded-xl border border-red-500/20 bg-red-500/8 px-3 py-2 text-xs font-bold text-red-400 transition-all hover:bg-red-500/12">Remove</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
           )}
@@ -600,7 +744,7 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                 <p className="m-0 text-sm text-slate-500">Reviews left by buyers after unlocking your contact details.</p>
               </div>
               {reviewsLoading ? (
-                <div className="rounded-2xl border border-white/7 bg-white/3 p-10 text-center text-sm text-slate-500">Loading reviews...</div>
+                <div className="py-10 text-center text-sm text-slate-500">Loading reviews...</div>
               ) : reviews.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-white/10 bg-white/2 p-10 text-center">
                   <div className="mb-3 text-4xl">★</div>
@@ -620,7 +764,7 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                         {ratingDistribution.map(({ star, count, pct }) => (
                           <div key={star} className="flex items-center gap-2">
                             <span className="w-4 text-xs text-slate-500">{star}★</span>
-                            <div className="flex-1 rounded-full bg-white/10 h-2 overflow-hidden">
+                            <div className="flex-1 h-2 rounded-full bg-white/10 overflow-hidden">
                               <div className="h-full rounded-full bg-amber-400 transition-all" style={{ width: `${pct}%` }} />
                             </div>
                             <span className="w-6 text-right text-xs text-slate-500">{count}</span>
@@ -661,25 +805,40 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                   {editProfile ? "Cancel" : "Edit profile"}
                 </button>
               </div>
-              {profileMsg && (
-                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/8 p-4 text-sm text-emerald-300">{profileMsg}</div>
-              )}
-              {!profileComplete && (
-                <div className="rounded-2xl border border-red-500/20 bg-red-500/8 p-4 text-sm text-red-300">Complete your profile fully. Buyers will only trust and contact suppliers with complete details.</div>
+              {profileMsg && <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/8 p-4 text-sm text-emerald-300">{profileMsg}</div>}
+              {!profileComplete && <div className="rounded-2xl border border-red-500/20 bg-red-500/8 p-4 text-sm text-red-300">Complete your profile fully. Buyers will only trust and contact suppliers with complete details.</div>}
+              {profile?.is_verified && (
+                <div className="flex items-center gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/6 p-4">
+                  <span className="text-xl text-emerald-400">✓</span>
+                  <div>
+                    <div className="text-sm font-bold text-emerald-300">Verified Supplier</div>
+                    <div className="text-xs text-slate-500">Your account has been verified by the Weinly team. This badge appears on all your quotes.</div>
+                  </div>
+                </div>
               )}
               {editProfile ? (
                 <form onSubmit={saveProfile} className="flex flex-col gap-5">
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    {profileTextFields.map((field) => (
+                    {[
+                      { label: "Company name", key: "company_name", placeholder: "Your company name" },
+                      { label: "Contact name", key: "contact_name", placeholder: "Your name" },
+                      { label: "Phone / WhatsApp", key: "phone", placeholder: "+86 138 0000 0000" },
+                      { label: "WeChat ID", key: "wechat", placeholder: "WeChat username" },
+                      { label: "Region / city", key: "region", placeholder: "e.g. Guangzhou, China" },
+                    ].map((field) => (
                       <div key={field.key} className="flex flex-col gap-1.5">
                         <label className="text-xs font-bold uppercase tracking-wider text-slate-400">{field.label}</label>
                         <input value={profileForm[field.key as keyof typeof profileForm] as string} onChange={(e) => setProfileForm({ ...profileForm, [field.key]: e.target.value })} placeholder={field.placeholder}
                           className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-amber-500" />
                       </div>
                     ))}
+                    <div className="flex flex-col gap-1.5 md:col-span-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Bio / company description</label>
+                      <textarea value={profileForm.bio} onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })} rows={3}
+                        placeholder="Describe your company, specialties, years of experience, export markets..."
+                        className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-amber-500" />
+                    </div>
                   </div>
-
-                  {/* Category multi-select */}
                   <div className="flex flex-col gap-3">
                     <div>
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Fabric categories you supply</label>
@@ -690,7 +849,7 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                         const color = getCategoryColor(cat.id);
                         const isSelected = profileForm.categories.includes(cat.id);
                         return (
-                          <button key={cat.id} type="button" onClick={() => toggleCategoryInProfile(cat.id)}
+                          <button key={cat.id} type="button" onClick={() => setProfileForm((prev) => ({ ...prev, categories: isSelected ? prev.categories.filter((c) => c !== cat.id) : [...prev.categories, cat.id] }))}
                             className={`flex items-center justify-between gap-2 rounded-xl border px-4 py-3 text-left text-sm font-semibold transition-all cursor-pointer ${isSelected ? `${color.bg} ${color.text} ${color.border}` : "border-white/10 bg-white/4 text-slate-500 hover:border-white/20 hover:text-slate-300"}`}>
                             <span>{cat.label}</span>
                             {isSelected && <span className="text-xs">✓</span>}
@@ -702,7 +861,6 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                       <p className="text-xs text-slate-500">{profileForm.categories.length} {profileForm.categories.length === 1 ? "category" : "categories"} selected</p>
                     )}
                   </div>
-
                   <button type="submit" disabled={savingProfile}
                     className="self-start rounded-xl border-0 bg-gradient-to-r from-amber-500 to-amber-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/25 disabled:opacity-60">
                     {savingProfile ? "Saving..." : "Save profile →"}
@@ -725,12 +883,16 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                       </div>
                     ))}
                   </div>
+                  {profile?.bio && (
+                    <div className="rounded-xl border border-white/7 bg-white/4 p-4">
+                      <div className="mb-1 text-xs font-bold uppercase tracking-widest text-slate-500">Bio</div>
+                      <p className="m-0 text-sm leading-relaxed text-white">{profile.bio}</p>
+                    </div>
+                  )}
                   <div className="rounded-xl border border-white/7 bg-white/4 p-4">
                     <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">Fabric categories</div>
                     {supplierCategories.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {supplierCategories.map((catId) => <CategoryBadge key={catId} categoryId={catId} />)}
-                      </div>
+                      <div className="flex flex-wrap gap-2">{supplierCategories.map((catId) => <CategoryBadge key={catId} categoryId={catId} />)}</div>
                     ) : (
                       <p className="m-0 text-sm text-slate-600">No categories set. Edit your profile to select the categories you supply.</p>
                     )}
@@ -739,7 +901,7 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
               )}
               <div className="mt-2 rounded-2xl border border-amber-500/20 bg-amber-500/6 p-5">
                 <h3 className="m-0 mb-2 text-sm font-bold text-amber-300">Important — keep your contact details updated</h3>
-                <p className="m-0 text-xs leading-relaxed text-slate-500">When a buyer unlocks your contact, Weinly releases your phone number, WeChat and email directly to them. Make sure these are always accurate so buyers can reach you.</p>
+                <p className="m-0 text-xs leading-relaxed text-slate-500">When a buyer unlocks your contact, Weinly releases your phone, WeChat and email directly to them. Make sure these are always accurate.</p>
               </div>
             </div>
           )}
