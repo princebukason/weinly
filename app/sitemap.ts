@@ -6,7 +6,7 @@ function labelToSlug(label: string): string {
 }
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = "https://weinly.com";
+  const base = "https://weinlyhq.com";
   const now = new Date();
 
   const staticPages: MetadataRoute.Sitemap = [

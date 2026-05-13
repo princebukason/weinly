@@ -11,11 +11,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Source Fabrics from China — All Categories | Weinly",
     description: "Browse all fabric categories on Weinly. Connect with verified Chinese manufacturers for wholesale fabric sourcing worldwide.",
-    url: "https://weinly.com/fabrics",
+    url: "https://weinlyhq.com/fabrics",
     siteName: "Weinly",
     type: "website",
   },
-  alternates: { canonical: "https://weinly.com/fabrics" },
+  alternates: { canonical: "https://weinlyhq.com/fabrics" },
 };
 
 export default function FabricsIndexPage() {

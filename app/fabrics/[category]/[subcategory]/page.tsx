@@ -49,7 +49,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title,
       description,
-      url: `https://weinly.com/fabrics/${params.category}/${params.subcategory}`,
+      url: `https://weinlyhq.com/fabrics/${params.category}/${params.subcategory}`,
       siteName: "Weinly",
       type: "website",
     },
@@ -59,7 +59,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
     },
     alternates: {
-      canonical: `https://weinly.com/fabrics/${params.category}/${params.subcategory}`,
+      canonical: `https://weinlyhq.com/fabrics/${params.category}/${params.subcategory}`,
     },
   };
 }

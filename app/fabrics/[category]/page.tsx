@@ -161,7 +161,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: seo.headline,
       description: seo.description.slice(0, 160),
-      url: `https://weinly.com/fabrics/${params.category}`,
+      url: `https://weinlyhq.com/fabrics/${params.category}`,
       siteName: "Weinly",
       type: "website",
     },
@@ -171,7 +171,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: seo.description.slice(0, 160),
     },
     alternates: {
-      canonical: `https://weinly.com/fabrics/${params.category}`,
+      canonical: `https://weinlyhq.com/fabrics/${params.category}`,
     },
   };
 }
@@ -193,7 +193,7 @@ export default function CategorySEOPage({ params }: Props) {
     "provider": {
       "@type": "Organization",
       "name": "Weinly",
-      "url": "https://weinly.com",
+      "url": "https://weinlyhq.com",
     },
     "areaServed": "Worldwide",
     "serviceType": "Fabric Sourcing",
