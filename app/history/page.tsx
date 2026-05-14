@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import { buildWhatsappLink } from "@/lib/config";
+import { useCurrency } from "@/hooks/useCurrency";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -73,16 +74,19 @@ function getStagePill(request: FabricRequest, quoteCount: number) {
 }
 
 export default function HistoryPage() {
+  const prices = useCurrency();
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [requests, setRequests] = useState<FabricRequest[]>([]);
   const [quotesMap, setQuotesMap] = useState<Record<string, Quote[]>>({});
+  const [searchError, setSearchError] = useState("");
 
   async function searchHistory(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.trim() && !phone.trim()) { alert("Enter your email or phone number."); return; }
+    setSearchError("");
+    if (!email.trim() && !phone.trim()) { setSearchError("Enter your email or phone number to search."); return; }
     setLoading(true);
     setRequests([]);
     setQuotesMap({});
@@ -114,7 +118,7 @@ export default function HistoryPage() {
         });
         setQuotesMap(grouped);
       }
-    } catch { alert("Failed to load request history."); }
+    } catch { setSearchError("Failed to load request history. Please try again."); }
     finally { setLoading(false); }
   }
 
@@ -179,6 +183,11 @@ export default function HistoryPage() {
                   WhatsApp support
                 </a>
               </div>
+              {searchError && (
+                <div className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/8 px-4 py-3 text-sm text-red-300">
+                  <span>✕</span><span>{searchError}</span>
+                </div>
+              )}
             </form>
           </div>
         </section>
@@ -363,12 +372,12 @@ export default function HistoryPage() {
                         <div className="bg-indigo-500/6 border border-indigo-500/20 rounded-2xl p-5">
                           <h4 className="text-white font-bold text-base mb-2 m-0">Ready to unlock supplier contact?</h4>
                           <p className="text-slate-500 text-sm leading-relaxed mb-4 m-0">
-                            Get direct access to supplier phone, WeChat and contact person. Pay ₦10,000 to unlock after approval.
+                            Get direct access to supplier phone, WeChat and contact person. Pay {prices.unlock} to unlock after approval.
                           </p>
                           <div className="grid grid-cols-2 gap-2.5 mb-4">
                             <div className="bg-indigo-500/8 border border-indigo-500/15 rounded-xl p-3">
                               <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Access fee</div>
-                              <div className="text-white font-bold text-sm">{request.contact_access_fee || "₦10,000"}</div>
+                              <div className="text-white font-bold text-sm">{request.contact_access_fee || prices.unlock}</div>
                             </div>
                             <div className="bg-indigo-500/8 border border-indigo-500/15 rounded-xl p-3">
                               <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Contact status</div>
