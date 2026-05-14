@@ -2,19 +2,18 @@
 
 import { useState } from "react";
 
-// Keyword sets per category for loremflickr.com — keyword-based Flickr image search.
-// URL: https://loremflickr.com/{w}/{h}/{keywords}?lock={n}
-// lock= makes it deterministic; different numbers give different photos per slot.
-const CATEGORY_KEYWORDS: Record<string, { terms: string; locks: number[] }> = {
-  luxury:     { terms: "silk,lace,fabric",           locks: [1, 11, 21, 31, 41] },
-  african:    { terms: "ankara,wax,textile",          locks: [2, 12, 22, 32, 42] },
-  sports:     { terms: "sportswear,activewear,mesh",  locks: [3, 13, 23, 33, 43] },
-  casual:     { terms: "denim,cotton,fabric",         locks: [4, 14, 24, 34, 44] },
-  mens:       { terms: "suiting,wool,fabric",         locks: [5, 15, 25, 35, 45] },
-  furniture:  { terms: "upholstery,sofa,velvet",      locks: [6, 16, 26, 36, 46] },
-  industrial: { terms: "textile,industrial,weave",    locks: [7, 17, 27, 37, 47] },
-  kids:       { terms: "cotton,children,colorful",    locks: [8, 18, 28, 38, 48] },
-  eco:        { terms: "organic,linen,natural",       locks: [9, 19, 29, 39, 49] },
+// Verified Unsplash CDN photo IDs — fetched directly from unsplash.com photo pages.
+// URL: https://images.unsplash.com/photo-{id}?auto=format&fit=crop&w={w}&q=80
+const CATEGORY_PHOTOS: Record<string, string[]> = {
+  luxury:     ["1619043519379-99df2736108d", "1617055407123-3d7130c1f940", "1591957974074-68daffbf8df8"],
+  african:    ["1552710307-537199cd41c0",    "1593803926640-0c663fabfaf5"],
+  sports:     ["1636716019138-750a1b011e3f", "1671530191715-b1019db3944a"],
+  casual:     ["1645859610425-f0f4177df5f0", "1524404794194-16bae22718c0"],
+  mens:       ["1705493253575-e911888621ff", "1532526674046-5b3f6d7d2ab1"],
+  furniture:  ["1567016432779-094069958ea5", "1555041469-a586c61ea9bc"],
+  industrial: ["1743142883555-b0beac669a51", "1741176507345-dd8587f1a175"],
+  kids:       ["1640746942093-cec8e647596d", "1630920501459-f3e99320c4a5"],
+  eco:        ["1703495330144-0ab603d059ef", "1554967651-3997ad1c43b0"],
 };
 
 // Rich dark gradient fallback per category — shows while image loads
@@ -66,12 +65,12 @@ export default function FabricImage({
   const [imgLoaded, setImgLoaded] = useState(false);
 
   const grad = CATEGORY_GRADIENTS[categoryId] || CATEGORY_GRADIENTS.casual;
-  const kw = CATEGORY_KEYWORDS[categoryId] || CATEGORY_KEYWORDS.casual;
-  const lock = kw.locks[itemIndex % kw.locks.length];
+  const photos = CATEGORY_PHOTOS[categoryId] || CATEGORY_PHOTOS.casual;
+  const photoId = photos[itemIndex % photos.length];
 
-  // Priority: supplier upload → loremflickr keyword search → SVG fallback
-  const flickrSrc = `https://loremflickr.com/${width}/${height}/${kw.terms}?lock=${lock}`;
-  const src = imageUrl || flickrSrc;
+  // Priority: supplier upload → verified Unsplash CDN photo → SVG fallback
+  const unsplashSrc = `https://images.unsplash.com/photo-${photoId}?auto=format&fit=crop&w=${width}&q=80`;
+  const src = imageUrl || unsplashSrc;
 
   return (
     <div
