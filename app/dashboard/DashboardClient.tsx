@@ -260,7 +260,6 @@ export default function DashboardClient({
                 {requests.length === 0 ? "No requests yet" : `${requests.length} request${requests.length === 1 ? "" : "s"} found`}
               </p>
             </div>
-
             <a
               href="/#main-tabs"
               className="bg-indigo-500/12 text-indigo-400 text-xs font-bold px-4 py-2 rounded-full no-underline border border-indigo-500/20"
@@ -269,9 +268,168 @@ export default function DashboardClient({
             </a>
           </div>
 
-          <div className="text-slate-400 text-sm">
-            Dashboard content loaded.
-          </div>
+          {requests.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-white/10 p-10 text-center">
+              <div className="mb-3 text-4xl">◎</div>
+              <div className="mb-2 font-bold text-slate-400">No requests yet</div>
+              <p className="m-0 mb-5 text-sm text-slate-600">Submit your first fabric sourcing request and quotes will appear here.</p>
+              <a href="/#main-tabs" className="inline-flex items-center rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-700 px-6 py-3 text-sm font-bold text-white no-underline shadow-lg shadow-indigo-500/25">
+                Start sourcing →
+              </a>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {requests.map((request) => {
+                const quotes = quotesMap[request.id] || [];
+                const pill = getStagePill(request, quotes.length);
+                const isExpanded = expandedId === request.id;
+                const unlockedQuotes = quotes.filter((q) => q.is_contact_released);
+
+                return (
+                  <div key={request.id} className="rounded-2xl border border-white/7 bg-white/3 overflow-hidden">
+                    {/* Request header — always visible */}
+                    <button
+                      type="button"
+                      onClick={() => setExpandedId(isExpanded ? null : request.id)}
+                      className="w-full text-left p-4 md:p-5 flex flex-col gap-3 cursor-pointer bg-transparent border-0"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="flex flex-col gap-1 min-w-0">
+                          <div className="text-sm font-bold text-white truncate max-w-xs md:max-w-md">
+                            {request.user_input.length > 80 ? request.user_input.slice(0, 80) + "…" : request.user_input}
+                          </div>
+                          <div className="text-xs text-slate-600">
+                            {new Date(request.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+                            {" · "}ID: <span className="font-mono text-slate-500">{request.id.slice(0, 8)}…</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={`rounded-full px-3 py-1.5 text-xs font-bold ${pill.cls}`}>{pill.label}</span>
+                          <span className="text-slate-600 text-sm">{isExpanded ? "▲" : "▼"}</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-3">
+                        <span className="text-xs text-slate-500">{quotes.length} {quotes.length === 1 ? "quote" : "quotes"}</span>
+                        {unlockedQuotes.length > 0 && (
+                          <span className="text-xs text-emerald-400 font-semibold">{unlockedQuotes.length} contact{unlockedQuotes.length !== 1 ? "s" : ""} unlocked</span>
+                        )}
+                        {request.payment_status === "paid" && request.contact_request_status !== "approved" && (
+                          <span className="text-xs text-violet-400 font-semibold">Awaiting approval</span>
+                        )}
+                      </div>
+                    </button>
+
+                    {/* Expanded content */}
+                    {isExpanded && (
+                      <div className="border-t border-white/7 p-4 md:p-5 flex flex-col gap-4">
+                        {/* Request ID with copy */}
+                        <div className="flex items-center gap-3 rounded-xl border border-white/7 bg-white/4 px-4 py-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-bold uppercase tracking-widest text-slate-600 mb-0.5">Request ID</div>
+                            <div className="text-xs font-mono text-slate-300 break-all">{request.id}</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => navigator.clipboard.writeText(request.id)}
+                            className="shrink-0 rounded-lg border border-white/10 bg-white/6 px-3 py-1.5 text-xs font-semibold text-slate-400 cursor-pointer hover:text-white transition-colors"
+                          >
+                            Copy
+                          </button>
+                        </div>
+
+                        {/* Fabric description */}
+                        <div className="rounded-xl border border-white/7 bg-white/4 p-4">
+                          <div className="text-xs font-bold uppercase tracking-widest text-slate-600 mb-2">Your request</div>
+                          <p className="m-0 text-sm leading-relaxed text-slate-400 whitespace-pre-wrap">{request.user_input}</p>
+                        </div>
+
+                        {/* Status grid */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                          {[
+                            { label: "Status", value: request.status || "submitted" },
+                            { label: "Payment", value: request.payment_status || "unpaid" },
+                            { label: "Contact", value: request.contact_request_status || "none" },
+                            { label: "Quotes", value: String(quotes.length) },
+                          ].map((info) => (
+                            <div key={info.label} className="rounded-xl border border-white/7 bg-white/4 p-3">
+                              <div className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">{info.label}</div>
+                              <div className="text-sm font-semibold text-slate-300">{info.value}</div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Quotes */}
+                        {quotes.length > 0 && (
+                          <div className="flex flex-col gap-3">
+                            <div className="text-sm font-bold text-white">Supplier quotes</div>
+                            {quotes.map((quote) => (
+                              <div key={quote.id} className="rounded-xl border border-white/7 bg-white/4 p-4 flex flex-col gap-3">
+                                <div className="flex flex-wrap items-start justify-between gap-2">
+                                  <div>
+                                    <div className="text-sm font-bold text-white">{quote.supplier_name || "Verified Supplier"}</div>
+                                    <div className="text-xs text-slate-500">{quote.supplier_region || "China"}</div>
+                                  </div>
+                                  <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${quote.is_contact_released ? "border border-emerald-500/30 bg-emerald-900/60 text-emerald-300" : "border border-blue-500/30 bg-blue-900/60 text-blue-300"}`}>
+                                    {quote.is_contact_released ? "Contact released" : "Protected"}
+                                  </span>
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                  {[
+                                    { label: "Price", value: quote.price || "Pending" },
+                                    { label: "MOQ", value: quote.moq || "Pending" },
+                                    { label: "Lead time", value: quote.lead_time || "—" },
+                                    { label: "Region", value: quote.supplier_region || "—" },
+                                  ].map((s) => (
+                                    <div key={s.label} className="rounded-lg border border-white/7 bg-white/4 p-2.5">
+                                      <div className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-0.5">{s.label}</div>
+                                      <div className="text-xs font-semibold text-white">{s.value}</div>
+                                    </div>
+                                  ))}
+                                </div>
+                                {quote.is_contact_released && (
+                                  <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/8 p-3 grid grid-cols-2 md:grid-cols-4 gap-2">
+                                    {[
+                                      { label: "Contact", value: quote.contact_name || "—" },
+                                      { label: "Phone", value: quote.contact_phone || "—" },
+                                      { label: "WeChat", value: quote.contact_wechat || "—" },
+                                      { label: "Email", value: quote.contact_email || "—" },
+                                    ].map((c) => (
+                                      <div key={c.label}>
+                                        <div className="text-xs font-bold uppercase tracking-wider text-emerald-600 mb-0.5">{c.label}</div>
+                                        <div className="text-xs font-semibold text-emerald-300 break-words">{c.value}</div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Track / unlock CTA */}
+                        <div className="flex flex-wrap gap-3">
+                          <a
+                            href={`/?requestId=${request.id}#main-tabs`}
+                            className="inline-flex items-center rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-700 px-5 py-2.5 text-sm font-bold text-white no-underline shadow-lg shadow-indigo-500/20"
+                          >
+                            {quotes.length > 0 && request.contact_request_status !== "approved" ? "Unlock supplier →" : "View tracker →"}
+                          </a>
+                          <a
+                            href={buildWhatsappLink(`Hello Weinly, I need help with request ID: ${request.id}`)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-5 py-2.5 text-sm font-semibold text-emerald-400 no-underline"
+                          >
+                            WhatsApp help
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         <section className="bg-[#111827] border border-white/7 rounded-3xl p-5 md:p-8">
