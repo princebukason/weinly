@@ -2,18 +2,19 @@
 
 import { useState } from "react";
 
-// Verified Unsplash photo IDs per category — confirmed real photos.
-// URL: https://images.unsplash.com/photo-{id}?auto=format&fit=crop&w={w}&q=80
-const CATEGORY_PHOTOS: Record<string, string[]> = {
-  luxury:     ["vWsYbTs1tS0", "6H1mPtpsJFw", "26DFIOTiMS0", "e7UhAor7_mc", "Amq5Sgj-exA"],
-  african:    ["SfPOkp6-2eA", "ZnHNqG2-Gbo", "fyzfGBCkrWM", "6EvUrguVz7s", "aL7mLl5DZk4"],
-  sports:     ["FH4xXC46rQM", "A-Ij53e_1I4", "EkkyhGgK9r4", "74OIBwS8cN0", "mXw4f3dXu_s"],
-  casual:     ["DIrPIw-KAig", "49BJS7Dml_Y", "8pEGlbU1Pds", "I2WQQaXSy-k", "4byBtNuIyIg"],
-  mens:       ["FSvBa1CGeK8", "kwpJY3RbObo", "9pFE-9CWEBI", "Ga2AJxjDr9o", "wcdHwuFJfn4"],
-  furniture:  ["dbH_vy7vICE", "fZuleEfeA1Q", "N4wUsqIbMAM", "RE_j7uRsS6E", "q248iwcW3sY"],
-  industrial: ["hL8F2s31BdE", "LgDb6mbseAo", "RMQEU7fCqLc", "aL7mLl5DZk4", "rHtuKMfZH6E"],
-  kids:       ["H7I8mOX3K8s", "KbaSNX-6Vdo", "pykFL3LlmGY", "yOKltGmV2a0", "bn3T7F5VLOI"],
-  eco:        ["rDZJdB-yxPk", "8PLkPBoI_TU", "dGM0NwJtm24", "uwXDqX2IBc0", "QFQ6vsou7XA"],
+// Keyword sets per category for loremflickr.com — keyword-based Flickr image search.
+// URL: https://loremflickr.com/{w}/{h}/{keywords}?lock={n}
+// lock= makes it deterministic; different numbers give different photos per slot.
+const CATEGORY_KEYWORDS: Record<string, { terms: string; locks: number[] }> = {
+  luxury:     { terms: "silk,lace,fabric",           locks: [1, 11, 21, 31, 41] },
+  african:    { terms: "ankara,wax,textile",          locks: [2, 12, 22, 32, 42] },
+  sports:     { terms: "sportswear,activewear,mesh",  locks: [3, 13, 23, 33, 43] },
+  casual:     { terms: "denim,cotton,fabric",         locks: [4, 14, 24, 34, 44] },
+  mens:       { terms: "suiting,wool,fabric",         locks: [5, 15, 25, 35, 45] },
+  furniture:  { terms: "upholstery,sofa,velvet",      locks: [6, 16, 26, 36, 46] },
+  industrial: { terms: "textile,industrial,weave",    locks: [7, 17, 27, 37, 47] },
+  kids:       { terms: "cotton,children,colorful",    locks: [8, 18, 28, 38, 48] },
+  eco:        { terms: "organic,linen,natural",       locks: [9, 19, 29, 39, 49] },
 };
 
 // Rich dark gradient fallback per category — shows while image loads
@@ -65,12 +66,12 @@ export default function FabricImage({
   const [imgLoaded, setImgLoaded] = useState(false);
 
   const grad = CATEGORY_GRADIENTS[categoryId] || CATEGORY_GRADIENTS.casual;
-  const photos = CATEGORY_PHOTOS[categoryId] || CATEGORY_PHOTOS.casual;
-  const photoId = photos[itemIndex % photos.length];
+  const kw = CATEGORY_KEYWORDS[categoryId] || CATEGORY_KEYWORDS.casual;
+  const lock = kw.locks[itemIndex % kw.locks.length];
 
-  // Priority: supplier upload → Unsplash CDN (verified real photo IDs) → SVG fallback
-  const unsplashSrc = `https://images.unsplash.com/photo-${photoId}?auto=format&fit=crop&w=${width}&q=80`;
-  const src = imageUrl || unsplashSrc;
+  // Priority: supplier upload → loremflickr keyword search → SVG fallback
+  const flickrSrc = `https://loremflickr.com/${width}/${height}/${kw.terms}?lock=${lock}`;
+  const src = imageUrl || flickrSrc;
 
   return (
     <div
