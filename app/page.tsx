@@ -7,6 +7,7 @@ import SiteFooter from "@/components/SiteFooter";
 import { buildWhatsappLink } from "@/lib/config";
 import { useCurrency } from "@/hooks/useCurrency";
 import { FABRIC_CATEGORIES, getCategoryById, getCategoryColor, getCategoryLabel } from "@/lib/categories";
+import FabricImage from "@/components/FabricImage";
 
 let PaystackPop: any = null;
 
@@ -459,9 +460,12 @@ export default function HomePage() {
               const color = getCategoryColor(cat.id);
               return (
                 <button key={cat.id} onClick={() => { setSelectedCategory(cat.id); setSelectedSubcategory(""); setActiveTab("submit"); document.getElementById("main-tabs")?.scrollIntoView({ behavior: "smooth" }); }}
-                  className={`flex flex-col gap-2 rounded-2xl border p-4 text-left transition-all cursor-pointer hover:scale-[1.02] ${color.bg} ${color.border}`}>
-                  <span className={`text-sm font-bold ${color.text}`}>{cat.label}</span>
-                  <span className="text-xs text-slate-500">{cat.subcategories.length} types</span>
+                  className={`flex flex-col overflow-hidden rounded-2xl border text-left transition-all cursor-pointer hover:scale-[1.02] ${color.bg} ${color.border}`}>
+                  <FabricImage categoryId={cat.id} alt={cat.label} aspectRatio="video" overlay className="w-full" />
+                  <div className="flex flex-col gap-0.5 p-3">
+                    <span className={`text-sm font-bold ${color.text}`}>{cat.label}</span>
+                    <span className="text-xs text-slate-500">{cat.subcategories.length} types</span>
+                  </div>
                 </button>
               );
             })}

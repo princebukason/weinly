@@ -5,6 +5,7 @@ import { FABRIC_CATEGORIES, getCategoryColor } from "@/lib/categories";
 import { buildWhatsappLink } from "@/lib/config";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
+import FabricImage from "@/components/FabricImage";
 
 type Props = { params: { category: string } };
 
@@ -264,6 +265,11 @@ export default function CategorySEOPage({ params }: Props) {
               </div>
             </div>
           </section>
+
+          {/* Fabric preview image */}
+          <div className="overflow-hidden rounded-3xl">
+            <FabricImage categoryId={params.category} alt={`${cat.label} fabric`} aspectRatio="wide" overlay={false} width={1200} height={400} />
+          </div>
 
           {/* Subcategories */}
           <section className="rounded-3xl border border-white/7 bg-[#111827] p-5 md:p-8">

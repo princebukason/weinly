@@ -2,86 +2,18 @@
 
 import { useState } from "react";
 
-// ─────────────────────────────────────────────────────────────
-// Uses Unsplash Source API with specific fabric keywords.
-// Format: https://source.unsplash.com/featured/?{keywords}
-// Unsplash picks the best matching photo — no guessing IDs.
-// Each category has a primary keyword + fallback keywords.
-// ─────────────────────────────────────────────────────────────
-
-const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  luxury: [
-    "lace+fabric+textile",
-    "white+lace+fabric",
-    "bridal+lace+fabric",
-    "silk+fabric+textile",
-    "velvet+fabric+close+up",
-    "organza+fabric",
-  ],
-  african: [
-    "ankara+fabric+wax+print",
-    "african+wax+print+fabric",
-    "kente+cloth+fabric",
-    "african+print+textile",
-    "wax+print+fabric+colorful",
-    "african+fabric+colorful",
-  ],
-  sports: [
-    "sportswear+fabric+textile",
-    "mesh+fabric+close+up",
-    "spandex+lycra+fabric",
-    "athletic+fabric+textile",
-    "polyester+fabric+texture",
-    "compression+fabric",
-  ],
-  casual: [
-    "cotton+fabric+textile",
-    "linen+fabric+close+up",
-    "denim+fabric+texture",
-    "chiffon+fabric+textile",
-    "jersey+fabric+knit",
-    "cotton+linen+natural+fabric",
-  ],
-  mens: [
-    "suiting+fabric+wool",
-    "brocade+fabric+textile",
-    "jacquard+fabric+weave",
-    "wool+fabric+close+up",
-    "formal+fabric+textile",
-    "woven+fabric+pattern",
-  ],
-  furniture: [
-    "upholstery+fabric+sofa",
-    "velvet+upholstery+fabric",
-    "curtain+fabric+textile",
-    "sofa+fabric+texture",
-    "interior+fabric+textile",
-    "decorative+fabric+home",
-  ],
-  industrial: [
-    "technical+textile+fabric",
-    "nonwoven+fabric+industrial",
-    "woven+textile+industrial",
-    "technical+fabric+material",
-    "industrial+textile+weave",
-    "waterproof+fabric+material",
-  ],
-  kids: [
-    "soft+cotton+baby+fabric",
-    "organic+cotton+fabric+soft",
-    "fleece+fabric+soft",
-    "bamboo+fabric+textile",
-    "kids+fabric+colorful+cotton",
-    "baby+fabric+organic",
-  ],
-  eco: [
-    "organic+cotton+fabric+natural",
-    "hemp+fabric+natural+textile",
-    "bamboo+fiber+fabric",
-    "sustainable+fabric+natural",
-    "natural+linen+organic+fabric",
-    "recycled+fabric+eco+textile",
-  ],
+// Stable Unsplash photo IDs per category — curated for fabric relevance.
+// URL format: https://images.unsplash.com/photo-{id}?w=800&h=600&fit=crop&q=80&auto=format
+const CATEGORY_PHOTOS: Record<string, string[]> = {
+  luxury:     ["e7UhAor7_mc", "B_af_yNTBhM", "hD2Fs7Aa504", "b9qveNykU6g", "HyBXy5PHQR8"],
+  african:    ["SfPOkp6-2eA", "SL6_FsAHMlI", "j60zrJOTn_o", "Q43GOm-D06k", "toQSUFO1hSA"],
+  sports:     ["b0Y1-kQTkiw", "2mGaIs51MNU", "_1eBN9MzA_c", "v0f_sspLB-o", "GzYlpXmVn9A"],
+  casual:     ["uwXDqX2IBc0", "XivbqAPEoJg", "-HMzD04xgFY", "kgC99X3WH1w", "iwBPEw_Oq5k"],
+  mens:       ["Ga2AJxjDr9o", "kwpJY3RbObo", "K3BcdJfO0iw", "t3mSDMjd9ZY", "oMOPCVg4fRo"],
+  furniture:  ["Y2k744FA5bg", "EkkyhGgK9r4", "VINbwdDMKkk", "u8TXLfTlAKo", "cb8DN-Hs3Lo"],
+  industrial: ["9gvRvwpoe0s", "4XavgYzDWP4", "OrM0vqr5tJE", "74OQUbEPKso", "SH5YIbACAuk"],
+  kids:       ["GtVX3Qdw_Xc", "JwRf1G0dC_E", "iZHWbz5yGi0", "Yirm8s4tMus", "_pIg9_Swzl8"],
+  eco:        ["SCp2yNkWwlg", "pyud8ZaVq4I", "kA4AVMFF90o", "dGM0NwJtm24", "RNqZbnBnMQk"],
 };
 
 // Rich dark gradient fallback per category — shows while image loads
@@ -133,11 +65,11 @@ export default function FabricImage({
   const [imgLoaded, setImgLoaded] = useState(false);
 
   const grad = CATEGORY_GRADIENTS[categoryId] || CATEGORY_GRADIENTS.casual;
-  const keywords = CATEGORY_KEYWORDS[categoryId] || CATEGORY_KEYWORDS.casual;
-  const keyword = keywords[itemIndex % keywords.length];
+  const photos = CATEGORY_PHOTOS[categoryId] || CATEGORY_PHOTOS.casual;
+  const photoId = photos[itemIndex % photos.length];
 
-  // Priority: supplier upload → Unsplash keyword search → SVG fallback
-  const unsplashSrc = `https://source.unsplash.com/featured/${width}x${height}/?${keyword}`;
+  // Priority: supplier upload → stable Unsplash photo → SVG fallback
+  const unsplashSrc = `https://images.unsplash.com/photo-${photoId}?w=${width}&h=${height}&fit=crop&q=80&auto=format`;
   const src = imageUrl || unsplashSrc;
 
   return (
