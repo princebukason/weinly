@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { FABRIC_CATEGORIES, getCategoryColor } from "@/lib/categories";
+import FabricImage from "@/components/FabricImage";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 
@@ -33,76 +34,69 @@ export default function FabricsIndexPage() {
           <span className="text-slate-400">Fabrics</span>
         </nav>
 
-        {/* Hero */}
-        <section className="relative overflow-hidden rounded-3xl border border-indigo-500/15 bg-gradient-to-br from-[#0f172a] via-[#1a1040] to-[#0c1a3a] p-6 md:p-12 shadow-2xl shadow-indigo-500/10">
-          <div className="pointer-events-none absolute right-0 top-0 h-72 w-72 translate-x-1/3 -translate-y-1/3 rounded-full bg-indigo-500/10 blur-3xl" />
-          <div className="relative z-10">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-indigo-500/25 bg-indigo-500/10 px-4 py-1.5">
+        {/* Hero — full bleed image strip */}
+        <section className="relative overflow-hidden rounded-3xl">
+          <div className="grid grid-cols-5 h-56 md:h-72">
+            {FABRIC_CATEGORIES.slice(0, 5).map((cat, i) => (
+              <FabricImage key={cat.id} categoryId={cat.id} itemIndex={i + 3}
+                alt={cat.label} aspectRatio="square" className="h-full" />
+            ))}
+          </div>
+          <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-10"
+            style={{ background: "linear-gradient(to top, rgba(10,15,30,0.97) 0%, rgba(10,15,30,0.5) 55%, rgba(10,15,30,0.1) 100%)" }}>
+            <div className="mb-3 inline-flex w-fit items-center gap-2 rounded-full border border-indigo-500/25 bg-indigo-500/10 px-4 py-1.5">
               <span className="h-2 w-2 rounded-full bg-emerald-400" />
               <span className="text-xs font-semibold text-indigo-300">Verified supplier network · Ships worldwide</span>
             </div>
-            <h1 className="mb-3 text-3xl font-black tracking-tight text-white md:text-5xl">
+            <h1 className="mb-2 text-3xl font-black tracking-tight text-white md:text-5xl">
               Source fabric direct from{" "}
-              <span className="bg-gradient-to-r from-indigo-400 via-sky-400 to-emerald-400 bg-clip-text text-transparent">
-                China
-              </span>
+              <span className="bg-gradient-to-r from-indigo-400 via-sky-400 to-emerald-400 bg-clip-text text-transparent">China</span>
             </h1>
-            <p className="mb-4 max-w-2xl text-sm leading-relaxed text-slate-400 md:text-base">
-              Weinly connects international buyers directly to verified Chinese fabric manufacturers.
-              Browse {FABRIC_CATEGORIES.length} fabric categories and {totalSubcategories}+ fabric types.
-              Get competitive quotes, compare suppliers, and source with confidence.
+            <p className="mb-4 max-w-2xl text-sm leading-relaxed text-slate-300 md:text-base">
+              Browse {FABRIC_CATEGORIES.length} fabric categories and {totalSubcategories}+ fabric types from verified manufacturers.
             </p>
-            <div className="flex flex-wrap gap-5 mb-6">
+            <div className="flex flex-wrap gap-5">
               {[
-                { v: `${FABRIC_CATEGORIES.length}`, l: "Categories" },
+                { v: String(FABRIC_CATEGORIES.length), l: "Categories" },
                 { v: `${totalSubcategories}+`, l: "Fabric types" },
                 { v: "500+", l: "Verified suppliers" },
                 { v: "30+", l: "Countries served" },
               ].map((s) => (
                 <div key={s.l} className="flex flex-col gap-0.5">
-                  <span className="text-2xl font-black text-white">{s.v}</span>
-                  <span className="text-xs text-slate-500">{s.l}</span>
+                  <span className="text-xl font-black text-white">{s.v}</span>
+                  <span className="text-xs text-slate-400">{s.l}</span>
                 </div>
               ))}
             </div>
-            <Link href="/#main-tabs"
-              className="inline-flex items-center rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-700 px-6 py-3 text-sm font-bold text-white no-underline shadow-lg shadow-indigo-500/25">
-              Submit sourcing request →
-            </Link>
           </div>
         </section>
 
-        {/* All categories grid */}
+        {/* Category grid — with images */}
         <section className="rounded-3xl border border-white/7 bg-[#111827] p-5 md:p-8">
           <h2 className="mb-2 text-2xl font-black tracking-tight text-white">All fabric categories</h2>
-          <p className="mb-6 text-sm text-slate-500">
-            Click any category to see all fabric types, supplier information, pricing guidance and sourcing tips.
-          </p>
+          <p className="mb-6 text-sm text-slate-500">Click any category to see all fabric types, pricing guidance and sourcing tips.</p>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {FABRIC_CATEGORIES.map((cat) => {
+            {FABRIC_CATEGORIES.map((cat, i) => {
               const color = getCategoryColor(cat.id);
               return (
                 <Link key={cat.id} href={`/fabrics/${cat.id}`}
-                  className={`flex flex-col gap-4 rounded-2xl border p-5 no-underline transition-all hover:scale-[1.01] ${color.bg} ${color.border}`}>
-                  <div>
-                    <h3 className={`mb-1 text-base font-black ${color.text}`}>{cat.label}</h3>
-                    <p className="m-0 text-xs text-slate-500">{cat.subcategories.length} fabric types</p>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {cat.subcategories.slice(0, 4).map((sub) => (
-                      <span key={sub} className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${color.bg} ${color.text} ${color.border} bg-black/20`}>
-                        {sub}
-                      </span>
-                    ))}
-                    {cat.subcategories.length > 4 && (
-                      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-slate-500">
-                        +{cat.subcategories.length - 4} more
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-600">China · Ships worldwide</span>
-                    <span className={`text-xs font-bold ${color.text}`}>Browse →</span>
+                  className="flex flex-col rounded-2xl border border-white/7 overflow-hidden no-underline transition-all hover:border-white/20 hover:scale-[1.01]">
+
+                  {/* Fabric image */}
+                  <FabricImage categoryId={cat.id} itemIndex={i + 1}
+                    alt={cat.label} aspectRatio="video" />
+
+                  {/* Card content */}
+                  <div className={`flex flex-col gap-2 p-4 ${color.bg}`}>
+                    <h3 className={`text-sm font-black ${color.text}`}>{cat.label}</h3>
+                    <p className="m-0 text-xs text-slate-500 leading-relaxed line-clamp-1">
+                      {cat.subcategories.slice(0, 3).join(" · ")}
+                      {cat.subcategories.length > 3 && ` +${cat.subcategories.length - 3} more`}
+                    </p>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-xs text-slate-600">{cat.subcategories.length} fabric types</span>
+                      <span className={`text-xs font-bold ${color.text}`}>Browse →</span>
+                    </div>
                   </div>
                 </Link>
               );
@@ -116,7 +110,7 @@ export default function FabricsIndexPage() {
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
             {[
               { icon: "🔍", title: "See quotes first", desc: "Review price, MOQ and lead time before spending anything." },
-              { icon: "✓", title: "Verified suppliers", desc: "Every supplier on Weinly is vetted. Verified suppliers carry a green badge." },
+              { icon: "✓", title: "Verified suppliers", desc: "Every supplier is vetted. Verified suppliers carry a green badge." },
               { icon: "🌍", title: "Ships worldwide", desc: "Suppliers ship to Nigeria, Ghana, UK, USA, UAE and 30+ countries." },
               { icon: "💬", title: "Direct contact", desc: "Unlock the supplier's phone, WeChat and email — no permanent middleman." },
             ].map((item) => (

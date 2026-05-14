@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { createClient } from "@supabase/supabase-js";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
+import FabricImage from "@/components/FabricImage";
 import { FABRIC_CATEGORIES, getCategoryColor, getCategoryLabel } from "@/lib/categories";
 import { buildWhatsappLink } from "@/lib/config";
 
@@ -13,30 +14,18 @@ const supabase = createClient(
 );
 
 type Supplier = {
-  id: string;
-  company_name: string;
-  contact_name: string | null;
-  region: string | null;
-  phone: string | null;
-  wechat: string | null;
-  email: string | null;
-  is_active: boolean | null;
-  is_verified: boolean | null;
-  bio: string | null;
-  categories: string[] | null;
-  created_at: string;
+  id: string; company_name: string; contact_name: string | null;
+  region: string | null; phone: string | null; wechat: string | null;
+  email: string | null; is_active: boolean | null; is_verified: boolean | null;
+  bio: string | null; categories: string[] | null; created_at: string;
 };
 
-type ReviewSummary = {
-  supplier_id: string;
-  avg_rating: number;
-  count: number;
-};
+type ReviewSummary = { supplier_id: string; avg_rating: number; count: number; };
 
 function VerifiedBadge() {
   return (
     <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-400">
-      <span className="text-emerald-400">✓</span> Verified
+      <span>✓</span> Verified
     </span>
   );
 }
@@ -52,21 +41,12 @@ export default function SuppliersPage() {
   useEffect(() => {
     async function load() {
       const [suppliersRes, reviewsRes] = await Promise.all([
-        supabase
-          .from("supplier_profiles")
-          .select("*")
-          .eq("is_active", true)
+        supabase.from("supplier_profiles").select("*").eq("is_active", true)
           .order("is_verified", { ascending: false })
           .order("created_at", { ascending: false }),
-        supabase
-          .from("supplier_reviews")
-          .select("supplier_id, rating"),
+        supabase.from("supplier_reviews").select("supplier_id, rating"),
       ]);
-
-      const supplierList = (suppliersRes.data || []) as Supplier[];
-      setSuppliers(supplierList);
-
-      // Aggregate reviews per supplier
+      setSuppliers((suppliersRes.data || []) as Supplier[]);
       const reviewMap: Record<string, { total: number; count: number }> = {};
       (reviewsRes.data || []).forEach((r: any) => {
         if (!reviewMap[r.supplier_id]) reviewMap[r.supplier_id] = { total: 0, count: 0 };
@@ -75,9 +55,7 @@ export default function SuppliersPage() {
       });
       setReviewSummaries(
         Object.entries(reviewMap).map(([supplier_id, { total, count }]) => ({
-          supplier_id,
-          avg_rating: total / count,
-          count,
+          supplier_id, avg_rating: total / count, count,
         }))
       );
       setLoading(false);
@@ -108,32 +86,35 @@ export default function SuppliersPage() {
       <div className="mx-auto flex max-w-6xl flex-col gap-3">
         <SiteHeader />
 
-        {/* Hero */}
-        <section className="relative overflow-hidden rounded-3xl border border-indigo-500/15 bg-gradient-to-br from-[#0f172a] via-[#1a1040] to-[#0c1a3a] p-6 md:p-10 shadow-2xl shadow-indigo-500/10">
-          <div className="pointer-events-none absolute right-0 top-0 h-72 w-72 translate-x-1/3 -translate-y-1/3 rounded-full bg-indigo-500/10 blur-3xl" />
-          <div className="relative z-10">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-indigo-500/25 bg-indigo-500/10 px-4 py-1.5">
+        {/* Hero — fabric image collage */}
+        <section className="relative overflow-hidden rounded-3xl">
+          <div className="grid grid-cols-3 grid-rows-2 h-72 md:h-96">
+            {FABRIC_CATEGORIES.slice(0, 6).map((cat, i) => (
+              <FabricImage key={cat.id} categoryId={cat.id} itemIndex={i + 2}
+                alt={cat.label} aspectRatio="square" className="h-full" />
+            ))}
+          </div>
+          <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-10"
+            style={{ background: "linear-gradient(to top, rgba(10,15,30,0.97) 0%, rgba(10,15,30,0.5) 55%, rgba(10,15,30,0.15) 100%)" }}>
+            <div className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-indigo-500/25 bg-indigo-500/10 px-4 py-1.5">
               <span className="h-2 w-2 rounded-full bg-emerald-400" />
               <span className="text-xs font-semibold text-indigo-300">Verified supplier network</span>
             </div>
-            <h1 className="mb-3 text-3xl font-black tracking-tight text-white md:text-5xl">
-              Browse{" "}
-              <span className="bg-gradient-to-r from-indigo-400 via-sky-400 to-emerald-400 bg-clip-text text-transparent">
-                verified suppliers
-              </span>
+            <h1 className="mb-2 text-3xl font-black tracking-tight text-white md:text-5xl">
+              Browse verified suppliers
             </h1>
-            <p className="mb-6 max-w-2xl text-sm leading-relaxed text-slate-400 md:text-base">
-              All suppliers on Weinly are vetted. Verified suppliers have been audited and confirmed by the Weinly team — they carry a green badge on all quotes.
+            <p className="mb-4 max-w-xl text-sm leading-relaxed text-slate-300 md:text-base">
+              Every supplier is vetted. Verified suppliers carry a green badge earned through audit — not paid for.
             </p>
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap gap-6">
               {[
                 { v: String(suppliers.length), l: "Active suppliers" },
-                { v: String(suppliers.filter((s) => s.is_verified).length), l: "Verified suppliers" },
+                { v: String(suppliers.filter((s) => s.is_verified).length), l: "Verified" },
                 { v: String(new Set(suppliers.flatMap((s) => s.categories || [])).size), l: "Categories covered" },
               ].map((s) => (
                 <div key={s.l} className="flex flex-col gap-0.5">
                   <span className="text-2xl font-black text-white">{s.v}</span>
-                  <span className="text-xs text-slate-500">{s.l}</span>
+                  <span className="text-xs text-slate-400">{s.l}</span>
                 </div>
               ))}
             </div>
@@ -141,28 +122,19 @@ export default function SuppliersPage() {
         </section>
 
         {/* Filters */}
-        <section className="rounded-3xl border border-white/7 bg-[#111827] p-4 md:p-6">
+        <section className="rounded-3xl border border-white/7 bg-[#111827] p-4 md:p-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-center">
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+            <input value={search} onChange={(e) => setSearch(e.target.value)}
               placeholder="Search suppliers by name, region or specialty..."
-              className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-indigo-500"
-            />
-            <button
-              onClick={() => setVerifiedOnly(!verifiedOnly)}
-              className={`shrink-0 rounded-xl border px-4 py-3 text-sm font-bold transition-all cursor-pointer ${verifiedOnly ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" : "border-white/10 bg-white/5 text-slate-400 hover:text-slate-300"}`}
-            >
+              className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-indigo-500" />
+            <button onClick={() => setVerifiedOnly(!verifiedOnly)}
+              className={`shrink-0 rounded-xl border px-4 py-3 text-sm font-bold transition-all cursor-pointer ${verifiedOnly ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" : "border-white/10 bg-white/5 text-slate-400 hover:text-slate-300"}`}>
               ✓ Verified only
             </button>
           </div>
-
-          {/* Category filter */}
           <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              onClick={() => setCategoryFilter("all")}
-              className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${categoryFilter === "all" ? "border-white/30 bg-white/15 text-white" : "border-white/10 bg-white/4 text-slate-500 hover:text-slate-300"}`}
-            >
+            <button onClick={() => setCategoryFilter("all")}
+              className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${categoryFilter === "all" ? "border-white/30 bg-white/15 text-white" : "border-white/10 bg-white/4 text-slate-500 hover:text-slate-300"}`}>
               All categories
             </button>
             {FABRIC_CATEGORIES.map((cat) => {
@@ -189,7 +161,18 @@ export default function SuppliersPage() {
           </div>
 
           {loading ? (
-            <div className="py-20 text-center text-sm text-slate-500">Loading suppliers...</div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="rounded-2xl border border-white/7 bg-white/3 overflow-hidden animate-pulse">
+                  <div className="h-32 bg-white/8" />
+                  <div className="p-4 flex flex-col gap-2">
+                    <div className="h-4 bg-white/8 rounded w-2/3" />
+                    <div className="h-3 bg-white/8 rounded w-1/2" />
+                    <div className="h-3 bg-white/8 rounded w-3/4" />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : filtered.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-white/10 p-12 text-center">
               <div className="mb-3 text-4xl">◎</div>
@@ -198,55 +181,87 @@ export default function SuppliersPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {filtered.map((supplier) => {
+              {filtered.map((supplier, idx) => {
                 const review = reviewMap[supplier.id];
                 const cats = supplier.categories || [];
+                // Use first category for image, or luxury as default
+                const primaryCat = cats[0] || "luxury";
+
                 return (
                   <a key={supplier.id} href={`/suppliers/${supplier.id}`}
-                    className="flex flex-col gap-4 rounded-2xl border border-white/7 bg-white/3 p-5 no-underline transition-all hover:border-indigo-500/30 hover:bg-white/5">
+                    className="flex flex-col rounded-2xl border border-white/7 overflow-hidden no-underline transition-all hover:border-indigo-500/30 hover:scale-[1.01]">
 
-                    {/* Header */}
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <span className="text-base font-bold text-white">{supplier.company_name}</span>
-                          {supplier.is_verified && <VerifiedBadge />}
-                        </div>
-                        <div className="text-xs text-slate-500">{supplier.region || "China"}</div>
-                      </div>
-                      {review && (
-                        <div className="shrink-0 text-right">
-                          <div className="text-sm font-black text-amber-400">{review.avg_rating.toFixed(1)}★</div>
-                          <div className="text-xs text-slate-600">{review.count} review{review.count !== 1 ? "s" : ""}</div>
+                    {/* Fabric banner image */}
+                    <div className="relative">
+                      <FabricImage
+                        categoryId={primaryCat}
+                        itemIndex={idx}
+                        alt={`${supplier.company_name} fabric`}
+                        aspectRatio="wide"
+                      />
+
+                      {/* Verified badge */}
+                      {supplier.is_verified && (
+                        <div className="absolute top-3 right-3">
+                          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-black/50 px-2.5 py-1 text-xs font-bold text-emerald-400 backdrop-blur-sm">
+                            ✓ Verified
+                          </span>
                         </div>
                       )}
+
+                      {/* Rating */}
+                      {review && (
+                        <div className="absolute bottom-3 right-3">
+                          <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-black/50 px-2.5 py-1 text-xs font-bold text-amber-400 backdrop-blur-sm">
+                            {review.avg_rating.toFixed(1)}★ ({review.count})
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Supplier initial avatar */}
+                      <div className="absolute bottom-3 left-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-white/20 bg-black/60 text-sm font-black text-white backdrop-blur-sm">
+                          {supplier.company_name.charAt(0).toUpperCase()}
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Bio */}
-                    {supplier.bio && (
-                      <p className="m-0 text-xs leading-relaxed text-slate-400 line-clamp-2">{supplier.bio}</p>
-                    )}
-
-                    {/* Categories */}
-                    {cats.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5">
-                        {cats.slice(0, 3).map((catId) => {
-                          const color = getCategoryColor(catId);
-                          return (
-                            <span key={catId} className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${color.bg} ${color.text} ${color.border}`}>
-                              {getCategoryLabel(catId)}
-                            </span>
-                          );
-                        })}
-                        {cats.length > 3 && (
-                          <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-slate-500">+{cats.length - 3} more</span>
-                        )}
+                    {/* Card body */}
+                    <div className="flex flex-col gap-3 bg-[#111827] p-4 flex-1">
+                      <div>
+                        <div className="mb-0.5 text-base font-bold text-white">{supplier.company_name}</div>
+                        <div className="text-xs text-slate-500">{supplier.region || "China"}</div>
                       </div>
-                    )}
 
-                    <div className="mt-auto flex items-center justify-between border-t border-white/6 pt-3">
-                      <span className="text-xs text-slate-600">Member since {new Date(supplier.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</span>
-                      <span className="text-xs font-semibold text-indigo-400">View profile →</span>
+                      {supplier.bio && (
+                        <p className="m-0 text-xs leading-relaxed text-slate-400 line-clamp-2">{supplier.bio}</p>
+                      )}
+
+                      {/* Category pills */}
+                      {cats.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {cats.slice(0, 3).map((catId) => {
+                            const color = getCategoryColor(catId);
+                            return (
+                              <span key={catId} className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${color.bg} ${color.text} ${color.border}`}>
+                                {getCategoryLabel(catId)}
+                              </span>
+                            );
+                          })}
+                          {cats.length > 3 && (
+                            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-slate-500">
+                              +{cats.length - 3} more
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="mt-auto flex items-center justify-between border-t border-white/6 pt-3">
+                        <span className="text-xs text-slate-600">
+                          Since {new Date(supplier.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+                        </span>
+                        <span className="text-xs font-semibold text-indigo-400">View profile →</span>
+                      </div>
                     </div>
                   </a>
                 );
@@ -261,7 +276,7 @@ export default function SuppliersPage() {
             <div>
               <span className="mb-3 inline-block rounded-full bg-amber-500/15 px-3 py-1 text-xs font-bold uppercase tracking-widest text-amber-400">For suppliers</span>
               <h2 className="mb-3 text-2xl font-black tracking-tight text-white md:text-3xl">Join Weinly as a verified supplier</h2>
-              <p className="mb-5 text-sm leading-relaxed text-slate-400">Get your products in front of serious buyers from Africa, the Middle East and beyond. Weinly connects you directly to buyers who are ready to pay.</p>
+              <p className="mb-5 text-sm leading-relaxed text-slate-400">Get your products in front of serious buyers from Africa, the Middle East and beyond.</p>
               <div className="flex flex-wrap gap-3">
                 <a href="/supplier/auth" className="inline-flex items-center rounded-xl bg-gradient-to-r from-amber-500 to-amber-700 px-6 py-3 text-sm font-bold text-white no-underline shadow-lg shadow-amber-500/20">
                   Apply as supplier →
