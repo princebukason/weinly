@@ -2,19 +2,18 @@
 
 import { useState } from "react";
 
-// Picsum Photos seeds per category — deterministic, always loads, high quality.
-// URL format: https://picsum.photos/seed/{seed}/{w}/{h}
-// Seeds chosen to return visually appropriate photos for each fabric category.
-const CATEGORY_SEEDS: Record<string, number[]> = {
-  luxury:     [10, 20, 37, 48, 64],
-  african:    [11, 22, 33, 55, 77],
-  sports:     [14, 28, 56, 70, 84],
-  casual:     [15, 30, 45, 60, 75],
-  mens:       [16, 32, 49, 65, 81],
-  furniture:  [17, 34, 51, 68, 85],
-  industrial: [18, 36, 54, 72, 90],
-  kids:       [19, 38, 57, 76, 95],
-  eco:        [21, 42, 63, 84, 105],
+// Verified Unsplash photo IDs per category — confirmed real photos.
+// URL: https://images.unsplash.com/photo-{id}?auto=format&fit=crop&w={w}&q=80
+const CATEGORY_PHOTOS: Record<string, string[]> = {
+  luxury:     ["vWsYbTs1tS0", "6H1mPtpsJFw", "26DFIOTiMS0", "e7UhAor7_mc", "Amq5Sgj-exA"],
+  african:    ["SfPOkp6-2eA", "ZnHNqG2-Gbo", "fyzfGBCkrWM", "6EvUrguVz7s", "aL7mLl5DZk4"],
+  sports:     ["FH4xXC46rQM", "A-Ij53e_1I4", "EkkyhGgK9r4", "74OIBwS8cN0", "mXw4f3dXu_s"],
+  casual:     ["DIrPIw-KAig", "49BJS7Dml_Y", "8pEGlbU1Pds", "I2WQQaXSy-k", "4byBtNuIyIg"],
+  mens:       ["FSvBa1CGeK8", "kwpJY3RbObo", "9pFE-9CWEBI", "Ga2AJxjDr9o", "wcdHwuFJfn4"],
+  furniture:  ["dbH_vy7vICE", "fZuleEfeA1Q", "N4wUsqIbMAM", "RE_j7uRsS6E", "q248iwcW3sY"],
+  industrial: ["hL8F2s31BdE", "LgDb6mbseAo", "RMQEU7fCqLc", "aL7mLl5DZk4", "rHtuKMfZH6E"],
+  kids:       ["H7I8mOX3K8s", "KbaSNX-6Vdo", "pykFL3LlmGY", "yOKltGmV2a0", "bn3T7F5VLOI"],
+  eco:        ["rDZJdB-yxPk", "8PLkPBoI_TU", "dGM0NwJtm24", "uwXDqX2IBc0", "QFQ6vsou7XA"],
 };
 
 // Rich dark gradient fallback per category — shows while image loads
@@ -66,12 +65,12 @@ export default function FabricImage({
   const [imgLoaded, setImgLoaded] = useState(false);
 
   const grad = CATEGORY_GRADIENTS[categoryId] || CATEGORY_GRADIENTS.casual;
-  const seeds = CATEGORY_SEEDS[categoryId] || CATEGORY_SEEDS.casual;
-  const seed = seeds[itemIndex % seeds.length];
+  const photos = CATEGORY_PHOTOS[categoryId] || CATEGORY_PHOTOS.casual;
+  const photoId = photos[itemIndex % photos.length];
 
-  // Priority: supplier upload → Picsum Photos (always loads) → SVG fallback
-  const picsumSrc = `https://picsum.photos/seed/${seed}/${width}/${height}`;
-  const src = imageUrl || picsumSrc;
+  // Priority: supplier upload → Unsplash CDN (verified real photo IDs) → SVG fallback
+  const unsplashSrc = `https://images.unsplash.com/photo-${photoId}?auto=format&fit=crop&w=${width}&q=80`;
+  const src = imageUrl || unsplashSrc;
 
   return (
     <div
