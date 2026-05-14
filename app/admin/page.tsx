@@ -7,7 +7,6 @@ import { getCategoryColor, getCategoryLabel } from "@/lib/categories";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
-const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "weinlyadmin123";
 
 type FabricRequest = {
   id: string; created_at: string; client_name: string | null; client_email: string | null;
@@ -120,6 +119,7 @@ export default function AdminPage() {
   const [newInviteCode, setNewInviteCode] = useState("");
   const [newInviteEmail, setNewInviteEmail] = useState("");
   const [creatingInvite, setCreatingInvite] = useState(false);
+  const [loginError, setLoginError] = useState("");
 
   useEffect(() => {
     const stored = localStorage.getItem("weinly_admin_auth");
@@ -154,12 +154,22 @@ export default function AdminPage() {
     finally { setLoading(false); }
   }
 
-  function handleLogin() {
-    if (password === ADMIN_PASSWORD) {
-      setAuthenticated(true);
-      localStorage.setItem("weinly_admin_auth", "true");
-      fetchAll();
-    } else { alert("Wrong password."); }
+  async function handleLogin() {
+    try {
+      const res = await fetch("/api/admin/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      if (res.ok) {
+        setAuthenticated(true);
+        localStorage.setItem("weinly_admin_auth", "true");
+        fetchAll();
+      } else {
+        const data = await res.json();
+        setLoginError(data.error || "Wrong password.");
+      }
+    } catch { setLoginError("Failed to verify. Please try again."); }
   }
 
   function handleLogout() {
@@ -392,9 +402,14 @@ export default function AdminPage() {
             <span className="text-white font-black text-xl">Weinly Admin</span>
           </div>
           <p className="text-slate-500 text-sm mb-4">Enter admin password to continue.</p>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+          <input type="password" value={password} onChange={(e) => { setPassword(e.target.value); setLoginError(""); }} onKeyDown={(e) => e.key === "Enter" && handleLogin()}
             placeholder="Admin password"
             className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-red-500 transition-all mb-3" />
+          {loginError && (
+            <div className="mb-3 flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/8 px-4 py-3 text-sm text-red-300">
+              <span>✕</span><span>{loginError}</span>
+            </div>
+          )}
           <button onClick={handleLogin} className="w-full bg-gradient-to-r from-red-500 to-red-700 text-white font-bold text-sm py-3 rounded-xl border-0 cursor-pointer shadow-lg shadow-red-500/25">
             Login to Admin
           </button>
