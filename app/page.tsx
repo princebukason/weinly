@@ -181,6 +181,22 @@ export default function HomePage() {
   const [existingReviews, setExistingReviews] = useState<Review[]>([]);
   const [publicReviews, setPublicReviews] = useState<PublicReview[]>([]);
   const [reviewsLoaded, setReviewsLoaded] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; type: "error" | "success" | "info" } | null>(null);
+  const [formError, setFormError] = useState("");
+  const [lookupError, setLookupError] = useState("");
+  const [copiedId, setCopiedId] = useState(false);
+
+  function showToast(msg: string, type: "error" | "success" | "info" = "info") {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 4000);
+  }
+
+  function copyRequestId(id: string) {
+    navigator.clipboard.writeText(id).then(() => {
+      setCopiedId(true);
+      setTimeout(() => setCopiedId(false), 2000);
+    });
+  }
 
   const activeCategory = useMemo(() => getCategoryById(selectedCategory), [selectedCategory]);
 
@@ -270,8 +286,9 @@ export default function HomePage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!description.trim()) { alert("Please describe the fabric you need."); return; }
-    if (!selectedCategory) { alert("Please select a fabric category."); return; }
+    setFormError("");
+    if (!description.trim()) { setFormError("Please describe the fabric you need."); return; }
+    if (!selectedCategory) { setFormError("Please select a fabric category."); return; }
     setLoading(true);
     try {
       const aiOutput = await generateAISpec(description.trim());
@@ -290,19 +307,28 @@ export default function HomePage() {
       setActiveTab("track");
       setLastUpdated(new Date());
       setTimeout(() => { document.getElementById("request-result")?.scrollIntoView({ behavior: "smooth" }); }, 100);
-    } catch { alert("Something went wrong. Please try again."); }
+      // Fire confirmation email — non-blocking, best-effort
+      if (clientEmail) {
+        fetch("/api/email/notify-request-submitted", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ buyerEmail: clientEmail, buyerName: clientName || "", requestId: data.id, fabricDescription: description.trim() }),
+        }).catch(() => {});
+      }
+    } catch { showToast("Something went wrong. Please try again.", "error"); }
     finally { setLoading(false); }
   }
 
   async function handleLookup(id?: string) {
     const cleanId = (id ?? lookupId).trim();
-    if (!cleanId) { alert("Enter a request ID."); return; }
+    setLookupError("");
+    if (!cleanId) { setLookupError("Please paste a request ID."); return; }
     setLookupLoading(true);
     setLookupRequest(null);
     setLookupQuotes([]);
     try {
       const request = await fetchRequest(cleanId);
-      if (!request) { alert("Request not found."); return; }
+      if (!request) { setLookupError("No request found with that ID. Please check and try again."); return; }
       const quotes = await fetchQuotes(cleanId);
       setLookupRequest(request);
       setLookupQuotes(quotes);
@@ -310,7 +336,7 @@ export default function HomePage() {
       setLastUpdated(new Date());
       await fetchReviewsForRequest(cleanId);
       setTimeout(() => { document.getElementById("request-tracker")?.scrollIntoView({ behavior: "smooth" }); }, 100);
-    } catch { alert("Failed to fetch request."); }
+    } catch { setLookupError("Failed to fetch request. Please try again."); }
     finally { setLookupLoading(false); }
   }
 
@@ -319,17 +345,17 @@ export default function HomePage() {
       const { error } = await supabase.from("fabric_requests").update({ buyer_requested_contact: true, contact_request_status: "pending", payment_status: "unpaid", contact_access_fee: prices.unlock }).eq("id", reqId);
       if (error) throw error;
       await syncState(reqId);
-    } catch { alert("Failed to request supplier contact."); }
+    } catch { showToast("Failed to request supplier contact. Please try again.", "error"); }
   }
 
   async function startPayment(request: FabricRequest) {
-    if (!request.client_email) { alert("Your email is required to proceed with payment."); return; }
-    if (!PAYSTACK_PUBLIC_KEY) { alert("Payment configuration missing."); return; }
+    if (!request.client_email) { showToast("Your email is required to proceed with payment.", "error"); return; }
+    if (!PAYSTACK_PUBLIC_KEY) { showToast("Payment configuration missing. Please contact support.", "error"); return; }
     setPaymentLoading(true);
     try {
       const initRes = await fetch("/api/paystack/initialize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: request.client_email, amount: prices.unlockRaw, requestId: request.id, name: request.client_name, phone: request.client_phone, currency: prices.currency }) });
       const initData = await initRes.json();
-      if (!initRes.ok || !initData?.access_code) { alert(initData?.error || "Failed to initialize payment."); setPaymentLoading(false); return; }
+      if (!initRes.ok || !initData?.access_code) { showToast(initData?.error || "Failed to initialize payment.", "error"); setPaymentLoading(false); return; }
       if (!PaystackPop) { const m = await import("@paystack/inline-js"); PaystackPop = m.default; }
       const popup = new PaystackPop();
       popup.resumeTransaction(initData.access_code, {
@@ -337,15 +363,15 @@ export default function HomePage() {
           try {
             const verifyRes = await fetch("/api/paystack/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reference: transaction.reference, requestId: request.id, expectedAmount: prices.unlockRaw }) });
             const verifyData = await verifyRes.json();
-            if (!verifyRes.ok) { alert(verifyData?.error || "Verification failed."); return; }
+            if (!verifyRes.ok) { showToast(verifyData?.error || "Verification failed.", "error"); return; }
             await syncState(request.id);
-            alert("Payment confirmed! Supplier contact will be released after approval.");
-          } catch { alert("Payment verification failed."); }
+            showToast("Payment confirmed! Supplier contact will be released after approval.", "success");
+          } catch { showToast("Payment verification failed. Please contact support.", "error"); }
           finally { setPaymentLoading(false); }
         },
         onCancel: () => setPaymentLoading(false),
       });
-    } catch { setPaymentLoading(false); alert("Failed to launch payment."); }
+    } catch { setPaymentLoading(false); showToast("Failed to launch payment. Please try again.", "error"); }
   }
 
   const activeRequest = useMemo(() => lookupRequest || submittedRequest, [lookupRequest, submittedRequest]);
@@ -360,6 +386,19 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen bg-[#0a0f1e] px-3 py-3 font-sans md:px-4 md:py-4">
+      {/* Toast notification */}
+      {toast && (
+        <div className={`fixed bottom-6 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3 rounded-2xl border px-5 py-3.5 text-sm font-semibold shadow-2xl transition-all ${
+          toast.type === "error" ? "border-red-500/30 bg-red-950 text-red-300" :
+          toast.type === "success" ? "border-emerald-500/30 bg-emerald-950 text-emerald-300" :
+          "border-indigo-500/30 bg-indigo-950 text-indigo-300"
+        }`}>
+          <span>{toast.type === "error" ? "✕" : "✓"}</span>
+          <span>{toast.msg}</span>
+          <button type="button" onClick={() => setToast(null)} className="ml-2 cursor-pointer bg-transparent border-0 text-current opacity-60 hover:opacity-100">✕</button>
+        </div>
+      )}
+
       <div className="mx-auto flex max-w-5xl flex-col gap-3">
         <SiteHeader />
 
@@ -380,8 +419,8 @@ export default function HomePage() {
               <p className="max-w-lg text-base leading-relaxed text-slate-400 md:text-lg">Describe what you need. Get verified supplier quotes. Unlock direct contact and negotiate the best deals — no middlemen.</p>
               <div className="flex flex-wrap gap-6">
                 {[
-                  { v: "500+", l: "Verified suppliers" },
                   { v: "9", l: "Fabric categories" },
+                  { v: "70+", l: "Fabric types" },
                   { v: prices.unlock, l: "Contact unlock" },
                   ...(avgRating ? [{ v: `${avgRating}★`, l: "Avg supplier rating" }] : []),
                 ].map((s) => (
@@ -550,6 +589,11 @@ export default function HomePage() {
                   </div>
                 )}
 
+                {formError && (
+                  <div className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/8 px-4 py-3 text-sm text-red-300">
+                    <span>✕</span><span>{formError}</span>
+                  </div>
+                )}
                 <div className="flex flex-wrap gap-3">
                   <button type="submit" disabled={loading || !selectedCategory}
                     className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-indigo-500 to-indigo-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-500/25 disabled:cursor-not-allowed disabled:opacity-60">
@@ -569,13 +613,18 @@ export default function HomePage() {
                 <p className="m-0 text-sm leading-relaxed text-slate-500">Paste your request ID to see quotes, payment status and supplier contact.</p>
               </div>
               <div className="flex flex-wrap gap-3">
-                <input value={lookupId} onChange={(e) => setLookupId(e.target.value)} placeholder="Paste your request ID here"
+                <input value={lookupId} onChange={(e) => { setLookupId(e.target.value); setLookupError(""); }} placeholder="Paste your request ID here"
                   className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-indigo-500" />
                 <button onClick={() => handleLookup()} disabled={lookupLoading}
                   className="shrink-0 cursor-pointer rounded-xl border-0 bg-gradient-to-r from-indigo-500 to-indigo-700 px-6 py-3 text-sm font-bold text-white disabled:opacity-60">
                   {lookupLoading ? "Loading..." : "Track →"}
                 </button>
               </div>
+              {lookupError && (
+                <div className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/8 px-4 py-3 text-sm text-red-300">
+                  <span>✕</span><span>{lookupError}</span>
+                </div>
+              )}
               <div className="flex flex-wrap gap-5">
                 <a href="/history" className="text-sm font-semibold text-indigo-400 no-underline transition-colors hover:text-indigo-300">View all history →</a>
                 <a href={genericSupportLink} target="_blank" rel="noreferrer" className="text-sm font-semibold text-emerald-400 no-underline transition-colors hover:text-emerald-300">Chat support →</a>
@@ -596,8 +645,14 @@ export default function HomePage() {
                     </div>
                   )}
                   <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/8 p-4">
-                    <div className="mb-1 text-xs font-bold uppercase tracking-widest text-emerald-400">Request ID</div>
-                    <div className="break-all text-sm font-semibold text-emerald-300">{submittedRequest.id}</div>
+                    <div className="mb-2 text-xs font-bold uppercase tracking-widest text-emerald-400">Request ID — save this</div>
+                    <div className="flex items-center gap-3">
+                      <div className="break-all text-sm font-semibold text-emerald-300 flex-1">{submittedRequest.id}</div>
+                      <button type="button" onClick={() => copyRequestId(submittedRequest.id)}
+                        className="shrink-0 cursor-pointer rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-400 transition-all hover:bg-emerald-500/20">
+                        {copiedId ? "Copied ✓" : "Copy"}
+                      </button>
+                    </div>
                   </div>
                   {submittedRequest.ai_output != null && (
                     <div className="rounded-xl border border-white/7 bg-white/4 p-4">
@@ -605,6 +660,11 @@ export default function HomePage() {
                       <p className="m-0 whitespace-pre-wrap text-sm leading-relaxed text-slate-400">{formatAiOutput(submittedRequest.ai_output)}</p>
                     </div>
                   )}
+                  <div className="rounded-xl border border-amber-500/15 bg-amber-500/6 p-4">
+                    <p className="m-0 text-sm leading-relaxed text-slate-400">
+                      <strong className="text-amber-300">⚠ Save your Request ID.</strong> You will need it to track your quotes. Copy it above or bookmark this page — we cannot recover it for you if lost.
+                    </p>
+                  </div>
                   <div className="rounded-xl border border-indigo-500/15 bg-indigo-500/8 p-4">
                     <p className="m-0 text-sm leading-relaxed text-slate-400">
                       <strong className="text-white">What happens next?</strong> We are matching your request to verified suppliers. Quotes appear within 24 hours.

@@ -20,8 +20,8 @@ export const metadata: Metadata = {
 const stats = [
   { value: "9", label: "Fabric categories" },
   { value: "70+", label: "Fabric types" },
-  { value: "500+", label: "Verified suppliers" },
-  { value: "30+", label: "Countries served" },
+  { value: "China", label: "Sourcing origin" },
+  { value: "Global", label: "Buyers served" },
 ];
 
 const values = [
@@ -66,7 +66,7 @@ const timeline = [
   {
     period: "Today",
     title: "Growing into global textile infrastructure",
-    desc: "Weinly now covers 9 fabric categories, 70+ fabric types and connects buyers from over 30 countries to verified Chinese manufacturers. We're just getting started.",
+    desc: "Weinly now covers 9 fabric categories and 70+ fabric types, connecting buyers worldwide to verified Chinese manufacturers. We're just getting started.",
   },
 ];
 
@@ -274,8 +274,8 @@ export default function AboutPage() {
             Ready to source smarter?
           </h2>
           <p className="mb-6 text-sm leading-relaxed text-slate-400 max-w-lg mx-auto">
-            Join buyers from over 30 countries who use Weinly to source fabric directly from verified
-            Chinese manufacturers — at factory prices, with no permanent middleman.
+            Join buyers worldwide who use Weinly to source fabric directly from verified Chinese
+            manufacturers — at factory prices, with no permanent middleman.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Link href="/#main-tabs"
