@@ -42,8 +42,6 @@ type PublicReview = {
   buyer_name: string | null; created_at: string;
 };
 
-type BillingCycle = "monthly" | "yearly";
-
 function formatAiOutput(aiOutput: unknown) {
   if (!aiOutput) return "—";
   if (typeof aiOutput === "string") return aiOutput;
@@ -176,7 +174,6 @@ export default function HomePage() {
   const [isLive, setIsLive] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [realtimeFlash, setRealtimeFlash] = useState(false);
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [submittedReviews, setSubmittedReviews] = useState<Set<string>>(new Set());
   const [existingReviews, setExistingReviews] = useState<Review[]>([]);
   const [publicReviews, setPublicReviews] = useState<PublicReview[]>([]);
@@ -379,9 +376,6 @@ export default function HomePage() {
   const stagePill = useMemo(() => (activeRequest ? getStagePill(activeRequest, activeQuotes.length) : null), [activeRequest, activeQuotes.length]);
   const genericSupportLink = buildWhatsappLink("Hello Weinly, I need help with fabric sourcing.");
   const proSupportLink = buildWhatsappLink("Hello Weinly, I want to upgrade to Weinly Pro.");
-  const enterpriseSupportLink = buildWhatsappLink("Hello Weinly, I am interested in an Enterprise arrangement.");
-  const proPrice = billingCycle === "monthly" ? prices.proMonthly : prices.proYearly;
-  const proPeriod = billingCycle === "monthly" ? "month" : "year";
   const avgRating = publicReviews.length > 0 ? (publicReviews.reduce((sum, r) => sum + r.rating, 0) / publicReviews.length).toFixed(1) : null;
 
   return (
@@ -982,89 +976,61 @@ export default function HomePage() {
         {/* ── PRICING ── */}
         <section id="pricing" className="rounded-3xl border border-white/7 bg-[#111827] p-6 md:p-10">
           <span className="mb-3 inline-block rounded-full bg-indigo-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-indigo-400">Pricing</span>
-          <h2 className="mb-2 text-2xl font-black tracking-tight text-white md:text-3xl">Simple, transparent pricing</h2>
-          <p className="m-0 mb-6 text-sm leading-relaxed text-slate-500">Start for free. Only pay when you want direct access to a supplier.</p>
-          <div className="mb-8 flex justify-start">
-            <div className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 p-1.5">
-              {(["monthly", "yearly"] as const).map((cycle) => (
-                <button key={cycle} onClick={() => setBillingCycle(cycle)}
-                  className={`rounded-xl border-0 cursor-pointer px-5 py-2 text-sm font-bold transition-all ${billingCycle === cycle ? "bg-gradient-to-r from-indigo-500 to-indigo-700 text-white shadow-lg" : "bg-transparent text-slate-500 hover:text-slate-300"}`}>
-                  {cycle === "monthly" ? "Monthly" : <><span>Yearly</span><span className="ml-2 rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-400">Save {prices.currency === "NGN" ? "₦100k" : "$120"}</span></>}
-                </button>
-              ))}
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h2 className="mb-2 text-2xl font-black tracking-tight text-white md:text-3xl">Simple, transparent pricing</h2>
+              <p className="m-0 text-sm leading-relaxed text-slate-500">Start for free. Only pay when you want direct access to a supplier.</p>
             </div>
+            <a href="/pricing" className="shrink-0 text-sm font-semibold text-indigo-400 no-underline hover:text-indigo-300 transition-colors">See full pricing →</a>
           </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {/* Free */}
             <div className="flex flex-col rounded-2xl border border-white/7 bg-white/4 p-6">
               <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">Free</div>
-              <div className="mb-3 text-4xl font-black tracking-tight text-white">{prices.symbol}0</div>
-              <p className="mb-5 text-sm leading-relaxed text-slate-500">Good for testing Weinly and submitting sourcing requests.</p>
-              <div className="mb-5 h-px bg-white/7" />
-              <div className="flex flex-1 flex-col gap-3 mb-6">
+              <div className="mb-2 text-4xl font-black tracking-tight text-white">{prices.symbol}0</div>
+              <p className="mb-5 text-sm leading-relaxed text-slate-500">Submit requests, get AI specs and review supplier quotes — no payment needed.</p>
+              <div className="mb-5 flex flex-col gap-2">
                 {["Submit sourcing requests", "AI sourcing spec", "Quote preview", "Track request progress"].map((item) => (
-                  <div key={item} className="flex items-start gap-3 text-sm text-slate-400"><span className="mt-0.5 shrink-0 font-bold text-emerald-400">✓</span>{item}</div>
-                ))}
-                <div className="my-1 h-px bg-white/7" />
-                {["Supplier contact unlocks billed separately", "No priority matching", "No dedicated support"].map((item) => (
-                  <div key={item} className="flex items-start gap-3 text-sm text-slate-600"><span className="mt-0.5 shrink-0 text-slate-700">✕</span>{item}</div>
+                  <div key={item} className="flex items-center gap-2 text-sm text-slate-400"><span className="font-bold text-emerald-400">✓</span>{item}</div>
                 ))}
               </div>
-              <a href="/#main-tabs" className="block rounded-xl border border-white/10 bg-white/6 py-3 text-center text-sm font-bold text-slate-300 no-underline transition-all hover:bg-white/10">Start free</a>
+              <a href="/#main-tabs" className="mt-auto block rounded-xl border border-white/10 bg-white/6 py-3 text-center text-sm font-bold text-slate-300 no-underline transition-all hover:bg-white/10">Start free</a>
             </div>
+            {/* Contact Unlock */}
             <div className="flex flex-col rounded-2xl border border-white/7 bg-white/4 p-6">
               <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">Contact Unlock</div>
               <div className="mb-1 text-4xl font-black tracking-tight text-white">{prices.unlock}</div>
-              <div className="mb-3 text-xs text-slate-500">one-time per request</div>
-              <p className="mb-5 text-sm leading-relaxed text-slate-500">Unlock direct supplier contact for a single request after admin approval.</p>
-              <div className="mb-5 h-px bg-white/7" />
-              <div className="flex flex-1 flex-col gap-3 mb-6">
-                {["Everything in Free", "Direct phone number", "WeChat ID", "Email address", "Contact person name", "Controlled release process"].map((item) => (
-                  <div key={item} className="flex items-start gap-3 text-sm text-slate-400"><span className="mt-0.5 shrink-0 font-bold text-emerald-400">✓</span>{item}</div>
+              <div className="mb-2 text-xs text-slate-500">one-time per request</div>
+              <p className="mb-5 text-sm leading-relaxed text-slate-500">Pay once to unlock a supplier's direct phone, WeChat and email for that request.</p>
+              <div className="mb-5 flex flex-col gap-2">
+                {["Direct phone number", "WeChat ID", "Email address", "Contact person name"].map((item) => (
+                  <div key={item} className="flex items-center gap-2 text-sm text-slate-400"><span className="font-bold text-emerald-400">✓</span>{item}</div>
                 ))}
               </div>
               <button onClick={() => { setActiveTab("submit"); document.getElementById("main-tabs")?.scrollIntoView({ behavior: "smooth" }); }}
-                className="block w-full cursor-pointer rounded-xl border border-indigo-500/30 bg-indigo-500/10 py-3 text-center text-sm font-bold text-indigo-300 transition-all hover:bg-indigo-500/15">
+                className="mt-auto block w-full cursor-pointer rounded-xl border border-indigo-500/30 bg-indigo-500/10 py-3 text-center text-sm font-bold text-indigo-300 transition-all hover:bg-indigo-500/15">
                 Submit a request
               </button>
             </div>
+            {/* Pro */}
             <div className="relative flex flex-col rounded-2xl border border-indigo-500/30 bg-gradient-to-b from-indigo-950 to-violet-950 p-6 shadow-2xl shadow-indigo-500/15">
               <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-1.5 text-xs font-bold text-white">Most popular</span>
               <div className="mb-2 text-xs font-bold uppercase tracking-widest text-indigo-300">Weinly Pro</div>
-              <div className="mb-2 flex items-end gap-2">
-                <div className="text-4xl font-black tracking-tight text-white">{proPrice}</div>
-                <div className="mb-1 text-sm text-slate-400">/{proPeriod}</div>
+              <div className="mb-1 flex items-end gap-2">
+                <div className="text-4xl font-black tracking-tight text-white">{prices.proMonthly}</div>
+                <div className="mb-1 text-sm text-slate-400">/month</div>
               </div>
-              <p className="mb-3 text-sm leading-relaxed text-indigo-200/80">Best for active buyers who want faster supplier access and more support.</p>
-              {billingCycle === "yearly" && (
-                <div className="mb-4 inline-flex w-fit items-center gap-1 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-bold text-emerald-400">Save {prices.currency === "NGN" ? "₦100,000" : "$120"} yearly</div>
-              )}
-              <div className="mb-5 rounded-2xl border border-indigo-400/20 bg-white/5 p-4">
-                <div className="mb-1 text-xs font-bold uppercase tracking-widest text-indigo-300">What you get</div>
-                <div className="text-sm font-semibold text-white">3 supplier contact unlocks included every month</div>
-                <div className="mt-1 text-xs leading-relaxed text-slate-400">Plus priority matching, better support and a smoother reorder flow.</div>
-              </div>
-              <div className="mb-5 h-px bg-white/10" />
-              <div className="flex flex-1 flex-col gap-3 mb-6">
-                {["Everything in Free", "3 contact unlocks / month", "Priority supplier matching", "Dedicated WhatsApp support", "Reorder from past requests", "Price intelligence on quotes", "Faster turnaround", "Early access to new features"].map((item) => (
-                  <div key={item} className="flex items-start gap-3 text-sm text-indigo-100"><span className="mt-0.5 shrink-0 font-bold text-cyan-400">✓</span>{item}</div>
+              <div className="mb-2 text-xs text-emerald-400 font-semibold">Save {prices.currency === "NGN" ? "₦100k" : "$120"} on yearly plan</div>
+              <p className="mb-5 text-sm leading-relaxed text-indigo-200/80">3 contact unlocks per month, priority matching and dedicated support.</p>
+              <div className="mb-5 flex flex-col gap-2">
+                {["3 unlocks included monthly", "Priority supplier matching", "Dedicated WhatsApp support", "Reorder from past requests"].map((item) => (
+                  <div key={item} className="flex items-center gap-2 text-sm text-indigo-100"><span className="font-bold text-cyan-400">✓</span>{item}</div>
                 ))}
               </div>
-              <div className="flex flex-col gap-2">
+              <div className="mt-auto flex flex-col gap-2">
                 <a href="/pricing" className="block w-full rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 py-3.5 text-center text-sm font-bold text-white no-underline shadow-lg shadow-indigo-500/30">Get Pro →</a>
                 <a href={proSupportLink} target="_blank" rel="noreferrer" className="block w-full rounded-xl border border-emerald-500/20 bg-emerald-500/10 py-3 text-center text-sm font-bold text-emerald-400 no-underline transition-all hover:bg-emerald-500/15">Pay via bank transfer</a>
               </div>
-            </div>
-            <div className="flex flex-col rounded-2xl border border-white/7 bg-white/4 p-6">
-              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">Enterprise</div>
-              <div className="mb-3 text-4xl font-black tracking-tight text-white">Custom</div>
-              <p className="mb-5 text-sm leading-relaxed text-slate-500">For large buyers, sourcing teams and businesses with ongoing volume.</p>
-              <div className="mb-5 h-px bg-white/7" />
-              <div className="flex flex-1 flex-col gap-3 mb-6">
-                {["Everything in Pro", "Unlimited contact unlocks", "Dedicated account manager", "Factory inspection support", "Bulk order handling", "Custom sourcing workflow", "Custom pricing"].map((item) => (
-                  <div key={item} className="flex items-start gap-3 text-sm text-slate-400"><span className="mt-0.5 shrink-0 font-bold text-amber-400">✓</span>{item}</div>
-                ))}
-              </div>
-              <a href={enterpriseSupportLink} target="_blank" rel="noreferrer" className="block rounded-xl border border-amber-500/20 bg-amber-500/10 py-3 text-center text-sm font-bold text-amber-400 no-underline transition-all hover:bg-amber-500/15">Talk to us on WhatsApp</a>
             </div>
           </div>
         </section>
