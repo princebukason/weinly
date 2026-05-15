@@ -220,41 +220,44 @@ export default function CategorySEOPage({ params }: Props) {
           </nav>
 
           {/* Hero */}
-          <section className={`relative overflow-hidden rounded-3xl border p-6 md:p-12 ${color.bg} ${color.border}`}>
+          <section className={`relative overflow-hidden rounded-3xl border p-4 md:p-12 ${color.bg} ${color.border}`}>
             <div className="pointer-events-none absolute right-0 top-0 h-72 w-72 translate-x-1/3 -translate-y-1/3 rounded-full bg-white/5 blur-3xl" />
-            <div className="relative z-10 grid grid-cols-1 gap-8 md:grid-cols-2 md:items-center">
+            <div className="relative z-10 grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-8 md:items-center">
               <div className="min-w-0">
-                <div className={`mb-4 inline-flex max-w-full flex-wrap items-center gap-2 rounded-full border px-3 py-1.5 md:px-4 ${color.border} bg-black/20`}>
+                <div className={`mb-3 flex w-fit items-center gap-2 rounded-full border px-3 py-1.5 ${color.border} bg-black/20`}>
                   <span className={`h-2 w-2 shrink-0 rounded-full ${color.text === "text-emerald-300" ? "bg-emerald-400" : "bg-white/60"}`} />
-                  <span className={`text-xs font-semibold ${color.text}`}>Verified supplier network · Ships worldwide</span>
+                  <span className={`text-xs font-semibold ${color.text}`}>
+                    <span className="sm:hidden">Verified suppliers</span>
+                    <span className="hidden sm:inline">Verified supplier network · Ships worldwide</span>
+                  </span>
                 </div>
-                <h1 className="mb-3 text-2xl font-black tracking-tight text-white md:text-4xl lg:text-5xl leading-tight break-words">
+                <h1 className="mb-2 text-2xl font-black leading-tight tracking-tight text-white md:text-4xl lg:text-5xl">
                   {seo.headline}
                 </h1>
-                <h2 className={`mb-4 text-sm font-semibold md:text-lg ${color.text} break-words`}>
+                <h2 className={`mb-3 text-xs font-semibold leading-snug md:text-lg ${color.text}`}>
                   {seo.subheadline}
                 </h2>
-                <p className="mb-6 text-sm leading-relaxed text-slate-300 md:text-base max-w-lg">
+                <p className="mb-5 hidden text-sm leading-relaxed text-slate-300 md:block md:text-base max-w-lg">
                   {seo.description}
                 </p>
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-2 md:gap-3">
                   <Link href="/#main-tabs"
-                    className="inline-flex items-center rounded-xl bg-white px-6 py-3 text-sm font-bold text-slate-900 no-underline shadow-lg transition-all hover:bg-white/90">
+                    className="inline-flex items-center rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-slate-900 no-underline shadow-lg transition-all hover:bg-white/90 md:px-6 md:py-3">
                     Get free quotes →
                   </Link>
                   <a href={whatsappLink} target="_blank" rel="noreferrer"
-                    className="inline-flex items-center rounded-xl border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold text-white no-underline transition-all hover:bg-white/15">
+                    className="inline-flex items-center rounded-xl border border-white/20 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white no-underline transition-all hover:bg-white/15 md:px-6 md:py-3">
                     WhatsApp us
                   </a>
                 </div>
               </div>
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2 md:gap-3">
                 {[
                   { label: "Submit request", desc: "Describe your fabric need in plain language", n: "01" },
                   { label: "Get verified quotes", desc: "Receive price, MOQ and lead time from suppliers", n: "02" },
                   { label: "Unlock & connect", desc: "Pay once to get direct supplier contact", n: "03" },
                 ].map((step) => (
-                  <div key={step.n} className="flex items-start gap-4 rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div key={step.n} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/20 p-3 md:gap-4 md:p-4">
                     <span className={`text-xs font-black uppercase tracking-widest ${color.text} shrink-0 mt-0.5`}>{step.n}</span>
                     <div>
                       <div className="text-sm font-bold text-white mb-0.5">{step.label}</div>
