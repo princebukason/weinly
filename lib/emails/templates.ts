@@ -232,6 +232,86 @@ export function contactApprovedEmail(buyerName: string, requestId: string) {
   };
 }
 
+export function supplierApprovedEmail(contactName: string, inviteCode: string, companyName: string) {
+  return {
+    subject: `Your Weinly supplier application is approved — here's your invite code`,
+    html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background:#0a0f1e;font-family:Inter,ui-sans-serif,system-ui,sans-serif;">
+  <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
+
+    <div style="text-align:center;margin-bottom:32px;">
+      <div style="display:inline-flex;align-items:center;gap:10px;">
+        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#d97706);display:inline-flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:16px;">W</div>
+        <span style="color:#f1f5f9;font-weight:900;font-size:22px;letter-spacing:-0.02em;">Weinly</span>
+      </div>
+    </div>
+
+    <div style="background:#111827;border:1px solid rgba(255,255,255,0.07);border-radius:24px;padding:32px;margin-bottom:16px;">
+      <div style="display:inline-block;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);border-radius:999px;padding:6px 14px;margin-bottom:20px;">
+        <span style="color:#34d399;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">Application approved</span>
+      </div>
+
+      <h1 style="margin:0 0 12px;color:#f1f5f9;font-size:24px;font-weight:900;line-height:1.2;letter-spacing:-0.02em;">
+        Welcome to Weinly, ${companyName}
+      </h1>
+
+      <p style="margin:0 0 20px;color:#94a3b8;font-size:15px;line-height:1.7;">
+        Hi ${contactName}, your supplier application has been reviewed and <strong style="color:#34d399;">approved</strong>. Use the invite code below to create your supplier account and start receiving buyer quote requests from Africa.
+      </p>
+
+      <div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.25);border-radius:14px;padding:20px;margin-bottom:24px;text-align:center;">
+        <div style="color:#fbbf24;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;">Your invite code</div>
+        <div style="color:#fde68a;font-size:22px;font-weight:900;letter-spacing:0.08em;font-family:monospace;">${inviteCode}</div>
+        <div style="color:#94a3b8;font-size:12px;margin-top:8px;">Use this code when creating your account — it can only be used once.</div>
+      </div>
+
+      <a href="https://weinlyhq.com/supplier/auth" style="display:block;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;text-decoration:none;border-radius:12px;padding:14px 24px;font-weight:700;font-size:15px;text-align:center;margin-bottom:16px;">
+        Create your supplier account →
+      </a>
+
+      <p style="margin:0;color:#64748b;font-size:13px;line-height:1.6;text-align:center;">
+        Go to supplier sign up, select "Create account", and enter your invite code.
+      </p>
+    </div>
+
+    <div style="background:#111827;border:1px solid rgba(255,255,255,0.07);border-radius:24px;padding:24px;margin-bottom:16px;">
+      <h2 style="margin:0 0 16px;color:#f1f5f9;font-size:16px;font-weight:700;">What happens next</h2>
+      ${[
+        "Create your account at weinlyhq.com/supplier/auth using your invite code",
+        "Complete your supplier profile — company info, categories, contact details",
+        "Receive buyer quote requests matching your fabric categories",
+        "Submit quotes — buyers see your price, MOQ and lead time",
+        "When a buyer pays to unlock your contact, you get a direct lead",
+      ].map((step, i) => `
+      <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px;">
+        <div style="width:24px;height:24px;border-radius:50%;background:rgba(245,158,11,0.15);color:#fbbf24;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">${i + 1}</div>
+        <p style="margin:0;color:#94a3b8;font-size:14px;line-height:1.6;">${step}</p>
+      </div>`).join("")}
+    </div>
+
+    <div style="text-align:center;padding:16px;">
+      <p style="margin:0 0 8px;color:#475569;font-size:12px;">Questions? Chat with us on WhatsApp</p>
+      <a href="https://wa.me/2348130630046?text=Hello%20Weinly%2C%20I%20am%20a%20new%20supplier%20from%20${encodeURIComponent(companyName)}" style="color:#fbbf24;font-size:12px;font-weight:600;text-decoration:none;">WhatsApp Support</a>
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.06);">
+        <p style="margin:0;color:#334155;font-size:11px;line-height:1.6;">
+          <a href="https://weinlyhq.com" style="color:#f59e0b;text-decoration:none;">Weinly</a> — Connecting African buyers to verified Chinese fabric suppliers.
+        </p>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
+    `,
+  };
+}
+
 export function newRequestSupplierEmail(
   supplierName: string,
   requestId: string,

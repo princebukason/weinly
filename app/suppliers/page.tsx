@@ -278,7 +278,7 @@ export default function SuppliersPage() {
               <h2 className="mb-3 text-2xl font-black tracking-tight text-white md:text-3xl">Join Weinly as a verified supplier</h2>
               <p className="mb-5 text-sm leading-relaxed text-slate-400">Get your products in front of serious buyers from Africa, the Middle East and beyond.</p>
               <div className="flex flex-wrap gap-3">
-                <a href="/supplier/auth" className="inline-flex items-center rounded-xl bg-gradient-to-r from-amber-500 to-amber-700 px-6 py-3 text-sm font-bold text-white no-underline shadow-lg shadow-amber-500/20">
+                <a href="/supplier/apply" className="inline-flex items-center rounded-xl bg-gradient-to-r from-amber-500 to-amber-700 px-6 py-3 text-sm font-bold text-white no-underline shadow-lg shadow-amber-500/20">
                   Apply as supplier →
                 </a>
                 <a href={supportLink} target="_blank" rel="noreferrer" className="inline-flex items-center rounded-xl border border-white/10 bg-white/6 px-6 py-3 text-sm font-semibold text-slate-300 no-underline hover:bg-white/10 transition-all">
