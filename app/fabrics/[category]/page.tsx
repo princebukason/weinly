@@ -223,15 +223,15 @@ export default function CategorySEOPage({ params }: Props) {
           <section className={`relative overflow-hidden rounded-3xl border p-6 md:p-12 ${color.bg} ${color.border}`}>
             <div className="pointer-events-none absolute right-0 top-0 h-72 w-72 translate-x-1/3 -translate-y-1/3 rounded-full bg-white/5 blur-3xl" />
             <div className="relative z-10 grid grid-cols-1 gap-8 md:grid-cols-2 md:items-center">
-              <div>
-                <div className={`mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 ${color.border} bg-black/20`}>
-                  <span className={`h-2 w-2 rounded-full ${color.text === "text-emerald-300" ? "bg-emerald-400" : "bg-white/60"}`} />
-                  <span className={`text-xs font-semibold ${color.text}`}>Verified supplier network</span>
+              <div className="min-w-0">
+                <div className={`mb-4 inline-flex max-w-full flex-wrap items-center gap-2 rounded-full border px-3 py-1.5 md:px-4 ${color.border} bg-black/20`}>
+                  <span className={`h-2 w-2 shrink-0 rounded-full ${color.text === "text-emerald-300" ? "bg-emerald-400" : "bg-white/60"}`} />
+                  <span className={`text-xs font-semibold ${color.text}`}>Verified supplier network · Ships worldwide</span>
                 </div>
-                <h1 className="mb-3 text-3xl font-black tracking-tight text-white md:text-4xl lg:text-5xl leading-tight">
+                <h1 className="mb-3 text-2xl font-black tracking-tight text-white md:text-4xl lg:text-5xl leading-tight break-words">
                   {seo.headline}
                 </h1>
-                <h2 className={`mb-4 text-base font-semibold md:text-lg ${color.text}`}>
+                <h2 className={`mb-4 text-sm font-semibold md:text-lg ${color.text} break-words`}>
                   {seo.subheadline}
                 </h2>
                 <p className="mb-6 text-sm leading-relaxed text-slate-300 md:text-base max-w-lg">
