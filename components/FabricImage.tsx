@@ -65,6 +65,12 @@ export default function FabricImage({
   const [imgLoaded, setImgLoaded] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
 
+  const grad = CATEGORY_GRADIENTS[categoryId] || CATEGORY_GRADIENTS.casual;
+  const localSrc = CATEGORY_IMAGE[categoryId] || CATEGORY_IMAGE.casual;
+
+  // Priority: supplier upload → self-hosted image (Vercel CDN) → SVG fallback
+  const src = imageUrl || localSrc;
+
   // Cached images fire onLoad before React attaches the handler — check complete on mount
   useEffect(() => {
     if (imgRef.current?.complete && !imgRef.current.naturalWidth) {
@@ -73,12 +79,6 @@ export default function FabricImage({
       setImgLoaded(true);
     }
   }, [src]);
-
-  const grad = CATEGORY_GRADIENTS[categoryId] || CATEGORY_GRADIENTS.casual;
-  const localSrc = CATEGORY_IMAGE[categoryId] || CATEGORY_IMAGE.casual;
-
-  // Priority: supplier upload → self-hosted image (Vercel CDN) → SVG fallback
-  const src = imageUrl || localSrc;
 
   return (
     <div
