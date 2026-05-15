@@ -35,9 +35,6 @@ export default function SiteHeader({ showSubmitButton = true }: SiteHeaderProps)
           <a href="/" className="text-sm font-semibold text-slate-400 no-underline transition-colors hover:text-white">
             Home
           </a>
-          <a href="/fabrics" className="text-sm font-semibold text-slate-400 no-underline transition-colors hover:text-white">
-            Fabrics
-          </a>
           <a href="/suppliers" className="text-sm font-semibold text-slate-400 no-underline transition-colors hover:text-white">
             Suppliers
           </a>
@@ -117,13 +114,6 @@ export default function SiteHeader({ showSubmitButton = true }: SiteHeaderProps)
             className="rounded-xl px-4 py-3 text-sm font-semibold text-slate-300 no-underline transition-all hover:bg-white/5 hover:text-white"
           >
             Home
-          </a>
-          <a
-            href="/fabrics"
-            onClick={() => setMobileMenuOpen(false)}
-            className="rounded-xl px-4 py-3 text-sm font-semibold text-slate-300 no-underline transition-all hover:bg-white/5 hover:text-white"
-          >
-            Fabrics
           </a>
           <a
             href="/suppliers"
