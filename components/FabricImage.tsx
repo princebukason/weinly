@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 // Local fabric images served from Vercel CDN — no external dependencies, always loads.
 // Files live in /public/images/categories/{id}.jpg
@@ -63,6 +63,16 @@ export default function FabricImage({
 }: FabricImageProps) {
   const [imgError, setImgError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  // Cached images fire onLoad before React attaches the handler — check complete on mount
+  useEffect(() => {
+    if (imgRef.current?.complete && !imgRef.current.naturalWidth) {
+      setImgError(true);
+    } else if (imgRef.current?.complete) {
+      setImgLoaded(true);
+    }
+  }, [src]);
 
   const grad = CATEGORY_GRADIENTS[categoryId] || CATEGORY_GRADIENTS.casual;
   const localSrc = CATEGORY_IMAGE[categoryId] || CATEGORY_IMAGE.casual;
@@ -88,11 +98,12 @@ export default function FabricImage({
       {/* Main image */}
       {!imgError && (
         <img
+          ref={imgRef}
           src={src}
           alt={alt}
           onLoad={() => setImgLoaded(true)}
           onError={() => setImgError(true)}
-          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${
             imgLoaded ? "opacity-100" : "opacity-0"
           }`}
         />
