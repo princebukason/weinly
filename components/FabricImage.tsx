@@ -2,18 +2,18 @@
 
 import { useState } from "react";
 
-// Verified Unsplash CDN photo IDs — fetched directly from unsplash.com photo pages.
-// URL: https://images.unsplash.com/photo-{id}?auto=format&fit=crop&w={w}&q=80
-const CATEGORY_PHOTOS: Record<string, string[]> = {
-  luxury:     ["1619043519379-99df2736108d", "1617055407123-3d7130c1f940", "1591957974074-68daffbf8df8"],
-  african:    ["1552710307-537199cd41c0",    "1593803926640-0c663fabfaf5"],
-  sports:     ["1636716019138-750a1b011e3f", "1671530191715-b1019db3944a"],
-  casual:     ["1645859610425-f0f4177df5f0", "1524404794194-16bae22718c0"],
-  mens:       ["1705493253575-e911888621ff", "1532526674046-5b3f6d7d2ab1"],
-  furniture:  ["1567016432779-094069958ea5", "1555041469-a586c61ea9bc"],
-  industrial: ["1743142883555-b0beac669a51", "1741176507345-dd8587f1a175"],
-  kids:       ["1640746942093-cec8e647596d", "1630920501459-f3e99320c4a5"],
-  eco:        ["1703495330144-0ab603d059ef", "1554967651-3997ad1c43b0"],
+// Local fabric images served from Vercel CDN — no external dependencies, always loads.
+// Files live in /public/images/categories/{id}.jpg
+const CATEGORY_IMAGE: Record<string, string> = {
+  luxury:     "/images/categories/luxury.jpg",
+  african:    "/images/categories/african.jpg",
+  sports:     "/images/categories/sports.jpg",
+  casual:     "/images/categories/casual.jpg",
+  mens:       "/images/categories/mens.jpg",
+  furniture:  "/images/categories/furniture.jpg",
+  industrial: "/images/categories/industrial.jpg",
+  kids:       "/images/categories/kids.jpg",
+  eco:        "/images/categories/eco.jpg",
 };
 
 // Rich dark gradient fallback per category — shows while image loads
@@ -65,12 +65,10 @@ export default function FabricImage({
   const [imgLoaded, setImgLoaded] = useState(false);
 
   const grad = CATEGORY_GRADIENTS[categoryId] || CATEGORY_GRADIENTS.casual;
-  const photos = CATEGORY_PHOTOS[categoryId] || CATEGORY_PHOTOS.casual;
-  const photoId = photos[itemIndex % photos.length];
+  const localSrc = CATEGORY_IMAGE[categoryId] || CATEGORY_IMAGE.casual;
 
-  // Priority: supplier upload → verified Unsplash CDN photo → SVG fallback
-  const unsplashSrc = `https://images.unsplash.com/photo-${photoId}?auto=format&fit=crop&w=${width}&q=80`;
-  const src = imageUrl || unsplashSrc;
+  // Priority: supplier upload → self-hosted image (Vercel CDN) → SVG fallback
+  const src = imageUrl || localSrc;
 
   return (
     <div
