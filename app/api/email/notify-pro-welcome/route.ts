@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 
 export async function POST(req: NextRequest) {
+  const secret = req.headers.get("x-internal-secret");
+  if (!secret || secret !== process.env.INTERNAL_API_SECRET) {
+    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
   if (!process.env.RESEND_API_KEY) {
     return NextResponse.json({ error: "Missing RESEND_API_KEY." }, { status: 500 });
   }

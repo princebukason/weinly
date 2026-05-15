@@ -119,24 +119,12 @@ export async function POST(req: NextRequest) {
     // FIX 1 & 2 — email is now INSIDE try block, AFTER successful update
     // requestId is in scope here and only runs on success
     try {
-      const { data: request } = await supabase
-        .from("fabric_requests")
-        .select("client_email, client_name")
-        .eq("id", requestId)
-        .single();
-
-      if (request?.client_email) {
-        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://weinlyhq.com";
-        await fetch(`${siteUrl}/api/email/notify-contact-approved`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            buyerEmail: request.client_email,
-            buyerName: request.client_name,
-            requestId,
-          }),
-        });
-      }
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://weinlyhq.com";
+      await fetch(`${siteUrl}/api/email/notify-contact-approved`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId }),
+      });
     } catch (e) {
       // Email failure should not block payment success response
       console.error("Payment confirmation email failed:", e);
