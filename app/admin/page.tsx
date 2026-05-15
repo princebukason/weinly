@@ -35,6 +35,12 @@ type SupplierInvite = {
   id: string; code: string; email: string | null; used: boolean; used_at: string | null; created_at: string;
 };
 
+type SupplierApplication = {
+  id: string; company_name: string; contact_name: string; email: string; phone: string;
+  wechat: string | null; region: string; categories: string[] | null; years_in_business: string | null;
+  website: string | null; status: string; created_at: string;
+};
+
 type SupplierReview = {
   id: string; request_id: string; supplier_id: string; quote_id: string;
   buyer_name: string | null; buyer_email: string | null; rating: number;
@@ -103,12 +109,13 @@ export default function AdminPage() {
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"requests" | "suppliers" | "invites" | "reviews" | "stock">("requests");
+  const [activeTab, setActiveTab] = useState<"requests" | "suppliers" | "invites" | "reviews" | "stock" | "applications">("requests");
 
   const [requests, setRequests] = useState<FabricRequest[]>([]);
   const [quotesMap, setQuotesMap] = useState<Record<string, Quote[]>>({});
   const [suppliers, setSuppliers] = useState<SupplierProfile[]>([]);
   const [invites, setInvites] = useState<SupplierInvite[]>([]);
+  const [applications, setApplications] = useState<SupplierApplication[]>([]);
   const [reviews, setReviews] = useState<SupplierReview[]>([]);
   const [readyStock, setReadyStock] = useState<ReadyStockItem[]>([]);
   const [search, setSearch] = useState("");
@@ -130,13 +137,14 @@ export default function AdminPage() {
   async function fetchAll() {
     setLoading(true);
     try {
-      const [reqRes, quotesRes, suppliersRes, invitesRes, reviewsRes, stockRes] = await Promise.all([
+      const [reqRes, quotesRes, suppliersRes, invitesRes, reviewsRes, stockRes, appsRes] = await Promise.all([
         supabase.from("fabric_requests").select("*").order("created_at", { ascending: false }),
         supabase.from("quotes").select("*").order("id", { ascending: false }),
         supabase.from("supplier_profiles").select("*").order("created_at", { ascending: false }),
         supabase.from("supplier_invites").select("*").order("created_at", { ascending: false }),
         supabase.from("supplier_reviews").select("*").order("created_at", { ascending: false }),
         supabase.from("ready_stock").select("*").order("created_at", { ascending: false }),
+        supabase.from("supplier_applications").select("*").order("created_at", { ascending: false }),
       ]);
       setRequests((reqRes.data || []) as FabricRequest[]);
       const grouped: Record<string, Quote[]> = {};
@@ -150,6 +158,7 @@ export default function AdminPage() {
       setInvites((invitesRes.data || []) as SupplierInvite[]);
       setReviews((reviewsRes.data || []) as SupplierReview[]);
       setReadyStock((stockRes.data || []) as ReadyStockItem[]);
+      setApplications((appsRes.data || []) as SupplierApplication[]);
     } catch { alert("Failed to load admin data."); }
     finally { setLoading(false); }
   }
@@ -461,11 +470,12 @@ export default function AdminPage() {
         {/* Tabs */}
         <div className="bg-[#111827] border border-white/7 rounded-3xl p-4 md:p-6">
           <div className="flex gap-2 mb-6 bg-white/4 border border-white/7 rounded-2xl p-1.5 overflow-x-auto">
-            {(["requests", "suppliers", "invites", "reviews", "stock"] as const).map((tab) => (
+            {(["requests", "suppliers", "applications", "invites", "reviews", "stock"] as const).map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
                 className={`shrink-0 flex-1 py-2.5 px-3 rounded-xl text-xs md:text-sm font-bold border-0 cursor-pointer transition-all ${activeTab === tab ? "bg-gradient-to-r from-red-500 to-red-700 text-white shadow-lg shadow-red-500/25" : "text-slate-500 bg-transparent hover:text-slate-300"}`}>
                 {tab === "requests" ? `Requests (${requests.length})`
                   : tab === "suppliers" ? `Suppliers (${suppliers.length})`
+                  : tab === "applications" ? `Applications (${applications.filter((a) => a.status === "pending").length})`
                   : tab === "invites" ? `Invites (${invites.length})`
                   : tab === "reviews" ? `Reviews (${reviews.length})`
                   : `Stock (${readyStock.filter((s) => s.is_active).length})`}
@@ -983,6 +993,99 @@ export default function AdminPage() {
                       </div>
                     );
                   })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── APPLICATIONS TAB ── */}
+          {activeTab === "applications" && (
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-black text-white">Supplier applications</h2>
+                  <p className="text-xs text-slate-500">{applications.filter((a) => a.status === "pending").length} pending · {applications.filter((a) => a.status === "approved").length} approved · {applications.filter((a) => a.status === "rejected").length} rejected</p>
+                </div>
+              </div>
+              {applications.length === 0 ? (
+                <div className="rounded-2xl border border-white/7 bg-white/4 p-8 text-center text-sm text-slate-500">No applications yet.</div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {applications.map((app) => (
+                    <div key={app.id} className="rounded-2xl border border-white/7 bg-white/4 p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+                        <div>
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-sm font-bold text-white">{app.company_name}</span>
+                            <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                              app.status === "pending" ? "bg-amber-900/50 text-amber-300" :
+                              app.status === "approved" ? "bg-emerald-900/50 text-emerald-300" :
+                              "bg-red-900/50 text-red-300"
+                            }`}>{app.status}</span>
+                          </div>
+                          <div className="text-xs text-slate-400">{app.contact_name} · {app.email} · {app.phone}</div>
+                          {app.wechat && <div className="text-xs text-slate-500">WeChat: {app.wechat}</div>}
+                        </div>
+                        <div className="text-xs text-slate-600">{new Date(app.created_at).toLocaleDateString()}</div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 mb-3 md:grid-cols-3">
+                        <div className="rounded-xl bg-white/4 border border-white/7 p-2.5">
+                          <div className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-0.5">Region</div>
+                          <div className="text-xs text-slate-300">{app.region}</div>
+                        </div>
+                        {app.years_in_business && (
+                          <div className="rounded-xl bg-white/4 border border-white/7 p-2.5">
+                            <div className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-0.5">Experience</div>
+                            <div className="text-xs text-slate-300">{app.years_in_business}</div>
+                          </div>
+                        )}
+                        {app.website && (
+                          <div className="rounded-xl bg-white/4 border border-white/7 p-2.5">
+                            <div className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-0.5">Website</div>
+                            <a href={app.website} target="_blank" rel="noreferrer" className="text-xs text-indigo-400 no-underline hover:text-indigo-300 break-all">{app.website}</a>
+                          </div>
+                        )}
+                      </div>
+                      {app.categories && app.categories.length > 0 && (
+                        <div className="mb-3 flex flex-wrap gap-1.5">
+                          {app.categories.map((cat) => (
+                            <span key={cat} className="rounded-full bg-indigo-900/30 border border-indigo-500/20 px-2.5 py-0.5 text-xs font-semibold text-indigo-300">{cat}</span>
+                          ))}
+                        </div>
+                      )}
+                      {app.status === "pending" && (
+                        <div className="flex gap-2">
+                          <button onClick={async () => {
+                            if (!confirm(`Approve ${app.company_name} and send invite code to ${app.email}?`)) return;
+                            try {
+                              const res = await fetch("/api/supplier/approve", {
+                                method: "POST", headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ applicationId: app.id, action: "approve" }),
+                              });
+                              const data = await res.json();
+                              if (!res.ok) throw new Error(data.error);
+                              alert(`Approved! Invite code ${data.code} sent to ${app.email}`);
+                              fetchAll();
+                            } catch (e: any) { alert(e.message); }
+                          }} className="rounded-xl bg-emerald-600 hover:bg-emerald-500 border-0 px-4 py-2 text-xs font-bold text-white cursor-pointer transition-all">
+                            ✓ Approve &amp; send invite
+                          </button>
+                          <button onClick={async () => {
+                            if (!confirm(`Reject application from ${app.company_name}?`)) return;
+                            try {
+                              await fetch("/api/supplier/approve", {
+                                method: "POST", headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ applicationId: app.id, action: "reject" }),
+                              });
+                              fetchAll();
+                            } catch (e: any) { alert(e.message); }
+                          }} className="rounded-xl bg-white/6 hover:bg-white/10 border border-white/10 px-4 py-2 text-xs font-bold text-slate-400 cursor-pointer transition-all">
+                            Reject
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
