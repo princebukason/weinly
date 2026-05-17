@@ -98,8 +98,10 @@ function StarDisplay({ rating }: { rating: number }) {
 
 async function sendPushNotification(buyerEmail: string, title: string, message: string, requestId: string) {
   try {
+    const token = sessionStorage.getItem("weinly_admin_token") || "";
     await fetch("/api/push/notify-buyer", {
-      method: "POST", headers: { "Content-Type": "application/json" },
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Admin-Password": token },
       body: JSON.stringify({ buyerEmail, title, message, requestId }),
     });
   } catch (e) { console.error("Push notification failed:", e); }
@@ -173,6 +175,7 @@ export default function AdminPage() {
       if (res.ok) {
         setAuthenticated(true);
         localStorage.setItem("weinly_admin_auth", "true");
+        sessionStorage.setItem("weinly_admin_token", password);
         fetchAll();
       } else {
         const data = await res.json();
@@ -183,6 +186,7 @@ export default function AdminPage() {
 
   function handleLogout() {
     localStorage.removeItem("weinly_admin_auth");
+    sessionStorage.removeItem("weinly_admin_token");
     setAuthenticated(false);
   }
 
@@ -1057,9 +1061,11 @@ export default function AdminPage() {
                         <div className="flex gap-2">
                           <button onClick={async () => {
                             if (!confirm(`Approve ${app.company_name} and send invite code to ${app.email}?`)) return;
+                            const token = sessionStorage.getItem("weinly_admin_token") || "";
                             try {
                               const res = await fetch("/api/supplier/approve", {
-                                method: "POST", headers: { "Content-Type": "application/json" },
+                                method: "POST",
+                                headers: { "Content-Type": "application/json", "X-Admin-Password": token },
                                 body: JSON.stringify({ applicationId: app.id, action: "approve" }),
                               });
                               const data = await res.json();
@@ -1072,9 +1078,11 @@ export default function AdminPage() {
                           </button>
                           <button onClick={async () => {
                             if (!confirm(`Reject application from ${app.company_name}?`)) return;
+                            const token = sessionStorage.getItem("weinly_admin_token") || "";
                             try {
                               await fetch("/api/supplier/approve", {
-                                method: "POST", headers: { "Content-Type": "application/json" },
+                                method: "POST",
+                                headers: { "Content-Type": "application/json", "X-Admin-Password": token },
                                 body: JSON.stringify({ applicationId: app.id, action: "reject" }),
                               });
                               fetchAll();

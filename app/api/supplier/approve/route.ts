@@ -9,6 +9,12 @@ const supabase = createClient(
 );
 
 export async function POST(req: NextRequest) {
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  const token = req.headers.get("X-Admin-Password");
+  if (!adminPassword || token !== adminPassword) {
+    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
   try {
     const { applicationId, action } = await req.json();
     if (!applicationId || !action) {

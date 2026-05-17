@@ -1,3 +1,12 @@
+function esc(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export function requestSubmittedEmail(buyerName: string, requestId: string, fabricDescription: string) {
   const trackUrl = `https://weinlyhq.com/?requestId=${requestId}`;
   return {
@@ -29,7 +38,7 @@ export function requestSubmittedEmail(buyerName: string, requestId: string, fabr
       </h1>
 
       <p style="margin:0 0 20px;color:#94a3b8;font-size:15px;line-height:1.7;">
-        Hi ${buyerName || "there"}, your fabric sourcing request has been submitted. We are matching it to verified suppliers now. Quotes typically arrive within 24 hours.
+        Hi ${esc(buyerName) || "there"}, your fabric sourcing request has been submitted. We are matching it to verified suppliers now. Quotes typically arrive within 24 hours.
       </p>
 
       <div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.2);border-radius:14px;padding:16px;margin-bottom:16px;">
@@ -40,7 +49,7 @@ export function requestSubmittedEmail(buyerName: string, requestId: string, fabr
 
       <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px;margin-bottom:24px;">
         <div style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Your request</div>
-        <p style="margin:0;color:#cbd5e1;font-size:14px;line-height:1.7;">${fabricDescription.slice(0, 250)}${fabricDescription.length > 250 ? "..." : ""}</p>
+        <p style="margin:0;color:#cbd5e1;font-size:14px;line-height:1.7;">${esc(fabricDescription).slice(0, 250)}${fabricDescription.length > 250 ? "..." : ""}</p>
       </div>
 
       <a href="${trackUrl}" style="display:block;background:linear-gradient(135deg,#6366f1,#4f46e5);color:white;text-decoration:none;border-radius:12px;padding:14px 24px;font-weight:700;font-size:15px;text-align:center;margin-bottom:16px;">
@@ -115,7 +124,7 @@ export function quotesReadyEmail(buyerName: string, requestId: string, quoteCoun
       </h1>
 
       <p style="margin:0 0 20px;color:#94a3b8;font-size:15px;line-height:1.7;">
-        Hi ${buyerName || "there"}, <strong style="color:#f1f5f9;">${quoteCount} verified supplier${quoteCount === 1 ? " has" : "s have"}</strong> responded to your fabric sourcing request with quotes including price, MOQ and lead time.
+        Hi ${esc(buyerName) || "there"}, <strong style="color:#f1f5f9;">${quoteCount} verified supplier${quoteCount === 1 ? " has" : "s have"}</strong> responded to your fabric sourcing request with quotes including price, MOQ and lead time.
       </p>
 
       <div style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:14px;padding:16px;margin-bottom:24px;">
@@ -195,7 +204,7 @@ export function contactApprovedEmail(buyerName: string, requestId: string) {
       </h1>
 
       <p style="margin:0 0 20px;color:#94a3b8;font-size:15px;line-height:1.7;">
-        Hi ${buyerName || "there"}, your payment has been verified and your supplier contact access has been <strong style="color:#34d399;">approved</strong>. You can now view the direct supplier contact details including phone number, WeChat ID and email.
+        Hi ${esc(buyerName) || "there"}, your payment has been verified and your supplier contact access has been <strong style="color:#34d399;">approved</strong>. You can now view the direct supplier contact details including phone number, WeChat ID and email.
       </p>
 
       <div style="background:rgba(52,211,153,0.06);border:1px solid rgba(52,211,153,0.2);border-radius:14px;padding:16px;margin-bottom:24px;">
@@ -258,11 +267,11 @@ export function supplierApprovedEmail(contactName: string, inviteCode: string, c
       </div>
 
       <h1 style="margin:0 0 12px;color:#f1f5f9;font-size:24px;font-weight:900;line-height:1.2;letter-spacing:-0.02em;">
-        Welcome to Weinly, ${companyName}
+        Welcome to Weinly, ${esc(companyName)}
       </h1>
 
       <p style="margin:0 0 20px;color:#94a3b8;font-size:15px;line-height:1.7;">
-        Hi ${contactName}, your supplier application has been reviewed and <strong style="color:#34d399;">approved</strong>. Use the invite code below to create your supplier account and start receiving buyer quote requests from Africa.
+        Hi ${esc(contactName)}, your supplier application has been reviewed and <strong style="color:#34d399;">approved</strong>. Use the invite code below to create your supplier account and start receiving buyer quote requests from Africa.
       </p>
 
       <div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.25);border-radius:14px;padding:20px;margin-bottom:24px;text-align:center;">
@@ -352,13 +361,13 @@ export function newRequestSupplierEmail(
 
       <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px;margin-bottom:16px;">
         <div style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Buyer request</div>
-        <p style="margin:0;color:#cbd5e1;font-size:14px;line-height:1.7;">${fabricDescription.slice(0, 300)}${fabricDescription.length > 300 ? "..." : ""}</p>
+        <p style="margin:0;color:#cbd5e1;font-size:14px;line-height:1.7;">${esc(fabricDescription).slice(0, 300)}${fabricDescription.length > 300 ? "..." : ""}</p>
       </div>
 
       ${aiSpec ? `
       <div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:14px;padding:16px;margin-bottom:24px;">
         <div style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">AI sourcing spec</div>
-        <p style="margin:0;color:#a5b4fc;font-size:13px;line-height:1.7;white-space:pre-wrap;">${aiSpec.slice(0, 400)}${aiSpec.length > 400 ? "..." : ""}</p>
+        <p style="margin:0;color:#a5b4fc;font-size:13px;line-height:1.7;white-space:pre-wrap;">${esc(aiSpec).slice(0, 400)}${aiSpec.length > 400 ? "..." : ""}</p>
       </div>
       ` : ""}
 
