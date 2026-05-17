@@ -84,7 +84,7 @@ export default function SiteFooter() {
           © {new Date().getFullYear()} Weinly. Built for fabric buyers sourcing from China.
         </p>
         <div className="flex items-center gap-4">
-          <span className="text-slate-600 text-xs">Powered by AI</span>
+          <span className="text-slate-600 text-xs">Powered by Weinly</span>
           <span className="text-slate-600 text-xs">·</span>
           <span className="text-slate-600 text-xs">Secured by Paystack</span>
         </div>
