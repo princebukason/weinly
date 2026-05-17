@@ -98,8 +98,10 @@ function StarDisplay({ rating }: { rating: number }) {
 
 async function sendPushNotification(buyerEmail: string, title: string, message: string, requestId: string) {
   try {
+    const token = sessionStorage.getItem("weinly_admin_token") || "";
     await fetch("/api/push/notify-buyer", {
-      method: "POST", headers: { "Content-Type": "application/json" },
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Admin-Password": token },
       body: JSON.stringify({ buyerEmail, title, message, requestId }),
     });
   } catch (e) { console.error("Push notification failed:", e); }

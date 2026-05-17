@@ -96,9 +96,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const expectedAmount = Math.round(
-      Number(String(existingRequest.contact_access_fee || "3000").replace(/[^\d.]/g, "")) * 100
-    );
+    const feeNaira = Number(existingRequest.contact_access_fee || 0);
+    if (!feeNaira) {
+      return NextResponse.json(
+        { error: "No access fee configured for this request" },
+        { status: 400 }
+      );
+    }
+    const expectedAmount = Math.round(feeNaira * 100);
 
     if (amount !== expectedAmount) {
       return NextResponse.json(

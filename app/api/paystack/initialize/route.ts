@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, amount, requestId, name, phone } = body as {
+    const { email, requestId, name, phone } = body as {
       email?: string;
-      amount?: number;
       requestId?: string;
       name?: string;
       phone?: string;
     };
 
-    if (!email || !amount || !requestId) {
+    if (!email || !requestId) {
       return NextResponse.json(
-        { error: "Missing email, amount, or requestId." },
+        { error: "Missing email or requestId." },
         { status: 400 }
       );
     }
@@ -26,6 +26,33 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Fetch the fee from the database — never trust client-provided amount
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const { data: request, error: fetchError } = await supabase
+      .from("fabric_requests")
+      .select("contact_access_fee, payment_status")
+      .eq("id", requestId)
+      .single();
+
+    if (fetchError || !request) {
+      return NextResponse.json({ error: "Request not found." }, { status: 404 });
+    }
+
+    if (request.payment_status === "paid") {
+      return NextResponse.json({ error: "This request has already been paid for." }, { status: 409 });
+    }
+
+    const feeNaira = Number(request.contact_access_fee || 0);
+    if (!feeNaira) {
+      return NextResponse.json({ error: "No access fee set for this request." }, { status: 400 });
+    }
+
+    const amountKobo = Math.round(feeNaira * 100);
+
     const response = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
       headers: {
@@ -34,7 +61,7 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         email,
-        amount,
+        amount: amountKobo,
         currency: "NGN",
         reference: `weinly_${requestId}_${Date.now()}`,
         metadata: {
