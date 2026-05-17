@@ -96,13 +96,13 @@ function StarDisplay({ rating }: { rating: number }) {
   return <span className="text-amber-400">{"★".repeat(rating)}{"☆".repeat(5 - rating)}</span>;
 }
 
-async function sendPushNotification(buyerEmail: string, title: string, message: string, requestId: string) {
+async function sendPushNotification(requestId: string, title: string, message: string) {
   try {
     const token = sessionStorage.getItem("weinly_admin_token") || "";
     await fetch("/api/push/notify-buyer", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Admin-Password": token },
-      body: JSON.stringify({ buyerEmail, title, message, requestId }),
+      body: JSON.stringify({ requestId, title, message }),
     });
   } catch (e) { console.error("Push notification failed:", e); }
 }
@@ -218,7 +218,7 @@ export default function AdminPage() {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ buyerEmail: request.client_email, buyerName: request.client_name, requestId, quoteCount: (quotesMap[requestId]?.length || 0) + 1 }),
           });
-          await sendPushNotification(request.client_email, "Your quotes are ready 🎉", "A verified supplier has responded to your fabric request. Tap to review.", requestId);
+          await sendPushNotification(requestId, "Your quotes are ready 🎉", "A verified supplier has responded to your fabric request. Tap to review.");
         }
       } catch (e) { console.error("Notification failed:", e); }
       setNewQuotes((prev) => ({ ...prev, [requestId]: { ...emptyQuoteForm } }));
@@ -261,7 +261,7 @@ export default function AdminPage() {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ buyerEmail: request.client_email, buyerName: request.client_name, requestId }),
           });
-          await sendPushNotification(request.client_email, "Supplier contact approved ✓", "Your supplier contact details are now available. Tap to view.", requestId);
+          await sendPushNotification(requestId, "Supplier contact approved ✓", "Your supplier contact details are now available. Tap to view.");
         }
       } catch (e) { console.error("Notification failed:", e); }
       await fetchAll();

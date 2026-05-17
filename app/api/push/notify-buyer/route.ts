@@ -1,16 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-export async function POST(req: NextRequest) {
-  const token = req.headers.get("X-Admin-Password");
+function isAuthorized(req: NextRequest): boolean {
   const adminPassword = process.env.ADMIN_PASSWORD;
-  if (!adminPassword || token !== adminPassword) {
+  const internalSecret = process.env.INTERNAL_API_SECRET;
+  const adminToken = req.headers.get("X-Admin-Password");
+  const secretToken = req.headers.get("x-internal-secret");
+  return (!!adminPassword && adminToken === adminPassword) ||
+         (!!internalSecret && secretToken === internalSecret);
+}
+
+export async function POST(req: NextRequest) {
+  if (!isAuthorized(req)) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
   if (!supabaseUrl || !supabaseServiceRoleKey) {
     return NextResponse.json({ error: "Missing Supabase config." }, { status: 500 });
   }
@@ -19,32 +25,26 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { buyerEmail, title, message, requestId } = body;
+    const { requestId, title, message } = body as {
+      requestId?: string;
+      title?: string;
+      message?: string;
+    };
 
-    if (!buyerEmail || !title || !message) {
-      return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
+    if (!requestId || !title || !message) {
+      return NextResponse.json({ error: "Missing requestId, title, or message." }, { status: 400 });
     }
 
-    // Get buyer's user ID from auth
-    const { data: users } = await supabase.auth.admin.listUsers();
-    const buyer = users?.users?.find((u) => u.email === buyerEmail);
-
-    if (!buyer) {
-      return NextResponse.json({ success: true, message: "Buyer not found in auth." });
-    }
-
-    // Get buyer's push token
-    const { data: tokenData } = await supabase
-      .from("push_tokens")
-      .select("token")
-      .eq("user_id", buyer.id)
+    const { data: request } = await supabase
+      .from("fabric_requests")
+      .select("push_token")
+      .eq("id", requestId)
       .single();
 
-    if (!tokenData?.token) {
-      return NextResponse.json({ success: true, message: "No push token for buyer." });
+    if (!request?.push_token) {
+      return NextResponse.json({ success: true, message: "No push token for this request." });
     }
 
-    // Send push notification via Expo
     const response = await fetch("https://exp.host/--/api/v2/push/send", {
       method: "POST",
       headers: {
@@ -52,16 +52,15 @@ export async function POST(req: NextRequest) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        to: tokenData.token,
+        to: request.push_token,
         sound: "default",
         title,
         body: message,
-        data: { requestId: requestId || "" },
+        data: { requestId },
       }),
     });
 
     const result = await response.json();
-
     return NextResponse.json({ success: true, result });
   } catch (error: any) {
     console.error("Push notification error:", error);
