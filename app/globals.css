@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --primary: #6366f1;
-  --primary-dark: #4f46e5;
-  --accent: #fbbf24;
+  --primary: #f59e0b;
+  --primary-dark: #d97706;
+  --accent: #6366f1;
   --emerald: #34d399;
   --text: #f1f5f9;
   --subtext: #94a3b8;
   --border: rgba(255, 255, 255, 0.08);
   --bg: #0a0f1e;
   --card-bg: rgba(255, 255, 255, 0.04);
-  --shadow: 0 8px 40px rgba(99, 102, 241, 0.12);
+  --shadow: 0 8px 40px rgba(245, 158, 11, 0.12);
 }
 
 * { box-sizing: border-box; }
@@ -41,9 +41,9 @@ input, textarea, select {
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 input:focus, textarea:focus, select:focus {
-  border-color: #6366f1 !important;
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15);
   outline: none;
 }
 
-::selection { background: rgba(99, 102, 241, 0.25); }
+::selection { background: rgba(245, 158, 11, 0.25); }

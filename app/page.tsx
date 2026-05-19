@@ -386,7 +386,7 @@ export default function HomePage() {
         <div className={`fixed bottom-6 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3 rounded-2xl border px-5 py-3.5 text-sm font-semibold shadow-2xl transition-all ${
           toast.type === "error" ? "border-red-500/30 bg-red-950 text-red-300" :
           toast.type === "success" ? "border-emerald-500/30 bg-emerald-950 text-emerald-300" :
-          "border-indigo-500/30 bg-indigo-950 text-indigo-300"
+          "border-amber-500/30 bg-amber-950 text-amber-300"
         }`}>
           <span>{toast.type === "error" ? "✕" : "✓"}</span>
           <span>{toast.msg}</span>
@@ -398,18 +398,18 @@ export default function HomePage() {
         <SiteHeader />
 
         {/* ── HERO ── */}
-        <section className="relative overflow-hidden rounded-3xl border border-indigo-500/15 bg-gradient-to-br from-[#0f172a] via-[#1a1040] to-[#0c1a3a] p-6 shadow-2xl shadow-indigo-500/10 md:p-12">
-          <div className="pointer-events-none absolute right-0 top-0 h-96 w-96 translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-500/10 blur-3xl" />
-          <div className="pointer-events-none absolute bottom-0 left-0 h-64 w-64 -translate-x-1/2 translate-y-1/2 rounded-full bg-violet-500/8 blur-3xl" />
+        <section className="relative overflow-hidden rounded-3xl border border-amber-500/15 bg-gradient-to-br from-[#0f172a] via-[#1a1200] to-[#0f0c00] p-6 shadow-2xl shadow-amber-500/10 md:p-12">
+          <div className="pointer-events-none absolute right-0 top-0 h-96 w-96 translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-500/10 blur-3xl" />
+          <div className="pointer-events-none absolute bottom-0 left-0 h-64 w-64 -translate-x-1/2 translate-y-1/2 rounded-full bg-amber-400/6 blur-3xl" />
           <div className="relative z-10 grid grid-cols-1 items-center gap-8 lg:grid-cols-2 lg:gap-12">
             <div className="flex flex-col gap-5">
-              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-indigo-500/25 bg-indigo-500/10 px-4 py-1.5">
+              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-amber-500/25 bg-amber-500/10 px-4 py-1.5">
                 <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400" />
-                <span className="text-xs font-semibold text-indigo-300">Fabric sourcing platform</span>
+                <span className="text-xs font-semibold text-amber-300">Fabric sourcing platform</span>
               </div>
               <h1 className="text-4xl font-black leading-[1.05] tracking-tight text-white md:text-5xl lg:text-6xl">
                 Source premium fabrics{" "}
-                <span className="bg-gradient-to-r from-indigo-400 via-sky-400 to-emerald-400 bg-clip-text text-transparent">directly from China</span>
+                <span className="bg-gradient-to-r from-amber-300 via-yellow-300 to-amber-500 bg-clip-text text-transparent">directly from China</span>
               </h1>
               <p className="max-w-lg text-base leading-relaxed text-slate-400 md:text-lg">Describe what you need. Get verified supplier quotes. Unlock direct contact and negotiate the best deals — no middlemen.</p>
               <div className="flex flex-wrap gap-6">
@@ -427,7 +427,7 @@ export default function HomePage() {
               </div>
               <div className="flex flex-wrap gap-3">
                 <button onClick={() => { setActiveTab("submit"); document.getElementById("main-tabs")?.scrollIntoView({ behavior: "smooth" }); }}
-                  className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-indigo-500 to-indigo-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-500/30 transition-all hover:shadow-indigo-500/50">
+                  className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-amber-500 to-amber-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/30 transition-all hover:shadow-amber-500/50">
                   Start sourcing →
                 </button>
                 <a href={genericSupportLink} target="_blank" rel="noreferrer" className="flex items-center rounded-xl border border-white/12 bg-white/6 px-6 py-3 text-sm font-semibold text-slate-300 no-underline transition-all hover:bg-white/10">WhatsApp us</a>
@@ -435,7 +435,7 @@ export default function HomePage() {
             </div>
             <div className="flex flex-col gap-3">
               {[
-                { icon: "✦", title: "9 fabric categories", text: "Luxury, African, Sports, Casual, Men's, Furniture, Industrial, Kids and Eco fabrics.", color: "text-indigo-400" },
+                { icon: "✦", title: "9 fabric categories", text: "Luxury, African, Sports, Casual, Men's, Furniture, Industrial, Kids and Eco fabrics.", color: "text-amber-400" },
                 { icon: "◈", title: "Verified quotes first", text: "See price, MOQ and lead time before paying anything.", color: "text-emerald-400" },
                 { icon: "⬡", title: "Direct supplier access", text: `Pay ${prices.unlock} to unlock phone, WeChat and email directly.`, color: "text-amber-400" },
               ].map((f) => (
@@ -453,7 +453,7 @@ export default function HomePage() {
 
         {/* ── CATEGORIES SHOWCASE ── */}
         <section className="rounded-3xl border border-white/7 bg-[#111827] p-6 md:p-8">
-          <span className="mb-3 inline-block rounded-full bg-indigo-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-indigo-400">What we source</span>
+          <span className="mb-3 inline-block rounded-full bg-amber-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-amber-400">What we source</span>
           <h2 className="mb-6 text-2xl font-black tracking-tight text-white md:text-3xl">9 fabric categories</h2>
           <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {FABRIC_CATEGORIES.map((cat) => {
@@ -474,11 +474,11 @@ export default function HomePage() {
 
         {/* ── HOW IT WORKS ── */}
         <section id="how-it-works" className="rounded-3xl border border-white/7 bg-[#111827] p-6 md:p-10">
-          <span className="mb-3 inline-block rounded-full bg-indigo-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-indigo-400">How it works</span>
+          <span className="mb-3 inline-block rounded-full bg-amber-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-amber-400">How it works</span>
           <h2 className="mb-8 text-2xl font-black tracking-tight text-white md:text-3xl">Three steps to your supplier</h2>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {[
-              { n: "01", title: "Submit your request", text: "Choose a fabric category, describe what you need. AI formats it into a professional sourcing spec.", color: "from-indigo-500 to-indigo-600", textColor: "text-indigo-400" },
+              { n: "01", title: "Submit your request", text: "Choose a fabric category, describe what you need. AI formats it into a professional sourcing spec.", color: "from-amber-500 to-amber-600", textColor: "text-amber-400" },
               { n: "02", title: "Review supplier quotes", text: "We match you to verified Chinese suppliers in your category. See price, MOQ and lead time first.", color: "from-emerald-500 to-emerald-600", textColor: "text-emerald-400" },
               { n: "03", title: "Unlock & connect", text: `Pay ${prices.unlock} to unlock direct supplier contact — phone, WeChat, email.`, color: "from-amber-500 to-amber-600", textColor: "text-amber-400" },
             ].map((step) => (
@@ -497,7 +497,7 @@ export default function HomePage() {
           <div className="mb-6 flex gap-2 rounded-2xl border border-white/7 bg-white/4 p-1.5">
             {(["submit", "track"] as const).map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
-                className={`flex-1 cursor-pointer rounded-xl border-0 px-4 py-3 text-sm font-bold transition-all ${activeTab === tab ? "bg-gradient-to-r from-indigo-500 to-indigo-700 text-white shadow-lg shadow-indigo-500/25" : "bg-transparent text-slate-500 hover:text-slate-300"}`}>
+                className={`flex-1 cursor-pointer rounded-xl border-0 px-4 py-3 text-sm font-bold transition-all ${activeTab === tab ? "bg-gradient-to-r from-amber-500 to-amber-700 text-white shadow-lg shadow-amber-500/25" : "bg-transparent text-slate-500 hover:text-slate-300"}`}>
                 {tab === "submit" ? "Submit request" : "Track request"}
               </button>
             ))}
@@ -521,7 +521,7 @@ export default function HomePage() {
                     <div key={field.label} className="flex flex-col gap-1.5">
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-400">{field.label}</label>
                       <input value={field.value} onChange={(e) => field.setter(e.target.value)} placeholder={field.placeholder} type={field.type}
-                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-indigo-500 focus:bg-indigo-500/5" />
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-amber-500 focus:bg-amber-500/5" />
                     </div>
                   ))}
                 </div>
@@ -575,7 +575,7 @@ export default function HomePage() {
                       : selectedCategory === "sports" ? "Example: Dry-fit fabric for football jerseys, moisture-wicking, polyester blend, various colors, MOQ 500 meters..."
                       : "Describe the fabric type, color, quantity, quality and intended use..."
                     }
-                    rows={5} className="w-full resize-y rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-indigo-500 focus:bg-indigo-500/5" />
+                    rows={5} className="w-full resize-y rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-amber-500 focus:bg-amber-500/5" />
                   <p className="m-0 text-xs text-slate-600">Include: fabric type · color · quantity · quality level · intended use</p>
                 </div>
 
@@ -594,7 +594,7 @@ export default function HomePage() {
                 )}
                 <div className="flex flex-wrap gap-3">
                   <button type="submit" disabled={loading || !selectedCategory}
-                    className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-indigo-500 to-indigo-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-500/25 disabled:cursor-not-allowed disabled:opacity-60">
+                    className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-amber-500 to-amber-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/25 disabled:cursor-not-allowed disabled:opacity-60">
                     {loading ? "Processing..." : "Submit fabric request →"}
                   </button>
                   <a href={genericSupportLink} target="_blank" rel="noreferrer"
@@ -612,9 +612,9 @@ export default function HomePage() {
               </div>
               <div className="flex flex-wrap gap-3">
                 <input value={lookupId} onChange={(e) => { setLookupId(e.target.value); setLookupError(""); }} placeholder="Paste your request ID here"
-                  className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-indigo-500" />
+                  className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-amber-500" />
                 <button onClick={() => handleLookup()} disabled={lookupLoading}
-                  className="shrink-0 cursor-pointer rounded-xl border-0 bg-gradient-to-r from-indigo-500 to-indigo-700 px-6 py-3 text-sm font-bold text-white disabled:opacity-60">
+                  className="shrink-0 cursor-pointer rounded-xl border-0 bg-gradient-to-r from-amber-500 to-amber-700 px-6 py-3 text-sm font-bold text-white disabled:opacity-60">
                   {lookupLoading ? "Loading..." : "Track →"}
                 </button>
               </div>
@@ -624,11 +624,11 @@ export default function HomePage() {
                 </div>
               )}
               <div className="flex flex-wrap gap-5">
-                <a href="/history" className="text-sm font-semibold text-indigo-400 no-underline transition-colors hover:text-indigo-300">View all history →</a>
+                <a href="/history" className="text-sm font-semibold text-amber-400 no-underline transition-colors hover:text-amber-300">View all history →</a>
                 <a href={genericSupportLink} target="_blank" rel="noreferrer" className="text-sm font-semibold text-emerald-400 no-underline transition-colors hover:text-emerald-300">Chat support →</a>
               </div>
               {submittedRequest && (
-                <div id="request-result" className="flex flex-col gap-4 rounded-2xl border border-indigo-500/20 bg-indigo-500/6 p-5">
+                <div id="request-result" className="flex flex-col gap-4 rounded-2xl border border-amber-500/20 bg-amber-500/6 p-5">
                   <div className="flex items-center gap-4">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-base font-black text-white shadow-lg shadow-emerald-500/30">✓</div>
                     <div>
@@ -663,7 +663,7 @@ export default function HomePage() {
                       <strong className="text-amber-300">⚠ Save your Request ID.</strong> You will need it to track your quotes. Copy it above or bookmark this page — we cannot recover it for you if lost.
                     </p>
                   </div>
-                  <div className="rounded-xl border border-indigo-500/15 bg-indigo-500/8 p-4">
+                  <div className="rounded-xl border border-amber-500/15 bg-amber-500/8 p-4">
                     <p className="m-0 text-sm leading-relaxed text-slate-400">
                       <strong className="text-white">What happens next?</strong> We are matching your request to verified suppliers. Quotes appear within 24 hours.
                     </p>
@@ -677,7 +677,7 @@ export default function HomePage() {
         {/* ── TRACKER ── */}
         {activeRequest && stagePill && (
           <section id="request-tracker"
-            className={`flex flex-col gap-5 rounded-3xl border p-5 shadow-xl md:p-8 transition-all duration-500 ${realtimeFlash ? "border-emerald-500/40 bg-emerald-500/5 shadow-emerald-500/10" : "border-indigo-500/15 bg-[#0d1424] shadow-indigo-500/8"}`}>
+            className={`flex flex-col gap-5 rounded-3xl border p-5 shadow-xl md:p-8 transition-all duration-500 ${realtimeFlash ? "border-emerald-500/40 bg-emerald-500/5 shadow-emerald-500/10" : "border-amber-500/15 bg-[#0d1424] shadow-amber-500/8"}`}>
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <h2 className="mb-1 flex items-center gap-2 text-xl font-black tracking-tight text-white md:text-2xl">
@@ -749,9 +749,10 @@ export default function HomePage() {
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <h3 className="m-0 text-lg font-bold text-white">Supplier quotes</h3>
-                <span className="rounded-full bg-indigo-500/15 px-3 py-1.5 text-xs font-bold text-indigo-400">
+                <span className="rounded-full bg-amber-500/15 px-3 py-1.5 text-xs font-bold text-amber-400">
                   {activeQuotes.length} {activeQuotes.length === 1 ? "quote" : "quotes"}
                 </span>
+
               </div>
               {activeQuotes.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-white/10 bg-white/2 p-10 text-center">
@@ -800,7 +801,7 @@ export default function HomePage() {
                         </div>
                       )}
                       {!isReleased && contactStatus === "none" && (
-                        <div className="rounded-2xl border border-indigo-500/20 bg-gradient-to-br from-[#111827] to-[#161b2f] p-5">
+                        <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-[#111827] to-[#1a1300] p-5">
                           <div className="mb-4">
                             <h4 className="mb-1 text-base font-bold text-white">Unlock supplier contact</h4>
                             <p className="m-0 text-sm leading-relaxed text-slate-400">Choose a one-time unlock or upgrade to Pro for better value.</p>
@@ -811,7 +812,7 @@ export default function HomePage() {
                               <div className="mb-2 text-2xl font-black text-white">{prices.unlock}</div>
                               <div className="mb-4 text-sm leading-relaxed text-slate-400">Unlock this supplier's phone, WeChat and email for this request.</div>
                               <button onClick={() => requestContact(activeRequest.id)}
-                                className="w-full cursor-pointer rounded-xl border-0 bg-gradient-to-r from-indigo-500 to-indigo-700 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-500/25">
+                                className="w-full cursor-pointer rounded-xl border-0 bg-gradient-to-r from-amber-500 to-amber-700 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/25">
                                 Proceed to unlock
                               </button>
                             </div>
@@ -834,9 +835,9 @@ export default function HomePage() {
                         </div>
                       )}
                       {!isReleased && contactStatus === "pending" && paymentStatus === "unpaid" && (
-                        <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/6 p-5">
+                        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/6 p-5">
                           <h4 className="m-0 mb-4 text-base font-bold text-white">Unlock supplier contact</h4>
-                          <div className="mb-4 flex flex-col gap-2 rounded-xl border border-indigo-500/15 bg-indigo-500/8 p-4">
+                          <div className="mb-4 flex flex-col gap-2 rounded-xl border border-amber-500/15 bg-amber-500/8 p-4">
                             {[{ label: "Access fee", value: prices.unlock }, { label: "Payment method", value: "Paystack" }, { label: "Request ID", value: activeRequest.id }].map((row) => (
                               <div key={row.label} className="flex flex-wrap justify-between gap-3">
                                 <span className="text-sm text-slate-500">{row.label}</span>
@@ -847,7 +848,7 @@ export default function HomePage() {
                           <p className="m-0 mb-4 text-sm leading-relaxed text-slate-500">Get direct access to supplier phone, WeChat and contact person.</p>
                           <div className="flex flex-wrap gap-3">
                             <button onClick={() => startPayment(activeRequest)} disabled={paymentLoading}
-                              className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-indigo-500 to-indigo-700 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-500/25 disabled:cursor-not-allowed disabled:opacity-60">
+                              className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-amber-500 to-amber-700 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-amber-500/25 disabled:cursor-not-allowed disabled:opacity-60">
                               {paymentLoading ? "Processing..." : `Pay ${prices.unlock} & unlock`}
                             </button>
                             <a href={supportLink} target="_blank" rel="noreferrer" className="flex items-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-5 py-2.5 text-sm font-semibold text-emerald-400 no-underline transition-all hover:bg-emerald-500/15">Need help?</a>
@@ -979,13 +980,13 @@ export default function HomePage() {
 
         {/* ── PRICING ── */}
         <section id="pricing" className="rounded-3xl border border-white/7 bg-[#111827] p-6 md:p-10">
-          <span className="mb-3 inline-block rounded-full bg-indigo-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-indigo-400">Pricing</span>
+          <span className="mb-3 inline-block rounded-full bg-amber-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-amber-400">Pricing</span>
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 className="mb-2 text-2xl font-black tracking-tight text-white md:text-3xl">Simple, transparent pricing</h2>
               <p className="m-0 text-sm leading-relaxed text-slate-500">Start for free. Only pay when you want direct access to a supplier.</p>
             </div>
-            <a href="/pricing" className="shrink-0 text-sm font-semibold text-indigo-400 no-underline hover:text-indigo-300 transition-colors">See full pricing →</a>
+            <a href="/pricing" className="shrink-0 text-sm font-semibold text-amber-400 no-underline hover:text-amber-300 transition-colors">See full pricing →</a>
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {/* Free */}
@@ -1012,7 +1013,7 @@ export default function HomePage() {
                 ))}
               </div>
               <button onClick={() => { setActiveTab("submit"); document.getElementById("main-tabs")?.scrollIntoView({ behavior: "smooth" }); }}
-                className="mt-auto block w-full cursor-pointer rounded-xl border border-indigo-500/30 bg-indigo-500/10 py-3 text-center text-sm font-bold text-indigo-300 transition-all hover:bg-indigo-500/15">
+                className="mt-auto block w-full cursor-pointer rounded-xl border border-amber-500/30 bg-amber-500/10 py-3 text-center text-sm font-bold text-amber-300 transition-all hover:bg-amber-500/15">
                 Submit a request
               </button>
             </div>
@@ -1041,11 +1042,11 @@ export default function HomePage() {
 
         {/* ── TRUST ── */}
         <section className="rounded-3xl border border-white/7 bg-[#111827] p-6 md:p-10">
-          <span className="mb-3 inline-block rounded-full bg-indigo-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-indigo-400">Why Weinly</span>
+          <span className="mb-3 inline-block rounded-full bg-amber-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-amber-400">Why Weinly</span>
           <h2 className="mb-8 text-2xl font-black tracking-tight text-white md:text-3xl">Built for serious fabric buyers</h2>
           <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             {[
-              { title: "See quotes before paying", text: "Review price, MOQ and lead time before spending anything.", accent: "from-indigo-500 to-indigo-600" },
+              { title: "See quotes before paying", text: "Review price, MOQ and lead time before spending anything.", accent: "from-amber-500 to-amber-600" },
               { title: "Protected supplier details", text: "Supplier contact stays protected until approval is complete.", accent: "from-emerald-500 to-emerald-600" },
               { title: "China sourcing expertise", text: "Designed for buyers sourcing fabrics from China for Africa.", accent: "from-amber-500 to-amber-600" },
               { title: "WhatsApp support", text: "Real human support throughout your entire sourcing journey.", accent: "from-pink-500 to-pink-600" },
