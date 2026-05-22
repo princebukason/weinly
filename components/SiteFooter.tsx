@@ -6,13 +6,13 @@ export default function SiteFooter() {
   const genericSupportLink = buildWhatsappLink("Hello Weinly, I need help with fabric sourcing.");
 
   return (
-    <footer className="bg-[#0d1424] border border-white/8 rounded-2xl p-6 mt-2">
+    <footer className="bg-[#161310] border border-white/8 rounded-2xl p-6 mt-2">
       <div className="flex flex-col md:flex-row justify-between gap-8">
 
         {/* Brand */}
         <div className="max-w-xs">
           <div className="flex items-center gap-2 mb-3">
-            <span className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-white font-black text-xs">W</span>
+            <span className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white font-black text-xs">W</span>
             <span className="text-white font-black text-lg">Weinly</span>
           </div>
           <p className="text-slate-500 text-sm leading-relaxed">

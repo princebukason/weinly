@@ -380,7 +380,7 @@ export default function HomePage() {
   const avgRating = publicReviews.length > 0 ? (publicReviews.reduce((sum, r) => sum + r.rating, 0) / publicReviews.length).toFixed(1) : null;
 
   return (
-    <main className="min-h-screen bg-[#0a0f1e] px-3 py-3 font-sans md:px-4 md:py-4">
+    <main className="min-h-screen bg-[#0f0d09] px-3 py-3 font-sans md:px-4 md:py-4">
       {/* Toast notification */}
       {toast && (
         <div className={`fixed bottom-6 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3 rounded-2xl border px-5 py-3.5 text-sm font-semibold shadow-2xl transition-all ${
@@ -398,7 +398,7 @@ export default function HomePage() {
         <SiteHeader />
 
         {/* ── HERO ── */}
-        <section className="relative overflow-hidden rounded-3xl border border-amber-500/15 bg-gradient-to-br from-[#0f172a] via-[#1a1200] to-[#0f0c00] p-6 shadow-2xl shadow-amber-500/10 md:p-12">
+        <section className="relative overflow-hidden rounded-3xl border border-amber-500/15 bg-gradient-to-br from-[#110f0a] via-[#1a1200] to-[#0f0c00] p-6 shadow-2xl shadow-amber-500/10 md:p-12">
           <div className="pointer-events-none absolute right-0 top-0 h-96 w-96 translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-500/10 blur-3xl" />
           <div className="pointer-events-none absolute bottom-0 left-0 h-64 w-64 -translate-x-1/2 translate-y-1/2 rounded-full bg-amber-400/6 blur-3xl" />
           <div className="relative z-10 grid grid-cols-1 items-center gap-8 lg:grid-cols-2 lg:gap-12">
@@ -433,26 +433,36 @@ export default function HomePage() {
                 <a href={genericSupportLink} target="_blank" rel="noreferrer" className="flex items-center rounded-xl border border-white/12 bg-white/6 px-6 py-3 text-sm font-semibold text-slate-300 no-underline transition-all hover:bg-white/10">WhatsApp us</a>
               </div>
             </div>
-            <div className="flex flex-col gap-3">
-              {[
-                { icon: "✦", title: "9 fabric categories", text: "Luxury, African, Sports, Casual, Men's, Furniture, Industrial, Kids and Eco fabrics.", color: "text-amber-400" },
-                { icon: "◈", title: "Verified quotes first", text: "See price, MOQ and lead time before paying anything.", color: "text-emerald-400" },
-                { icon: "⬡", title: "Direct supplier access", text: `Pay ${prices.unlock} to unlock phone, WeChat and email directly.`, color: "text-amber-400" },
-              ].map((f) => (
-                <div key={f.title} className="flex items-start gap-4 rounded-2xl border border-white/8 bg-white/5 p-4 backdrop-blur-sm">
-                  <span className={`mt-0.5 shrink-0 text-xl ${f.color}`}>{f.icon}</span>
-                  <div>
-                    <div className="mb-1 text-sm font-bold text-white">{f.title}</div>
-                    <div className="text-xs leading-relaxed text-slate-400">{f.text}</div>
-                  </div>
-                </div>
-              ))}
+            <div className="flex flex-col gap-2">
+              <p className="text-xs font-bold uppercase tracking-widest text-amber-400/70 mb-1">Browse by category — click to source</p>
+              <div className="grid grid-cols-3 gap-2">
+                {FABRIC_CATEGORIES.slice(0, 6).map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => { setSelectedCategory(cat.id); setSelectedSubcategory(""); setActiveTab("submit"); document.getElementById("main-tabs")?.scrollIntoView({ behavior: "smooth" }); }}
+                    className="group relative overflow-hidden rounded-xl border border-white/10 cursor-pointer transition-all hover:scale-[1.04] hover:border-amber-500/40 p-0 bg-transparent"
+                  >
+                    <FabricImage categoryId={cat.id} alt={cat.label} aspectRatio="square" overlay className="w-full" />
+                    <div className="absolute inset-x-0 bottom-0 p-2">
+                      <div className="text-xs font-bold text-white leading-tight drop-shadow">{cat.label}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => { setActiveTab("submit"); document.getElementById("main-tabs")?.scrollIntoView({ behavior: "smooth" }); }}
+                className="mt-1 w-full cursor-pointer rounded-xl border border-white/10 bg-white/5 py-2.5 text-center text-xs font-semibold text-slate-400 transition-all hover:bg-white/8 hover:text-amber-300 bg-transparent"
+              >
+                + 3 more categories — Kids, Industrial, Eco →
+              </button>
             </div>
           </div>
         </section>
 
         {/* ── CATEGORIES SHOWCASE ── */}
-        <section className="rounded-3xl border border-white/7 bg-[#111827] p-6 md:p-8">
+        <section className="rounded-3xl border border-white/7 bg-[#1a1612] p-6 md:p-8">
           <span className="mb-3 inline-block rounded-full bg-amber-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-amber-400">What we source</span>
           <h2 className="mb-6 text-2xl font-black tracking-tight text-white md:text-3xl">9 fabric categories</h2>
           <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
@@ -473,7 +483,7 @@ export default function HomePage() {
         </section>
 
         {/* ── HOW IT WORKS ── */}
-        <section id="how-it-works" className="rounded-3xl border border-white/7 bg-[#111827] p-6 md:p-10">
+        <section id="how-it-works" className="rounded-3xl border border-white/7 bg-[#1a1612] p-6 md:p-10">
           <span className="mb-3 inline-block rounded-full bg-amber-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-amber-400">How it works</span>
           <h2 className="mb-8 text-2xl font-black tracking-tight text-white md:text-3xl">Three steps to your supplier</h2>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -493,12 +503,12 @@ export default function HomePage() {
         </section>
 
         {/* ── MAIN TABS ── */}
-        <section id="main-tabs" className="rounded-3xl border border-white/7 bg-[#111827] p-4 md:p-8">
+        <section id="main-tabs" className="rounded-3xl border border-white/7 bg-[#1a1612] p-4 md:p-8">
           <div className="mb-6 flex gap-2 rounded-2xl border border-white/7 bg-white/4 p-1.5">
             {(["submit", "track"] as const).map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
                 className={`flex-1 cursor-pointer rounded-xl border-0 px-4 py-3 text-sm font-bold transition-all ${activeTab === tab ? "bg-gradient-to-r from-amber-500 to-amber-700 text-white shadow-lg shadow-amber-500/25" : "bg-transparent text-slate-500 hover:text-slate-300"}`}>
-                {tab === "submit" ? "Submit request" : "Track request"}
+                {tab === "submit" ? "Get quotes" : "Track order"}
               </button>
             ))}
           </div>
@@ -595,7 +605,7 @@ export default function HomePage() {
                 <div className="flex flex-wrap gap-3">
                   <button type="submit" disabled={loading || !selectedCategory}
                     className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-amber-500 to-amber-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/25 disabled:cursor-not-allowed disabled:opacity-60">
-                    {loading ? "Processing..." : "Submit fabric request →"}
+                    {loading ? "Processing..." : "Get supplier quotes →"}
                   </button>
                   <a href={genericSupportLink} target="_blank" rel="noreferrer"
                     className="flex items-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-6 py-3 text-sm font-bold text-emerald-400 no-underline transition-all hover:bg-emerald-500/15">Need help?</a>
@@ -677,7 +687,7 @@ export default function HomePage() {
         {/* ── TRACKER ── */}
         {activeRequest && stagePill && (
           <section id="request-tracker"
-            className={`flex flex-col gap-5 rounded-3xl border p-5 shadow-xl md:p-8 transition-all duration-500 ${realtimeFlash ? "border-emerald-500/40 bg-emerald-500/5 shadow-emerald-500/10" : "border-amber-500/15 bg-[#0d1424] shadow-amber-500/8"}`}>
+            className={`flex flex-col gap-5 rounded-3xl border p-5 shadow-xl md:p-8 transition-all duration-500 ${realtimeFlash ? "border-emerald-500/40 bg-emerald-500/5 shadow-emerald-500/10" : "border-amber-500/15 bg-[#161310] shadow-amber-500/8"}`}>
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <h2 className="mb-1 flex items-center gap-2 text-xl font-black tracking-tight text-white md:text-2xl">
@@ -919,7 +929,7 @@ export default function HomePage() {
 
         {/* ── PUBLIC REVIEWS ── */}
         {reviewsLoaded && publicReviews.length > 0 && (
-          <section className="rounded-3xl border border-white/7 bg-[#111827] p-6 md:p-10">
+          <section className="rounded-3xl border border-white/7 bg-[#1a1612] p-6 md:p-10">
             <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
               <div>
                 <span className="mb-3 inline-block rounded-full bg-amber-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-amber-400">Buyer reviews</span>
@@ -979,7 +989,7 @@ export default function HomePage() {
         </section>
 
         {/* ── PRICING ── */}
-        <section id="pricing" className="rounded-3xl border border-white/7 bg-[#111827] p-6 md:p-10">
+        <section id="pricing" className="rounded-3xl border border-white/7 bg-[#1a1612] p-6 md:p-10">
           <span className="mb-3 inline-block rounded-full bg-amber-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-amber-400">Pricing</span>
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div>
@@ -1041,7 +1051,7 @@ export default function HomePage() {
         </section>
 
         {/* ── TRUST ── */}
-        <section className="rounded-3xl border border-white/7 bg-[#111827] p-6 md:p-10">
+        <section className="rounded-3xl border border-white/7 bg-[#1a1612] p-6 md:p-10">
           <span className="mb-3 inline-block rounded-full bg-amber-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-amber-400">Why Weinly</span>
           <h2 className="mb-8 text-2xl font-black tracking-tight text-white md:text-3xl">Built for serious fabric buyers</h2>
           <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">

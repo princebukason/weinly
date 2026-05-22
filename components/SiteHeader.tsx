@@ -20,7 +20,7 @@ export default function SiteHeader({ showSubmitButton = true }: SiteHeaderProps)
 
   return (
     <header className="mb-3">
-      <nav className="flex items-center justify-between gap-4 rounded-2xl border border-white/8 bg-[#0d1424] px-4 py-3 shadow-lg">
+      <nav className="flex items-center justify-between gap-4 rounded-2xl border border-white/8 bg-[#161310] px-4 py-3 shadow-lg">
 
         {/* Logo */}
         <a href="/" className="flex shrink-0 items-center gap-2 no-underline">
@@ -102,7 +102,7 @@ export default function SiteHeader({ showSubmitButton = true }: SiteHeaderProps)
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="mt-2 flex flex-col gap-1 rounded-2xl border border-white/8 bg-[#0d1424] p-4 shadow-xl md:hidden">
+        <div className="mt-2 flex flex-col gap-1 rounded-2xl border border-white/8 bg-[#161310] p-4 shadow-xl md:hidden">
 
           <div className="mb-1 px-4 pt-1 text-xs font-bold uppercase tracking-widest text-slate-600">
             Navigate
