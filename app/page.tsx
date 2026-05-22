@@ -380,7 +380,7 @@ export default function HomePage() {
   const avgRating = publicReviews.length > 0 ? (publicReviews.reduce((sum, r) => sum + r.rating, 0) / publicReviews.length).toFixed(1) : null;
 
   return (
-    <main className="min-h-screen bg-[#0f0d09] px-3 py-3 font-sans md:px-4 md:py-4">
+    <main className="min-h-screen bg-transparent px-3 py-3 font-sans md:px-4 md:py-4">
       {/* Toast notification */}
       {toast && (
         <div className={`fixed bottom-6 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3 rounded-2xl border px-5 py-3.5 text-sm font-semibold shadow-2xl transition-all ${
@@ -462,7 +462,7 @@ export default function HomePage() {
         </section>
 
         {/* ── CATEGORIES SHOWCASE ── */}
-        <section className="rounded-3xl border border-white/7 bg-[#1a1612] p-6 md:p-8">
+        <section className="rounded-3xl border border-white/10 bg-[#211e18] shadow-xl shadow-black/30 p-6 md:p-8">
           <span className="mb-3 inline-block rounded-full bg-amber-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-amber-400">What we source</span>
           <h2 className="mb-6 text-2xl font-black tracking-tight text-white md:text-3xl">9 fabric categories</h2>
           <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
@@ -483,7 +483,7 @@ export default function HomePage() {
         </section>
 
         {/* ── HOW IT WORKS ── */}
-        <section id="how-it-works" className="rounded-3xl border border-white/7 bg-[#1a1612] p-6 md:p-10">
+        <section id="how-it-works" className="rounded-3xl border border-white/10 bg-[#211e18] shadow-xl shadow-black/30 p-6 md:p-10">
           <span className="mb-3 inline-block rounded-full bg-amber-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-amber-400">How it works</span>
           <h2 className="mb-8 text-2xl font-black tracking-tight text-white md:text-3xl">Three steps to your supplier</h2>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -503,7 +503,7 @@ export default function HomePage() {
         </section>
 
         {/* ── MAIN TABS ── */}
-        <section id="main-tabs" className="rounded-3xl border border-white/7 bg-[#1a1612] p-4 md:p-8">
+        <section id="main-tabs" className="rounded-3xl border border-white/10 bg-[#211e18] shadow-xl shadow-black/30 p-4 md:p-8">
           <div className="mb-6 flex gap-2 rounded-2xl border border-white/7 bg-white/4 p-1.5">
             {(["submit", "track"] as const).map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
@@ -687,7 +687,7 @@ export default function HomePage() {
         {/* ── TRACKER ── */}
         {activeRequest && stagePill && (
           <section id="request-tracker"
-            className={`flex flex-col gap-5 rounded-3xl border p-5 shadow-xl md:p-8 transition-all duration-500 ${realtimeFlash ? "border-emerald-500/40 bg-emerald-500/5 shadow-emerald-500/10" : "border-amber-500/15 bg-[#161310] shadow-amber-500/8"}`}>
+            className={`flex flex-col gap-5 rounded-3xl border p-5 shadow-xl md:p-8 transition-all duration-500 ${realtimeFlash ? "border-emerald-500/40 bg-emerald-500/5 shadow-emerald-500/10" : "border-amber-500/15 bg-[#1c1a14] shadow-amber-500/8"}`}>
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <h2 className="mb-1 flex items-center gap-2 text-xl font-black tracking-tight text-white md:text-2xl">
@@ -929,7 +929,7 @@ export default function HomePage() {
 
         {/* ── PUBLIC REVIEWS ── */}
         {reviewsLoaded && publicReviews.length > 0 && (
-          <section className="rounded-3xl border border-white/7 bg-[#1a1612] p-6 md:p-10">
+          <section className="rounded-3xl border border-white/10 bg-[#211e18] shadow-xl shadow-black/30 p-6 md:p-10">
             <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
               <div>
                 <span className="mb-3 inline-block rounded-full bg-amber-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-amber-400">Buyer reviews</span>
@@ -989,7 +989,7 @@ export default function HomePage() {
         </section>
 
         {/* ── PRICING ── */}
-        <section id="pricing" className="rounded-3xl border border-white/7 bg-[#1a1612] p-6 md:p-10">
+        <section id="pricing" className="rounded-3xl border border-white/10 bg-[#211e18] shadow-xl shadow-black/30 p-6 md:p-10">
           <span className="mb-3 inline-block rounded-full bg-amber-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-amber-400">Pricing</span>
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div>
@@ -1051,7 +1051,7 @@ export default function HomePage() {
         </section>
 
         {/* ── TRUST ── */}
-        <section className="rounded-3xl border border-white/7 bg-[#1a1612] p-6 md:p-10">
+        <section className="rounded-3xl border border-white/10 bg-[#211e18] shadow-xl shadow-black/30 p-6 md:p-10">
           <span className="mb-3 inline-block rounded-full bg-amber-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-amber-400">Why Weinly</span>
           <h2 className="mb-8 text-2xl font-black tracking-tight text-white md:text-3xl">Built for serious fabric buyers</h2>
           <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
