@@ -24,16 +24,16 @@ export default function AuthPage() {
     try {
       if (mode === "signup") {
         const { error } = await supabase.auth.signUp({
-  email: email.trim(),
-  password,
-  options: {
-    data: {
-      role: "buyer",  // ← ADD THIS LINE
-      full_name: name.trim(),
-      phone: phone.trim(),
-    },
-  },
-});
+          email: email.trim(),
+          password,
+          options: {
+            data: {
+              role: "buyer",
+              full_name: name.trim(),
+              phone: phone.trim(),
+            },
+          },
+        });
 
         if (error) throw error;
 
@@ -61,19 +61,19 @@ export default function AuthPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0f1e] flex items-center justify-center px-4 py-12 font-sans">
+    <main className="min-h-screen bg-[#f5ecdc] flex items-center justify-center px-4 py-12 font-sans">
       <div className="w-full max-w-md flex flex-col gap-4">
 
         {/* Brand */}
         <div className="text-center mb-2">
           <a href="/" className="inline-flex items-center gap-2 no-underline mb-4">
-            <span className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-white font-black text-base shadow-lg shadow-indigo-500/30">W</span>
-            <span className="text-white font-black text-2xl tracking-tight">Weinly</span>
+            <span className="flex h-10 w-10 items-center justify-center rounded-md bg-[#24483f] text-sm font-black text-[#f8efe2] shadow-sm">W</span>
+            <span className="text-[#1f2933] font-black text-2xl tracking-tight">Weinly</span>
           </a>
-          <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight mb-2">
+          <h1 className="text-2xl md:text-3xl font-black text-[#1f2933] tracking-tight mb-2">
             {mode === "login" ? "Welcome back" : "Create your account"}
           </h1>
-          <p className="text-slate-500 text-sm leading-relaxed">
+          <p className="text-stone-500 text-sm leading-relaxed">
             {mode === "login"
               ? "Log in to track your fabric sourcing requests."
               : "Join Weinly to source premium fabrics from China."}
@@ -81,16 +81,16 @@ export default function AuthPage() {
         </div>
 
         {/* Card */}
-        <div className="bg-[#111827] border border-white/7 rounded-3xl p-6 md:p-8 shadow-xl shadow-indigo-500/8">
+        <div className="bg-white border border-stone-200 rounded-lg p-6 md:p-8 shadow-sm">
 
           {/* Tab toggle */}
-          <div className="flex gap-2 mb-6 bg-white/4 border border-white/7 rounded-2xl p-1.5">
+          <div className="flex gap-2 mb-6 bg-stone-50 border border-stone-200 rounded-lg p-1.5">
             {(["login", "signup"] as const).map((tab) => (
               <button
                 key={tab}
                 type="button"
                 onClick={() => { setMode(tab); setMessage(null); }}
-                className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-bold border-0 cursor-pointer transition-all ${mode === tab ? "bg-gradient-to-r from-indigo-500 to-indigo-700 text-white shadow-lg shadow-indigo-500/25" : "text-slate-500 bg-transparent hover:text-slate-300"}`}>
+                className={`flex-1 py-2.5 px-4 rounded-md text-sm font-bold border-0 cursor-pointer transition-all ${mode === tab ? "bg-gradient-to-r from-[#a75635] to-[#7b3525] text-white shadow-lg shadow-stone-900/10" : "text-stone-500 bg-transparent hover:text-stone-700"}`}>
                 {tab === "login" ? "Log in" : "Sign up"}
               </button>
             ))}
@@ -98,7 +98,7 @@ export default function AuthPage() {
 
           {/* Message */}
           {message && (
-            <div className={`rounded-xl p-4 mb-4 text-sm leading-relaxed ${message.type === "success" ? "bg-emerald-500/8 border border-emerald-500/20 text-emerald-300" : "bg-red-500/8 border border-red-500/20 text-red-300"}`}>
+            <div className={`rounded-lg p-4 mb-4 text-sm leading-relaxed ${message.type === "success" ? "bg-emerald-500/8 border border-emerald-500/20 text-[#2f7d57]" : "bg-red-500/8 border border-red-500/20 text-red-600"}`}>
               {message.text}
             </div>
           )}
@@ -107,42 +107,42 @@ export default function AuthPage() {
             {mode === "signup" && (
               <>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-slate-400 text-xs font-bold uppercase tracking-wider">Full name</label>
+                  <label className="text-stone-600 text-xs font-bold uppercase tracking-wider">Full name</label>
                   <input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g. Amaka Obi"
                     required
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-indigo-500 focus:bg-indigo-500/5 transition-all"
+                    className="w-full px-4 py-3 rounded-md bg-stone-50 border border-stone-200 text-[#1f2933] text-sm placeholder:text-stone-400 outline-none focus:border-amber-500 focus:bg-amber-500/5 transition-all"
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-slate-400 text-xs font-bold uppercase tracking-wider">WhatsApp / phone</label>
+                  <label className="text-stone-600 text-xs font-bold uppercase tracking-wider">WhatsApp / phone</label>
                   <input
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="+234 800 000 0000"
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-indigo-500 focus:bg-indigo-500/5 transition-all"
+                    className="w-full px-4 py-3 rounded-md bg-stone-50 border border-stone-200 text-[#1f2933] text-sm placeholder:text-stone-400 outline-none focus:border-amber-500 focus:bg-amber-500/5 transition-all"
                   />
                 </div>
               </>
             )}
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-slate-400 text-xs font-bold uppercase tracking-wider">Email address</label>
+              <label className="text-stone-600 text-xs font-bold uppercase tracking-wider">Email address</label>
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 type="email"
                 required
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-indigo-500 focus:bg-indigo-500/5 transition-all"
+                className="w-full px-4 py-3 rounded-md bg-stone-50 border border-stone-200 text-[#1f2933] text-sm placeholder:text-stone-400 outline-none focus:border-amber-500 focus:bg-amber-500/5 transition-all"
               />
             </div>
 
             <div className="flex flex-col gap-1.5">
               <div className="flex justify-between items-center">
-                <label className="text-slate-400 text-xs font-bold uppercase tracking-wider">Password</label>
+                <label className="text-stone-600 text-xs font-bold uppercase tracking-wider">Password</label>
                 {mode === "login" && (
                   <button
                     type="button"
@@ -153,7 +153,7 @@ export default function AuthPage() {
                       setLoading(false);
                       setMessage(error ? { type: "error", text: error.message } : { type: "success", text: "Password reset email sent. Check your inbox." });
                     }}
-                    className="text-indigo-400 text-xs font-semibold bg-transparent border-0 cursor-pointer hover:text-indigo-300 transition-colors p-0">
+                    className="text-[#a75635] text-xs font-semibold bg-transparent border-0 cursor-pointer hover:text-[#7b3525] transition-colors p-0">
                     Forgot password?
                   </button>
                 )}
@@ -165,22 +165,22 @@ export default function AuthPage() {
                 type="password"
                 required
                 minLength={mode === "signup" ? 8 : undefined}
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-indigo-500 focus:bg-indigo-500/5 transition-all"
+                className="w-full px-4 py-3 rounded-md bg-stone-50 border border-stone-200 text-[#1f2933] text-sm placeholder:text-stone-400 outline-none focus:border-amber-500 focus:bg-amber-500/5 transition-all"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-indigo-500 to-indigo-700 text-white font-bold text-sm py-3.5 rounded-xl shadow-lg shadow-indigo-500/25 border-0 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed mt-1">
+              className="w-full bg-gradient-to-r from-[#a75635] to-[#7b3525] text-white font-bold text-sm py-3.5 rounded-md shadow-lg shadow-stone-900/10 border-0 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed mt-1">
               {loading ? "Please wait..." : mode === "login" ? "Log in to Weinly" : "Create account"}
             </button>
           </form>
         </div>
 
-        <p className="text-center text-slate-600 text-xs">
+        <p className="text-center text-stone-500 text-xs">
           By continuing you agree to Weinly's terms of service.{" "}
-          <a href="/" className="text-indigo-400 no-underline hover:text-indigo-300">Back to home</a>
+          <a href="/" className="text-[#a75635] no-underline hover:text-[#7b3525]">Back to home</a>
         </p>
       </div>
     </main>

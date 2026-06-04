@@ -69,228 +69,209 @@ export default function ReadyStockPage() {
   const availableCount = items.filter((i) => !i.is_sold_out).length;
 
   return (
-    <main className="min-h-screen bg-[#0a0f1e] px-3 py-3 font-sans md:px-4 md:py-4">
-      <div className="mx-auto flex max-w-6xl flex-col gap-3">
+    <main className="min-h-screen bg-[#f5ecdc] font-sans">
+      <div className="flex w-full flex-col gap-0">
         <SiteHeader />
 
-        {/* Hero — full-width fabric image mosaic */}
-        <section className="relative overflow-hidden rounded-3xl">
-          {/* Background image mosaic */}
-          <div className="grid grid-cols-4 grid-rows-1 h-64 md:h-80">
-            {FABRIC_CATEGORIES.slice(0, 4).map((cat, i) => (
-              <FabricImage
-                key={cat.id}
-                categoryId={cat.id}
-                itemIndex={i}
-                alt={cat.label}
-                aspectRatio="square"
-                className="h-full"
-              />
-            ))}
-          </div>
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-4">
 
-          {/* Overlay content */}
-          <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-10"
-            style={{ background: "linear-gradient(to top, rgba(10,15,30,0.97) 0%, rgba(10,15,30,0.6) 50%, rgba(10,15,30,0.2) 100%)" }}>
-            <div className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-4 py-1.5">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
-              <span className="text-xs font-semibold text-emerald-300">In stock · Ships fast</span>
-            </div>
-            <h1 className="mb-2 text-3xl font-black tracking-tight text-white md:text-5xl">
-              Ready stock fabrics
-            </h1>
-            <p className="mb-4 max-w-xl text-sm leading-relaxed text-slate-300 md:text-base">
-              Fabric available right now from verified suppliers. No production wait — pack and ship within days.
-            </p>
-            <div className="flex flex-wrap gap-6">
-              {[
-                { v: String(availableCount), l: "Items available" },
-                { v: String(new Set(items.map((i) => i.supplier_id)).size), l: "Suppliers" },
-                { v: String(categoriesInStock.length), l: "Categories" },
-              ].map((s) => (
-                <div key={s.l} className="flex flex-col gap-0.5">
-                  <span className="text-2xl font-black text-white">{s.v}</span>
-                  <span className="text-xs text-slate-400">{s.l}</span>
-                </div>
+          {/* Hero — fabric image mosaic */}
+          <section className="relative overflow-hidden rounded-lg">
+            <div className="grid grid-cols-4 grid-rows-1 h-64 md:h-80">
+              {FABRIC_CATEGORIES.slice(0, 4).map((cat, i) => (
+                <FabricImage key={cat.id} categoryId={cat.id} itemIndex={i}
+                  alt={cat.label} aspectRatio="square" className="h-full" />
               ))}
             </div>
-          </div>
-        </section>
-
-        {/* Filters */}
-        <section className="rounded-3xl border border-white/7 bg-[#111827] p-4 md:p-5">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center">
-            <input value={search} onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search fabric name, supplier or category..."
-              className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-emerald-500" />
-            <button onClick={() => setInStockOnly(!inStockOnly)}
-              className={`shrink-0 rounded-xl border px-4 py-3 text-sm font-bold transition-all cursor-pointer ${inStockOnly ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" : "border-white/10 bg-white/5 text-slate-400 hover:text-slate-300"}`}>
-              In stock only
-            </button>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button onClick={() => setCategoryFilter("all")}
-              className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${categoryFilter === "all" ? "border-white/30 bg-white/15 text-white" : "border-white/10 bg-white/4 text-slate-500 hover:text-slate-300"}`}>
-              All ({filtered.length})
-            </button>
-            {categoriesInStock.map((cat) => {
-              const color = getCategoryColor(cat.id);
-              const count = items.filter((i) => i.category === cat.id && (!inStockOnly || !i.is_sold_out)).length;
-              return (
-                <button key={cat.id} onClick={() => setCategoryFilter(cat.id)}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${categoryFilter === cat.id ? `${color.bg} ${color.text} ${color.border}` : "border-white/10 bg-white/4 text-slate-500 hover:text-slate-300"}`}>
-                  {cat.label} ({count})
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* Stock grid */}
-        <section className="rounded-3xl border border-white/7 bg-[#111827] p-4 md:p-6">
-          {loading ? (
-            /* Loading skeleton */
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="rounded-2xl border border-white/7 bg-white/3 overflow-hidden animate-pulse">
-                  <div className="aspect-video bg-white/8" />
-                  <div className="p-4 flex flex-col gap-2">
-                    <div className="h-3 bg-white/8 rounded w-16" />
-                    <div className="h-4 bg-white/8 rounded w-3/4" />
-                    <div className="h-3 bg-white/8 rounded w-1/2" />
+            <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-10"
+              style={{ background: "linear-gradient(to top, rgba(36,72,63,0.95) 0%, rgba(36,72,63,0.6) 50%, rgba(36,72,63,0.1) 100%)" }}>
+              <div className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-[#c9935b]" />
+                <span className="text-xs font-semibold text-[#f8efe2]">In stock · Ships fast</span>
+              </div>
+              <h1 className="mb-2 text-3xl font-black tracking-tight text-white md:text-5xl">
+                Ready stock fabrics
+              </h1>
+              <p className="mb-4 max-w-xl text-sm leading-relaxed text-[#e8dcc8] md:text-base">
+                Fabric available right now from verified suppliers. No production wait — pack and ship within days.
+              </p>
+              <div className="flex flex-wrap gap-6">
+                {[
+                  { v: String(availableCount), l: "Items available" },
+                  { v: String(new Set(items.map((i) => i.supplier_id)).size), l: "Suppliers" },
+                  { v: String(categoriesInStock.length), l: "Categories" },
+                ].map((s) => (
+                  <div key={s.l} className="flex flex-col gap-0.5">
+                    <span className="text-2xl font-black text-white">{s.v}</span>
+                    <span className="text-xs text-[#e8dcc8]">{s.l}</span>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          ) : filtered.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-white/10 p-12 text-center">
-              <div className="mb-3 text-4xl">◎</div>
-              <div className="mb-2 font-bold text-slate-400">No items found</div>
-              <p className="m-0 mb-5 text-sm text-slate-600">Try adjusting your filters or submit a custom sourcing request instead.</p>
-              <a href="/#main-tabs" className="inline-flex items-center rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-700 px-6 py-3 text-sm font-bold text-white no-underline">
-                Submit a custom request →
-              </a>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {filtered.map((item, idx) => {
-                const supplier = supplierMap[item.supplier_id];
-                const color = getCategoryColor(item.category);
-                const enquiryLink = buildWhatsappLink(
-                  `Hello Weinly, I'm interested in "${item.name}" from ${supplier?.company_name || "a supplier"} on the ready stock page. Can you help me proceed?`
-                );
+          </section>
 
+          {/* Filters */}
+          <section className="rounded-lg border border-stone-200 bg-white p-4 md:p-5">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center">
+              <input value={search} onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search fabric name, supplier or category..."
+                className="flex-1 rounded-md border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-[#1f2933] outline-none transition-all placeholder:text-stone-400 focus:border-amber-500" />
+              <button onClick={() => setInStockOnly(!inStockOnly)}
+                className={`shrink-0 rounded-md border px-4 py-3 text-sm font-bold transition-all cursor-pointer ${inStockOnly ? "border-emerald-500/30 bg-emerald-500/10 text-[#2f7d57]" : "border-stone-200 bg-stone-50 text-stone-500 hover:text-stone-700"}`}>
+                In stock only
+              </button>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button onClick={() => setCategoryFilter("all")}
+                className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${categoryFilter === "all" ? "border-[#24483f]/30 bg-[#24483f]/10 text-[#24483f]" : "border-stone-200 bg-stone-50 text-stone-500 hover:text-stone-700"}`}>
+                All ({filtered.length})
+              </button>
+              {categoriesInStock.map((cat) => {
+                const color = getCategoryColor(cat.id);
+                const count = items.filter((i) => i.category === cat.id && (!inStockOnly || !i.is_sold_out)).length;
                 return (
-                  <div key={item.id}
-                    className={`flex flex-col rounded-2xl border border-white/7 overflow-hidden transition-all hover:border-white/15 hover:scale-[1.01] ${item.is_sold_out ? "opacity-60" : ""}`}>
-
-                    {/* Fabric image */}
-                    <div className="relative">
-                      <FabricImage
-                        categoryId={item.category}
-                        imageUrl={item.image_url}
-                        itemIndex={idx}
-                        alt={item.name}
-                        aspectRatio="video"
-                      />
-
-                      {/* Status badge */}
-                      <div className="absolute top-3 left-3">
-                        {item.is_sold_out ? (
-                          <span className="rounded-full border border-red-500/30 bg-red-500/20 px-3 py-1 text-xs font-bold text-red-300 backdrop-blur-sm">
-                            Sold out
-                          </span>
-                        ) : (
-                          <span className="rounded-full border border-emerald-500/30 bg-emerald-500/20 px-3 py-1 text-xs font-bold text-emerald-300 backdrop-blur-sm">
-                            In stock
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Category badge */}
-                      <div className="absolute top-3 right-3">
-                        <span className={`rounded-full border px-2.5 py-1 text-xs font-bold backdrop-blur-sm ${color.bg} ${color.text} ${color.border}`}>
-                          {item.subcategory || getCategoryLabel(item.category)}
-                        </span>
-                      </div>
-
-                      {/* Supplier badge */}
-                      {supplier && (
-                        <div className="absolute bottom-3 left-3 flex items-center gap-1.5">
-                          <div className="flex items-center gap-1.5 rounded-full border border-white/15 bg-black/50 px-2.5 py-1 backdrop-blur-sm">
-                            <span className="text-xs font-semibold text-white">{supplier.company_name}</span>
-                            {supplier.is_verified && (
-                              <span className="text-xs font-bold text-emerald-400">✓</span>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Card body */}
-                    <div className="flex flex-col gap-3 bg-[#111827] p-4 flex-1">
-                      <div>
-                        <h3 className="text-sm font-bold text-white mb-0.5">{item.name}</h3>
-                        {item.description && (
-                          <p className="text-xs leading-relaxed text-slate-400 line-clamp-2">{item.description}</p>
-                        )}
-                      </div>
-
-                      {/* Pricing grid */}
-                      <div className="grid grid-cols-3 gap-2">
-                        {[
-                          { label: "Price", value: `${item.price_per_unit}/${item.unit}` },
-                          { label: "MOQ", value: item.moq },
-                          { label: "Stock", value: item.available_quantity || "Limited" },
-                        ].map((s) => (
-                          <div key={s.label} className="rounded-xl border border-white/7 bg-white/4 p-2.5">
-                            <div className="mb-0.5 text-xs font-bold uppercase tracking-wider text-slate-600">{s.label}</div>
-                            <div className="text-xs font-semibold text-white">{s.value}</div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* CTA */}
-                      {!item.is_sold_out ? (
-                        <a href={enquiryLink} target="_blank" rel="noreferrer"
-                          className="mt-auto block rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-800 py-2.5 text-center text-sm font-bold text-white no-underline transition-all hover:shadow-lg hover:shadow-emerald-500/20">
-                          Enquire on WhatsApp →
-                        </a>
-                      ) : (
-                        <a href="/#main-tabs"
-                          className="mt-auto block rounded-xl border border-white/10 bg-white/4 py-2.5 text-center text-sm font-semibold text-slate-400 no-underline transition-all hover:bg-white/8">
-                          Submit custom request instead
-                        </a>
-                      )}
-                    </div>
-                  </div>
+                  <button key={cat.id} onClick={() => setCategoryFilter(cat.id)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${categoryFilter === cat.id ? `${color.bg} ${color.text} ${color.border}` : "border-stone-200 bg-stone-50 text-stone-500 hover:text-stone-700"}`}>
+                    {cat.label} ({count})
+                  </button>
                 );
               })}
             </div>
-          )}
-        </section>
+          </section>
 
-        {/* Bottom CTA */}
-        <section className="rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-950 to-violet-950 p-6 md:p-8">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:items-center">
-            <div>
-              <h2 className="mb-2 text-2xl font-black text-white">Can't find what you need?</h2>
-              <p className="mb-5 text-sm leading-relaxed text-slate-400">Submit a custom sourcing request and we'll match you to verified suppliers who can produce exactly what you need.</p>
-              <a href="/#main-tabs" className="inline-flex items-center rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 px-6 py-3 text-sm font-bold text-white no-underline shadow-lg shadow-indigo-500/20">
-                Submit sourcing request →
-              </a>
-            </div>
-            <div className="flex flex-col gap-2">
-              {["Custom fabric specifications", "Any quantity — even small MOQ", "Quote within 24 hours", "Verified supplier matching"].map((item) => (
-                <div key={item} className="flex items-center gap-3 rounded-xl border border-white/7 bg-white/4 p-3">
-                  <span className="text-emerald-400">✓</span>
-                  <span className="text-sm text-slate-300">{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+          {/* Stock grid */}
+          <section className="rounded-lg border border-stone-200 bg-white p-4 md:p-6">
+            {loading ? (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="rounded-lg border border-stone-200 bg-stone-50 overflow-hidden animate-pulse">
+                    <div className="aspect-video bg-stone-200" />
+                    <div className="p-4 flex flex-col gap-2">
+                      <div className="h-3 bg-stone-200 rounded w-16" />
+                      <div className="h-4 bg-stone-200 rounded w-3/4" />
+                      <div className="h-3 bg-stone-200 rounded w-1/2" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-stone-300 p-12 text-center">
+                <div className="mb-3 text-4xl">◎</div>
+                <div className="mb-2 font-bold text-stone-500">No items found</div>
+                <p className="m-0 mb-5 text-sm text-stone-400">Try adjusting your filters or submit a custom sourcing request instead.</p>
+                <a href="/#main-tabs" className="inline-flex items-center rounded-md bg-gradient-to-r from-[#a75635] to-[#7b3525] px-6 py-3 text-sm font-bold text-white no-underline">
+                  Submit a custom request →
+                </a>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {filtered.map((item, idx) => {
+                  const supplier = supplierMap[item.supplier_id];
+                  const color = getCategoryColor(item.category);
+                  const enquiryLink = buildWhatsappLink(
+                    `Hello Weinly, I'm interested in "${item.name}" from ${supplier?.company_name || "a supplier"} on the ready stock page. Can you help me proceed?`
+                  );
 
+                  return (
+                    <div key={item.id}
+                      className={`flex flex-col rounded-lg border border-stone-200 overflow-hidden transition-all hover:border-[#24483f]/30 hover:scale-[1.01] ${item.is_sold_out ? "opacity-60" : ""}`}>
+
+                      <div className="relative">
+                        <FabricImage
+                          categoryId={item.category}
+                          imageUrl={item.image_url}
+                          itemIndex={idx}
+                          alt={item.name}
+                          aspectRatio="video"
+                        />
+                        <div className="absolute top-3 left-3">
+                          {item.is_sold_out ? (
+                            <span className="rounded-full border border-red-500/30 bg-red-500/20 px-3 py-1 text-xs font-bold text-red-300 backdrop-blur-sm">
+                              Sold out
+                            </span>
+                          ) : (
+                            <span className="rounded-full border border-emerald-500/30 bg-emerald-500/20 px-3 py-1 text-xs font-bold text-emerald-300 backdrop-blur-sm">
+                              In stock
+                            </span>
+                          )}
+                        </div>
+                        <div className="absolute top-3 right-3">
+                          <span className={`rounded-full border px-2.5 py-1 text-xs font-bold backdrop-blur-sm ${color.bg} ${color.text} ${color.border}`}>
+                            {item.subcategory || getCategoryLabel(item.category)}
+                          </span>
+                        </div>
+                        {supplier && (
+                          <div className="absolute bottom-3 left-3 flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5 rounded-full border border-white/15 bg-black/50 px-2.5 py-1 backdrop-blur-sm">
+                              <span className="text-xs font-semibold text-white">{supplier.company_name}</span>
+                              {supplier.is_verified && (
+                                <span className="text-xs font-bold text-emerald-400">✓</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col gap-3 bg-white p-4 flex-1">
+                        <div>
+                          <h3 className="text-sm font-bold text-[#1f2933] mb-0.5">{item.name}</h3>
+                          {item.description && (
+                            <p className="text-xs leading-relaxed text-stone-500 line-clamp-2">{item.description}</p>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            { label: "Price", value: `${item.price_per_unit}/${item.unit}` },
+                            { label: "MOQ", value: item.moq },
+                            { label: "Stock", value: item.available_quantity || "Limited" },
+                          ].map((s) => (
+                            <div key={s.label} className="rounded-md border border-stone-200 bg-stone-50 p-2.5">
+                              <div className="mb-0.5 text-xs font-bold uppercase tracking-wider text-stone-400">{s.label}</div>
+                              <div className="text-xs font-semibold text-[#1f2933]">{s.value}</div>
+                            </div>
+                          ))}
+                        </div>
+                        {!item.is_sold_out ? (
+                          <a href={enquiryLink} target="_blank" rel="noreferrer"
+                            className="mt-auto block rounded-md bg-gradient-to-r from-[#2f7d57] to-[#24483f] py-2.5 text-center text-sm font-bold text-white no-underline transition-all hover:shadow-lg">
+                            Enquire on WhatsApp →
+                          </a>
+                        ) : (
+                          <a href="/#main-tabs"
+                            className="mt-auto block rounded-md border border-stone-200 bg-stone-50 py-2.5 text-center text-sm font-semibold text-stone-500 no-underline transition-all hover:bg-stone-100">
+                            Submit custom request instead
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          {/* Bottom CTA */}
+          <section className="rounded-lg border border-[#24483f]/20 bg-[#24483f] p-6 md:p-8">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:items-center">
+              <div>
+                <h2 className="mb-2 text-2xl font-black text-white">Can't find what you need?</h2>
+                <p className="mb-5 text-sm leading-relaxed text-[#e8dcc8]">Submit a custom sourcing request and we'll match you to verified suppliers who can produce exactly what you need.</p>
+                <a href="/#main-tabs" className="inline-flex items-center rounded-md bg-gradient-to-r from-[#c9935b] to-[#a75635] px-6 py-3 text-sm font-bold text-white no-underline shadow-lg shadow-black/20">
+                  Submit sourcing request →
+                </a>
+              </div>
+              <div className="flex flex-col gap-2">
+                {["Custom fabric specifications", "Any quantity — even small MOQ", "Quote within 24 hours", "Verified supplier matching"].map((item) => (
+                  <div key={item} className="flex items-center gap-3 rounded-lg border border-white/15 bg-white/10 p-3">
+                    <span className="text-[#c9935b]">✓</span>
+                    <span className="text-sm text-[#e8dcc8]">{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+        </div>
         <SiteFooter />
       </div>
     </main>

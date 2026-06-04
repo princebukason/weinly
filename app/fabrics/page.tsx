@@ -23,106 +23,105 @@ export default function FabricsIndexPage() {
   const totalSubcategories = FABRIC_CATEGORIES.reduce((sum, c) => sum + c.subcategories.length, 0);
 
   return (
-    <main className="min-h-screen bg-[#0a0f1e] px-3 py-3 font-sans md:px-4 md:py-4">
-      <div className="mx-auto flex max-w-5xl flex-col gap-4">
+    <main className="min-h-screen bg-[#f5ecdc] font-sans">
+      <div className="flex w-full flex-col gap-0">
         <SiteHeader />
 
-        {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-xs text-slate-600">
-          <Link href="/" className="text-slate-600 no-underline hover:text-slate-400 transition-colors">Home</Link>
-          <span>/</span>
-          <span className="text-slate-400">Fabrics</span>
-        </nav>
+        <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4">
 
-        {/* Hero — full bleed image strip */}
-        <section className="relative overflow-hidden rounded-3xl">
-          <div className="grid grid-cols-5 h-56 md:h-72">
-            {FABRIC_CATEGORIES.slice(0, 5).map((cat, i) => (
-              <FabricImage key={cat.id} categoryId={cat.id} itemIndex={i + 3}
-                alt={cat.label} aspectRatio="square" className="h-full" />
-            ))}
-          </div>
-          <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-10"
-            style={{ background: "linear-gradient(to top, rgba(10,15,30,0.97) 0%, rgba(10,15,30,0.5) 55%, rgba(10,15,30,0.1) 100%)" }}>
-            <div className="mb-3 inline-flex w-fit items-center gap-2 rounded-full border border-indigo-500/25 bg-indigo-500/10 px-4 py-1.5">
-              <span className="h-2 w-2 rounded-full bg-emerald-400" />
-              <span className="text-xs font-semibold text-indigo-300">Verified supplier network · Ships worldwide</span>
+          {/* Breadcrumb */}
+          <nav className="flex items-center gap-2 text-xs text-stone-500">
+            <Link href="/" className="text-stone-500 no-underline hover:text-[#24483f] transition-colors">Home</Link>
+            <span>/</span>
+            <span className="text-stone-400">Fabrics</span>
+          </nav>
+
+          {/* Hero — fabric image strip */}
+          <section className="relative overflow-hidden rounded-lg">
+            <div className="grid grid-cols-5 h-56 md:h-72">
+              {FABRIC_CATEGORIES.slice(0, 5).map((cat, i) => (
+                <FabricImage key={cat.id} categoryId={cat.id} itemIndex={i + 3}
+                  alt={cat.label} aspectRatio="square" className="h-full" />
+              ))}
             </div>
-            <h1 className="mb-2 text-3xl font-black tracking-tight text-white md:text-5xl">
-              Source fabric direct from{" "}
-              <span className="bg-gradient-to-r from-indigo-400 via-sky-400 to-emerald-400 bg-clip-text text-transparent">China</span>
-            </h1>
-            <p className="mb-4 max-w-2xl text-sm leading-relaxed text-slate-300 md:text-base">
-              Browse {FABRIC_CATEGORIES.length} fabric categories and {totalSubcategories}+ fabric types from verified manufacturers.
-            </p>
-            <div className="flex flex-wrap gap-5">
+            <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-10"
+              style={{ background: "linear-gradient(to top, rgba(36,72,63,0.95) 0%, rgba(36,72,63,0.5) 55%, rgba(36,72,63,0.05) 100%)" }}>
+              <div className="mb-3 inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5">
+                <span className="h-2 w-2 rounded-full bg-[#c9935b]" />
+                <span className="text-xs font-semibold text-[#f8efe2]">Verified supplier network · Ships worldwide</span>
+              </div>
+              <h1 className="mb-2 text-3xl font-black tracking-tight text-white md:text-5xl">
+                Source fabric direct from China
+              </h1>
+              <p className="mb-4 max-w-2xl text-sm leading-relaxed text-[#e8dcc8] md:text-base">
+                Browse {FABRIC_CATEGORIES.length} fabric categories and {totalSubcategories}+ fabric types from verified manufacturers.
+              </p>
+              <div className="flex flex-wrap gap-5">
+                {[
+                  { v: String(FABRIC_CATEGORIES.length), l: "Categories" },
+                  { v: `${totalSubcategories}+`, l: "Fabric types" },
+                  { v: "500+", l: "Verified suppliers" },
+                  { v: "30+", l: "Countries served" },
+                ].map((s) => (
+                  <div key={s.l} className="flex flex-col gap-0.5">
+                    <span className="text-xl font-black text-white">{s.v}</span>
+                    <span className="text-xs text-[#e8dcc8]">{s.l}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Category grid */}
+          <section className="rounded-lg border border-stone-200 bg-white p-5 md:p-8">
+            <h2 className="mb-2 text-2xl font-black tracking-tight text-[#1f2933]">All fabric categories</h2>
+            <p className="mb-6 text-sm text-stone-500">Click any category to see all fabric types, pricing guidance and sourcing tips.</p>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {FABRIC_CATEGORIES.map((cat, i) => {
+                const color = getCategoryColor(cat.id);
+                return (
+                  <Link key={cat.id} href={`/fabrics/${cat.id}`}
+                    className="flex flex-col rounded-lg border border-stone-200 overflow-hidden no-underline transition-all hover:border-[#24483f]/30 hover:scale-[1.01]">
+                    <FabricImage categoryId={cat.id} itemIndex={i + 1}
+                      alt={cat.label} aspectRatio="video" />
+                    <div className={`flex flex-col gap-2 p-4 bg-stone-50`}>
+                      <h3 className={`text-sm font-black ${color.text}`}>{cat.label}</h3>
+                      <p className="m-0 text-xs text-stone-500 leading-relaxed line-clamp-1">
+                        {cat.subcategories.slice(0, 3).join(" · ")}
+                        {cat.subcategories.length > 3 && ` +${cat.subcategories.length - 3} more`}
+                      </p>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-xs text-stone-400">{cat.subcategories.length} fabric types</span>
+                        <span className={`text-xs font-bold ${color.text}`}>Browse →</span>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Why Weinly */}
+          <section className="rounded-lg border border-stone-200 bg-white p-5 md:p-8">
+            <span className="mb-3 inline-block rounded-full bg-[#a75635]/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#a75635]">Why Weinly</span>
+            <h2 className="mb-5 text-xl font-black tracking-tight text-[#1f2933]">Why source fabric through Weinly</h2>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
               {[
-                { v: String(FABRIC_CATEGORIES.length), l: "Categories" },
-                { v: `${totalSubcategories}+`, l: "Fabric types" },
-                { v: "500+", l: "Verified suppliers" },
-                { v: "30+", l: "Countries served" },
-              ].map((s) => (
-                <div key={s.l} className="flex flex-col gap-0.5">
-                  <span className="text-xl font-black text-white">{s.v}</span>
-                  <span className="text-xs text-slate-400">{s.l}</span>
+                { title: "See quotes first", desc: "Review price, MOQ and lead time before spending anything." },
+                { title: "Verified suppliers", desc: "Every supplier is vetted. Verified suppliers carry a green badge." },
+                { title: "Ships worldwide", desc: "Suppliers ship to Nigeria, Ghana, UK, USA, UAE and 30+ countries." },
+                { title: "Direct contact", desc: "Unlock the supplier's phone, WeChat and email — no permanent middleman." },
+              ].map((item) => (
+                <div key={item.title} className="rounded-lg border border-stone-200 bg-stone-50 p-4">
+                  <div className="mb-3 h-1 w-8 rounded-full bg-gradient-to-r from-amber-500 to-amber-600" />
+                  <h3 className="mb-1 text-sm font-bold text-[#1f2933]">{item.title}</h3>
+                  <p className="m-0 text-xs leading-relaxed text-stone-500">{item.desc}</p>
                 </div>
               ))}
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* Category grid — with images */}
-        <section className="rounded-3xl border border-white/7 bg-[#111827] p-5 md:p-8">
-          <h2 className="mb-2 text-2xl font-black tracking-tight text-white">All fabric categories</h2>
-          <p className="mb-6 text-sm text-slate-500">Click any category to see all fabric types, pricing guidance and sourcing tips.</p>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {FABRIC_CATEGORIES.map((cat, i) => {
-              const color = getCategoryColor(cat.id);
-              return (
-                <Link key={cat.id} href={`/fabrics/${cat.id}`}
-                  className="flex flex-col rounded-2xl border border-white/7 overflow-hidden no-underline transition-all hover:border-white/20 hover:scale-[1.01]">
-
-                  {/* Fabric image */}
-                  <FabricImage categoryId={cat.id} itemIndex={i + 1}
-                    alt={cat.label} aspectRatio="video" />
-
-                  {/* Card content */}
-                  <div className={`flex flex-col gap-2 p-4 ${color.bg}`}>
-                    <h3 className={`text-sm font-black ${color.text}`}>{cat.label}</h3>
-                    <p className="m-0 text-xs text-slate-500 leading-relaxed line-clamp-1">
-                      {cat.subcategories.slice(0, 3).join(" · ")}
-                      {cat.subcategories.length > 3 && ` +${cat.subcategories.length - 3} more`}
-                    </p>
-                    <div className="flex items-center justify-between mt-1">
-                      <span className="text-xs text-slate-600">{cat.subcategories.length} fabric types</span>
-                      <span className={`text-xs font-bold ${color.text}`}>Browse →</span>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* Why Weinly */}
-        <section className="rounded-3xl border border-white/7 bg-[#111827] p-5 md:p-8">
-          <h2 className="mb-5 text-xl font-black tracking-tight text-white">Why source fabric through Weinly</h2>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
-            {[
-              { icon: "🔍", title: "See quotes first", desc: "Review price, MOQ and lead time before spending anything." },
-              { icon: "✓", title: "Verified suppliers", desc: "Every supplier is vetted. Verified suppliers carry a green badge." },
-              { icon: "🌍", title: "Ships worldwide", desc: "Suppliers ship to Nigeria, Ghana, UK, USA, UAE and 30+ countries." },
-              { icon: "💬", title: "Direct contact", desc: "Unlock the supplier's phone, WeChat and email — no permanent middleman." },
-            ].map((item) => (
-              <div key={item.title} className="rounded-2xl border border-white/7 bg-white/4 p-4">
-                <div className="mb-2 text-xl">{item.icon}</div>
-                <h3 className="mb-1 text-sm font-bold text-white">{item.title}</h3>
-                <p className="m-0 text-xs leading-relaxed text-slate-500">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
+        </div>
         <SiteFooter />
       </div>
     </main>
