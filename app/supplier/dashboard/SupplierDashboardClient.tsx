@@ -30,6 +30,7 @@ type ReadyStockItem = {
   id: string; name: string; description: string | null; category: string;
   subcategory: string | null; price_per_unit: string; unit: string; moq: string;
   available_quantity: string | null; is_sold_out: boolean | null; is_active: boolean | null;
+  images: string[] | null; video_url: string | null;
 };
 type Props = { user: User; profile: Profile; requests: FabricRequest[]; myQuotes: Quote[]; };
 
@@ -98,7 +99,7 @@ function StarDisplay({ rating, size = "sm" }: { rating: number; size?: "sm" | "l
   );
 }
 
-const emptyStockForm = { name: "", description: "", category: "", subcategory: "", price_per_unit: "", unit: "yard", moq: "", available_quantity: "" };
+const emptyStockForm = { name: "", description: "", category: "", subcategory: "", price_per_unit: "", unit: "yard", moq: "", available_quantity: "", images: [] as string[], video_url: "" };
 
 export default function SupplierDashboardClient({ user, profile, requests, myQuotes }: Props) {
   const [activeTab, setActiveTab] = useState<"requests" | "quotes" | "stock" | "reviews" | "profile">("requests");
@@ -133,6 +134,10 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
   const [editingStockId, setEditingStockId] = useState<string | null>(null);
   const [showStockForm, setShowStockForm] = useState(false);
   const [savingStock, setSavingStock] = useState(false);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [mediaError, setMediaError] = useState<string | null>(null);
+  const [pendingImageFiles, setPendingImageFiles] = useState<FileList | null>(null);
+  const [pendingVideoFile, setPendingVideoFile] = useState<FileList | null>(null);
 
   const router = useRouter();
   const supabase = createClient();
@@ -174,6 +179,37 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
       alert("Name, category, price and MOQ are required."); return;
     }
     setSavingStock(true);
+
+    let finalImages = stockForm.images;
+    let finalVideoUrl = stockForm.video_url;
+
+    if (pendingImageFiles) {
+      setUploadingMedia(true);
+      try {
+        const newUrls = await uploadMediaFiles(pendingImageFiles, "image");
+        finalImages = [...finalImages, ...newUrls].slice(0, 4);
+      } catch (err: any) {
+        setMediaError(err.message || "Image upload failed.");
+        setSavingStock(false);
+        setUploadingMedia(false);
+        return;
+      }
+      setUploadingMedia(false);
+    }
+    if (pendingVideoFile) {
+      setUploadingMedia(true);
+      try {
+        const [url] = await uploadMediaFiles(pendingVideoFile, "video");
+        finalVideoUrl = url;
+      } catch (err: any) {
+        setMediaError(err.message || "Video upload failed.");
+        setSavingStock(false);
+        setUploadingMedia(false);
+        return;
+      }
+      setUploadingMedia(false);
+    }
+
     try {
       if (editingStockId) {
         const { error } = await supabase.from("ready_stock").update({
@@ -181,6 +217,7 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
           category: stockForm.category, subcategory: stockForm.subcategory || null,
           price_per_unit: stockForm.price_per_unit.trim(), unit: stockForm.unit,
           moq: stockForm.moq.trim(), available_quantity: stockForm.available_quantity.trim() || null,
+          images: finalImages.length > 0 ? finalImages : null, video_url: finalVideoUrl || null,
         }).eq("id", editingStockId);
         if (error) throw error;
       } else {
@@ -191,12 +228,16 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
           price_per_unit: stockForm.price_per_unit.trim(), unit: stockForm.unit,
           moq: stockForm.moq.trim(), available_quantity: stockForm.available_quantity.trim() || null,
           is_active: true, is_sold_out: false,
+          images: finalImages.length > 0 ? finalImages : null, video_url: finalVideoUrl || null,
         }]);
         if (error) throw error;
       }
       setStockForm({ ...emptyStockForm });
       setEditingStockId(null);
       setShowStockForm(false);
+      setPendingImageFiles(null);
+      setPendingVideoFile(null);
+      setMediaError(null);
       await loadStock();
       setSuccessMessage(editingStockId ? "Stock item updated." : "Stock item added to ready stock.");
     } catch (err: any) { alert(err.message || "Failed to save stock item."); }
@@ -317,6 +358,20 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
       setProfileMsg("Profile updated."); setEditProfile(false); router.refresh();
     } catch (err: any) { setProfileMsg(err.message || "Failed to update profile."); }
     finally { setSavingProfile(false); }
+  }
+
+  // NOTE: The 'fabric-media' Supabase Storage bucket must exist with public read access.
+  async function uploadMediaFiles(files: FileList, type: "image" | "video"): Promise<string[]> {
+    const urls: string[] = [];
+    for (const file of Array.from(files)) {
+      const ext = file.name.split(".").pop();
+      const path = `ready-stock/${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from("fabric-media").upload(path, file, { upsert: false, contentType: file.type });
+      if (error) throw new Error(error.message);
+      const { data: urlData } = supabase.storage.from("fabric-media").getPublicUrl(path);
+      urls.push(urlData.publicUrl);
+    }
+    return urls;
   }
 
   const quoteFormFields = [
@@ -665,13 +720,87 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                         placeholder="Describe the fabric — GSM, width, color options, feel, usage..."
                         className="w-full resize-none rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-[#1f2933] outline-none transition-all placeholder:text-stone-400 focus:border-[#24483f] focus:bg-[#24483f]/5" />
                     </div>
+
+                    {/* Media upload */}
+                    <div className="flex flex-col gap-3 md:col-span-2">
+                      <div>
+                        <label className="text-xs font-bold uppercase tracking-wider text-stone-600">Photos (up to 4)</label>
+                        <p className="mt-0.5 text-xs text-stone-400">JPEG or PNG, max 5 MB each. High-quality photos help buyers trust your listing.</p>
+                      </div>
+                      {stockForm.images.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {stockForm.images.map((url, i) => (
+                            <div key={i} className="relative group">
+                              <img src={url} alt={`Photo ${i + 1}`} className="h-20 w-20 rounded-lg object-cover border border-stone-200" />
+                              <button type="button"
+                                onClick={() => setStockForm((prev) => ({ ...prev, images: prev.images.filter((_, idx) => idx !== i) }))}
+                                className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer border-0">
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {stockForm.images.length < 4 && (
+                        <label className="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-stone-200 bg-stone-50 px-4 py-4 hover:border-[#24483f]/40 hover:bg-[#24483f]/5 transition-all">
+                          <span className="text-2xl">🖼️</span>
+                          <div>
+                            <div className="text-sm font-semibold text-stone-600">
+                              {pendingImageFiles ? `${pendingImageFiles.length} photo(s) selected` : "Click to upload photos"}
+                            </div>
+                            <div className="text-xs text-stone-400">{4 - stockForm.images.length} slot(s) remaining</div>
+                          </div>
+                          <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden"
+                            onChange={(e) => {
+                              if (e.target.files) { setPendingImageFiles(e.target.files); setMediaError(null); }
+                            }} />
+                        </label>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col gap-3 md:col-span-2">
+                      <div>
+                        <label className="text-xs font-bold uppercase tracking-wider text-stone-600">Video (optional)</label>
+                        <p className="mt-0.5 text-xs text-stone-400">MP4 or MOV, max 50 MB. Show the fabric texture, drape, and movement.</p>
+                      </div>
+                      {stockForm.video_url && (
+                        <div className="flex items-center gap-3 rounded-xl border border-stone-200 bg-stone-50 p-3">
+                          <span className="text-2xl">🎥</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-semibold text-stone-700 truncate">Video uploaded</div>
+                            <a href={stockForm.video_url} target="_blank" rel="noreferrer" className="text-xs text-[#24483f] no-underline hover:underline">Preview →</a>
+                          </div>
+                          <button type="button" onClick={() => setStockForm((prev) => ({ ...prev, video_url: "" }))}
+                            className="text-xs font-bold text-red-500 hover:text-red-700 cursor-pointer bg-transparent border-0">Remove</button>
+                        </div>
+                      )}
+                      {!stockForm.video_url && (
+                        <label className="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-stone-200 bg-stone-50 px-4 py-4 hover:border-[#24483f]/40 hover:bg-[#24483f]/5 transition-all">
+                          <span className="text-2xl">🎬</span>
+                          <div>
+                            <div className="text-sm font-semibold text-stone-600">
+                              {pendingVideoFile ? `${pendingVideoFile[0]?.name}` : "Click to upload video"}
+                            </div>
+                            <div className="text-xs text-stone-400">MP4 or MOV, max 50 MB</div>
+                          </div>
+                          <input type="file" accept="video/mp4,video/quicktime,video/mov" className="hidden"
+                            onChange={(e) => {
+                              if (e.target.files) { setPendingVideoFile(e.target.files); setMediaError(null); }
+                            }} />
+                        </label>
+                      )}
+                    </div>
+
+                    {mediaError && (
+                      <div className="md:col-span-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{mediaError}</div>
+                    )}
                   </div>
                   <div className="flex flex-wrap gap-3">
-                    <button type="submit" disabled={savingStock}
+                    <button type="submit" disabled={savingStock || uploadingMedia}
                       className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-emerald-500 to-emerald-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/25 disabled:opacity-60">
-                      {savingStock ? "Saving..." : editingStockId ? "Update item →" : "Add to ready stock →"}
+                      {savingStock || uploadingMedia ? (uploadingMedia ? "Uploading media..." : "Saving...") : editingStockId ? "Update item →" : "Add to ready stock →"}
                     </button>
-                    <button type="button" onClick={() => { setShowStockForm(false); setEditingStockId(null); setStockForm({ ...emptyStockForm }); }}
+                    <button type="button" onClick={() => { setShowStockForm(false); setEditingStockId(null); setStockForm({ ...emptyStockForm }); setPendingImageFiles(null); setPendingVideoFile(null); setMediaError(null); }}
                       className="cursor-pointer rounded-xl border border-stone-200 bg-stone-50 px-6 py-3 text-sm font-semibold text-stone-600 transition-all hover:bg-stone-100">Cancel</button>
                   </div>
                 </form>
@@ -705,6 +834,21 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                           </span>
                         </div>
                         {item.description && <p className="m-0 text-xs leading-relaxed text-stone-500">{item.description}</p>}
+                        {/* Images */}
+                        {item.images && item.images.length > 0 && (
+                          <div className="flex gap-2 overflow-x-auto pb-1">
+                            {item.images.map((url, i) => (
+                              <img key={i} src={url} alt={`${item.name} photo ${i + 1}`}
+                                className="h-24 w-24 shrink-0 rounded-lg object-cover border border-stone-200" />
+                            ))}
+                          </div>
+                        )}
+                        {/* Video */}
+                        {item.video_url && (
+                          <div className="rounded-xl overflow-hidden border border-stone-200">
+                            <video src={item.video_url} controls className="w-full max-h-48 object-contain bg-black" />
+                          </div>
+                        )}
                         <div className="grid grid-cols-3 gap-2">
                           {[
                             { label: "Price", value: `${item.price_per_unit}/${item.unit}` },
@@ -722,7 +866,7 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                             className={`cursor-pointer rounded-xl border px-3 py-2 text-xs font-bold transition-all ${item.is_sold_out ? "border-emerald-200 bg-emerald-50 text-[#2f7d57] hover:bg-emerald-100" : "border-stone-200 bg-stone-50 text-stone-600 hover:bg-stone-100"}`}>
                             {item.is_sold_out ? "Mark available" : "Mark sold out"}
                           </button>
-                          <button onClick={() => { setEditingStockId(item.id); setStockForm({ name: item.name, description: item.description || "", category: item.category, subcategory: item.subcategory || "", price_per_unit: item.price_per_unit, unit: item.unit, moq: item.moq, available_quantity: item.available_quantity || "" }); setShowStockForm(true); }}
+                          <button onClick={() => { setEditingStockId(item.id); setStockForm({ name: item.name, description: item.description || "", category: item.category, subcategory: item.subcategory || "", price_per_unit: item.price_per_unit, unit: item.unit, moq: item.moq, available_quantity: item.available_quantity || "", images: item.images || [], video_url: item.video_url || "" }); setPendingImageFiles(null); setPendingVideoFile(null); setMediaError(null); setShowStockForm(true); }}
                             className="cursor-pointer rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-xs font-bold text-stone-600 transition-all hover:bg-stone-100">Edit</button>
                           <button onClick={() => deleteStockItem(item.id)}
                             className="cursor-pointer rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-600 transition-all hover:bg-red-100">Remove</button>

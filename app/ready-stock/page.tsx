@@ -18,7 +18,7 @@ type ReadyStockItem = {
   name: string; description: string | null; category: string;
   subcategory: string | null; price_per_unit: string; unit: string;
   moq: string; available_quantity: string | null;
-  is_sold_out: boolean | null; image_url?: string | null;
+  is_sold_out: boolean | null; images: string[] | null; video_url: string | null;
 };
 
 type SupplierMap = Record<string, {
@@ -177,13 +177,24 @@ export default function ReadyStockPage() {
                       className={`flex flex-col rounded-lg border border-stone-200 overflow-hidden transition-all hover:border-[#24483f]/30 hover:scale-[1.01] ${item.is_sold_out ? "opacity-60" : ""}`}>
 
                       <div className="relative">
-                        <FabricImage
-                          categoryId={item.category}
-                          imageUrl={item.image_url}
-                          itemIndex={idx}
-                          alt={item.name}
-                          aspectRatio="video"
-                        />
+                        {item.images && item.images.length > 0 ? (
+                          <div className="relative overflow-hidden rounded-xl">
+                            <img src={item.images[0]} alt={item.name}
+                              className="w-full h-48 object-cover" />
+                            {item.images.length > 1 && (
+                              <span className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-0.5 text-xs font-bold text-white">
+                                +{item.images.length - 1} more
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <FabricImage
+                            categoryId={item.category}
+                            itemIndex={idx}
+                            alt={item.name}
+                            aspectRatio="video"
+                          />
+                        )}
                         <div className="absolute top-3 left-3">
                           {item.is_sold_out ? (
                             <span className="rounded-full border border-red-500/30 bg-red-500/20 px-3 py-1 text-xs font-bold text-red-300 backdrop-blur-sm">

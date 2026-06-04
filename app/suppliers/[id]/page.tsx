@@ -44,6 +44,8 @@ type ReadyStock = {
   moq: string;
   available_quantity: string | null;
   is_sold_out: boolean | null;
+  images: string[] | null;
+  video_url: string | null;
 };
 
 function StarDisplay({ rating }: { rating: number }) {
@@ -243,6 +245,20 @@ export default function SupplierProfilePage() {
                     </div>
                     {item.description && (
                       <p className="m-0 text-xs leading-relaxed text-stone-500">{item.description}</p>
+                    )}
+                    {/* Images */}
+                    {item.images && item.images.length > 0 && (
+                      <div className="flex gap-2 overflow-x-auto pb-1">
+                        {item.images.map((url, i) => (
+                          <img key={i} src={url} alt={`${item.name} photo ${i + 1}`}
+                            className="h-24 w-24 shrink-0 rounded-lg object-cover border border-stone-200" />
+                        ))}
+                      </div>
+                    )}
+                    {item.video_url && (
+                      <div className="rounded-xl overflow-hidden border border-stone-200">
+                        <video src={item.video_url} controls className="w-full max-h-48 object-contain bg-black" />
+                      </div>
                     )}
                     <div className="grid grid-cols-3 gap-2">
                       {[
