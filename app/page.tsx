@@ -463,7 +463,7 @@ export default function HomePage() {
         {/* ── CATEGORIES SHOWCASE ── */}
         <section className="rounded-2xl border border-stone-200 bg-white p-6 md:p-8">
           <span className="mb-3 inline-block rounded-full bg-[#24483f]/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#24483f]">What we source</span>
-          <h2 className="mb-6 text-2xl font-black tracking-tight text-[#1f2933] md:text-3xl">9 fabric categories</h2>
+          <h2 className="mb-6 text-2xl font-black tracking-tight text-[#1f2933] md:text-3xl">{FABRIC_CATEGORIES.length} fabric categories</h2>
           <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {FABRIC_CATEGORIES.map((cat) => {
               const color = getCategoryColor(cat.id);
