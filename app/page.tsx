@@ -489,7 +489,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {[
               { n: "01", title: "Submit your request", text: "Choose a fabric category, describe what you need. AI formats it into a professional sourcing spec.", color: "from-amber-500 to-amber-600", textColor: "text-amber-400" },
-              { n: "02", title: "Review supplier quotes", text: "We match you to verified Chinese suppliers in your category. See price, MOQ and lead time first.", color: "from-amber-500 to-amber-600", textColor: "text-amber-400" },
+              { n: "02", title: "Review supplier quotes", text: "We match you to verified Chinese suppliers in your category. See price, MOQ and lead time first.", color: "from-emerald-500 to-emerald-600", textColor: "text-emerald-400" },
               { n: "03", title: "Unlock & connect", text: `Pay ${prices.unlock} to unlock direct supplier contact — phone, WeChat, email.`, color: "from-amber-500 to-amber-600", textColor: "text-amber-400" },
             ].map((step) => (
               <div key={step.n} className="rounded-2xl border border-white/7 bg-white/4 p-6">
