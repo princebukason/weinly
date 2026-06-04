@@ -82,16 +82,42 @@ export default function SupplierApplyPage() {
           </div>
         ) : (
           <>
-            <div className="rounded-3xl border border-stone-200 bg-white p-6 md:p-8">
-              <span className="mb-3 inline-block rounded-full bg-[#24483f]/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#24483f]">
-                Supplier application
-              </span>
-              <h1 className="mb-2 text-2xl font-black tracking-tight text-[#1f2933] md:text-3xl">
-                Apply to join Weinly as a supplier
-              </h1>
-              <p className="text-sm leading-relaxed text-stone-500">
-                We connect your factory directly to verified African buyers sourcing fabric from China. Fill in your details below — we review every application and send an invite code within 24–48 hours.
-              </p>
+            {/* Hero card */}
+            <div className="relative overflow-hidden rounded-2xl bg-[#24483f] p-6 md:p-8">
+              <div className="pointer-events-none absolute right-0 top-0 h-48 w-48 translate-x-1/3 -translate-y-1/3 rounded-full bg-white/5 blur-3xl" />
+              <div className="relative z-10">
+                <span className="mb-3 inline-block rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#e8dcc8]">
+                  Supplier application
+                </span>
+                <h1 className="mb-2 text-2xl font-black tracking-tight text-white md:text-3xl">
+                  Apply to join Weinly as a supplier
+                </h1>
+                <p className="mb-5 text-sm leading-relaxed text-[#e8dcc8]">
+                  We connect your factory directly to international buyers sourcing fabric from China. Fill in your details — we review every application and send an invite code within 24–48 hours.
+                </p>
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                  {[
+                    { value: "24–48h", label: "Review time" },
+                    { value: "Free", label: "To apply" },
+                    { value: "Verified", label: "Buyers only" },
+                    { value: "Direct", label: "No middlemen" },
+                  ].map((s) => (
+                    <div key={s.label} className="rounded-xl border border-white/15 bg-white/8 p-3 text-center">
+                      <div className="text-lg font-black text-[#c9935b]">{s.value}</div>
+                      <div className="text-xs text-[#e8dcc8]">{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Trust strip */}
+            <div className="flex flex-wrap items-center justify-center gap-4 rounded-2xl border border-stone-200 bg-white px-5 py-4 text-xs font-semibold text-stone-500">
+              <span className="flex items-center gap-1.5"><span className="text-[#2f7d57]">✓</span> Invite-only quality control</span>
+              <span className="text-stone-200 hidden md:block">|</span>
+              <span className="flex items-center gap-1.5"><span className="text-[#2f7d57]">✓</span> Real buyer requests, not bots</span>
+              <span className="text-stone-200 hidden md:block">|</span>
+              <span className="flex items-center gap-1.5"><span className="text-[#2f7d57]">✓</span> You get paid when buyers unlock your contact</span>
             </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
