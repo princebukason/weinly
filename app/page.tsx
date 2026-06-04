@@ -64,12 +64,12 @@ function getStageLabel(request: FabricRequest, quoteCount: number) {
 
 function getStagePill(request: FabricRequest, quoteCount: number) {
   if (request.contact_request_status === "approved")
-    return { bg: "bg-emerald-900/60 text-emerald-300 border border-emerald-500/30", label: "Access unlocked" };
+    return { bg: "bg-emerald-100 text-[#2f7d57] border border-emerald-200", label: "Access unlocked" };
   if (request.payment_status === "paid")
-    return { bg: "bg-violet-900/60 text-violet-300 border border-violet-500/30", label: "Paid — awaiting approval" };
+    return { bg: "bg-violet-100 text-violet-700 border border-violet-200", label: "Paid — awaiting approval" };
   if (quoteCount > 0)
-    return { bg: "bg-blue-900/60 text-blue-300 border border-blue-500/30", label: "Quotes ready" };
-  return { bg: "bg-amber-900/60 text-amber-300 border border-amber-500/30", label: "In progress" };
+    return { bg: "bg-blue-100 text-blue-700 border border-blue-200", label: "Quotes ready" };
+  return { bg: "bg-amber-100 text-amber-700 border border-amber-200", label: "In progress" };
 }
 
 function CategoryBadge({ categoryId, subcategory }: { categoryId: string; subcategory?: string | null }) {
@@ -90,7 +90,7 @@ function StarRating({ value, onChange, size = "lg" }: { value: number; onChange?
       {[1, 2, 3, 4, 5].map((star) => (
         <button key={star} type="button" onClick={() => onChange?.(star)}
           onMouseEnter={() => onChange && setHovered(star)} onMouseLeave={() => onChange && setHovered(0)}
-          className={`${sz} border-0 bg-transparent p-0 leading-none transition-all ${onChange ? "cursor-pointer" : "cursor-default"} ${star <= active ? "text-amber-400" : "text-slate-700"}`}>
+          className={`${sz} border-0 bg-transparent p-0 leading-none transition-all ${onChange ? "cursor-pointer" : "cursor-default"} ${star <= active ? "text-amber-500" : "text-stone-300"}`}>
           ★
         </button>
       ))}
@@ -126,27 +126,27 @@ function ReviewForm({ request, quote, onSubmitted }: { request: FabricRequest; q
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-4 rounded-2xl border border-amber-500/20 bg-amber-500/6 p-5">
+    <form onSubmit={submit} className="flex flex-col gap-4 rounded-xl border border-amber-200 bg-amber-50 p-5">
       <div>
-        <h4 className="m-0 mb-1 text-base font-bold text-white">Rate this supplier</h4>
-        <p className="m-0 text-xs leading-relaxed text-slate-500">Help other buyers by sharing your experience with {quote.supplier_name}.</p>
+        <h4 className="m-0 mb-1 text-base font-bold text-[#1f2933]">Rate this supplier</h4>
+        <p className="m-0 text-xs leading-relaxed text-stone-500">Help other buyers by sharing your experience with {quote.supplier_name}.</p>
       </div>
       <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Your rating</label>
+        <label className="text-xs font-bold uppercase tracking-wider text-stone-400">Your rating</label>
         <div className="flex items-center gap-3">
           <StarRating value={rating} onChange={setRating} />
-          {rating > 0 && <span className="text-sm font-semibold text-amber-300">{labels[rating]}</span>}
+          {rating > 0 && <span className="text-sm font-semibold text-amber-700">{labels[rating]}</span>}
         </div>
       </div>
       <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Comment <span className="text-slate-600 normal-case font-normal">(optional)</span></label>
+        <label className="text-xs font-bold uppercase tracking-wider text-stone-400">Comment <span className="text-stone-400 normal-case font-normal">(optional)</span></label>
         <textarea value={comment} onChange={(e) => setComment(e.target.value)}
           placeholder="How was the supplier's pricing, communication and product quality?" rows={3}
-          className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-amber-500" />
+          className="w-full resize-none rounded-lg border border-stone-200 bg-white px-4 py-3 text-sm text-[#1f2933] outline-none transition-all placeholder:text-stone-400 focus:border-amber-500" />
       </div>
-      {error && <div className="rounded-xl border border-red-500/20 bg-red-500/8 p-3 text-xs text-red-300">{error}</div>}
+      {error && <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-600">{error}</div>}
       <button type="submit" disabled={submitting || rating === 0}
-        className="self-start cursor-pointer rounded-xl border-0 bg-gradient-to-r from-amber-500 to-amber-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/25 disabled:cursor-not-allowed disabled:opacity-60">
+        className="self-start cursor-pointer rounded-lg border-0 bg-gradient-to-r from-[#a75635] to-[#7b3525] px-6 py-3 text-sm font-bold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60">
         {submitting ? "Submitting..." : "Submit review →"}
       </button>
     </form>
@@ -305,7 +305,6 @@ export default function HomePage() {
       setActiveTab("track");
       setLastUpdated(new Date());
       setTimeout(() => { document.getElementById("request-result")?.scrollIntoView({ behavior: "smooth" }); }, 100);
-      // Fire confirmation email — non-blocking, best-effort
       if (clientEmail) {
         fetch("/api/email/notify-request-submitted", {
           method: "POST",
@@ -380,13 +379,13 @@ export default function HomePage() {
   const avgRating = publicReviews.length > 0 ? (publicReviews.reduce((sum, r) => sum + r.rating, 0) / publicReviews.length).toFixed(1) : null;
 
   return (
-    <main className="min-h-screen bg-transparent px-3 py-3 font-sans md:px-4 md:py-4">
-      {/* Toast notification */}
+    <main className="min-h-screen bg-[#f5ecdc] px-3 py-3 font-sans md:px-4 md:py-4">
+      {/* Toast */}
       {toast && (
-        <div className={`fixed bottom-6 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3 rounded-2xl border px-5 py-3.5 text-sm font-semibold shadow-2xl transition-all ${
-          toast.type === "error" ? "border-red-500/30 bg-red-950 text-red-300" :
-          toast.type === "success" ? "border-emerald-500/30 bg-emerald-950 text-emerald-300" :
-          "border-amber-500/30 bg-amber-950 text-amber-300"
+        <div className={`fixed bottom-6 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3 rounded-xl border px-5 py-3.5 text-sm font-semibold shadow-xl transition-all ${
+          toast.type === "error" ? "border-red-200 bg-red-50 text-red-700" :
+          toast.type === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-700" :
+          "border-amber-200 bg-amber-50 text-amber-700"
         }`}>
           <span>{toast.type === "error" ? "✕" : "✓"}</span>
           <span>{toast.msg}</span>
@@ -398,20 +397,20 @@ export default function HomePage() {
         <SiteHeader />
 
         {/* ── HERO ── */}
-        <section className="relative overflow-hidden rounded-3xl border border-amber-500/15 bg-gradient-to-br from-[#110f0a] via-[#1a1200] to-[#0f0c00] p-6 shadow-2xl shadow-amber-500/10 md:p-12">
-          <div className="pointer-events-none absolute right-0 top-0 h-96 w-96 translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-500/10 blur-3xl" />
-          <div className="pointer-events-none absolute bottom-0 left-0 h-64 w-64 -translate-x-1/2 translate-y-1/2 rounded-full bg-amber-400/6 blur-3xl" />
+        <section className="relative overflow-hidden rounded-2xl bg-[#24483f] p-6 md:p-12">
+          <div className="pointer-events-none absolute right-0 top-0 h-80 w-80 translate-x-1/3 -translate-y-1/3 rounded-full bg-white/5 blur-3xl" />
+          <div className="pointer-events-none absolute bottom-0 left-0 h-64 w-64 -translate-x-1/3 translate-y-1/3 rounded-full bg-[#c9935b]/10 blur-3xl" />
           <div className="relative z-10 grid grid-cols-1 items-center gap-8 lg:grid-cols-2 lg:gap-12">
             <div className="flex flex-col gap-5">
-              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-amber-500/25 bg-amber-500/10 px-4 py-1.5">
-                <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400" />
-                <span className="text-xs font-semibold text-amber-300">Fabric sourcing platform</span>
+              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5">
+                <span className="h-2 w-2 rounded-full bg-[#c9935b] shadow-sm" />
+                <span className="text-xs font-semibold text-[#f8efe2]">Fabric sourcing platform</span>
               </div>
               <h1 className="text-4xl font-black leading-[1.05] tracking-tight text-white md:text-5xl lg:text-6xl">
                 Source premium fabrics{" "}
-                <span className="bg-gradient-to-r from-amber-300 via-yellow-300 to-amber-500 bg-clip-text text-transparent">directly from China</span>
+                <span className="text-[#c9935b]">directly from China</span>
               </h1>
-              <p className="max-w-lg text-base leading-relaxed text-slate-400 md:text-lg">Describe what you need. Get verified supplier quotes. Unlock direct contact and negotiate the best deals — no middlemen.</p>
+              <p className="max-w-lg text-base leading-relaxed text-[#e8dcc8] md:text-lg">Describe what you need. Get verified supplier quotes. Unlock direct contact and negotiate the best deals — no middlemen.</p>
               <div className="flex flex-wrap gap-6">
                 {[
                   { v: "9", l: "Fabric categories" },
@@ -421,27 +420,27 @@ export default function HomePage() {
                 ].map((s) => (
                   <div key={s.l} className="flex flex-col gap-0.5">
                     <span className="text-2xl font-black text-white">{s.v}</span>
-                    <span className="text-xs font-medium text-slate-500">{s.l}</span>
+                    <span className="text-xs font-medium text-[#e8dcc8]">{s.l}</span>
                   </div>
                 ))}
               </div>
               <div className="flex flex-wrap gap-3">
                 <button onClick={() => { setActiveTab("submit"); document.getElementById("main-tabs")?.scrollIntoView({ behavior: "smooth" }); }}
-                  className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-amber-500 to-amber-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/30 transition-all hover:shadow-amber-500/50">
+                  className="cursor-pointer rounded-lg border-0 bg-gradient-to-r from-[#a75635] to-[#7b3525] px-6 py-3 text-sm font-bold text-white shadow-lg transition-all hover:shadow-xl">
                   Start sourcing →
                 </button>
-                <a href={genericSupportLink} target="_blank" rel="noreferrer" className="flex items-center rounded-xl border border-white/12 bg-white/6 px-6 py-3 text-sm font-semibold text-slate-300 no-underline transition-all hover:bg-white/10">WhatsApp us</a>
+                <a href={genericSupportLink} target="_blank" rel="noreferrer" className="flex items-center rounded-lg border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold text-[#f8efe2] no-underline transition-all hover:bg-white/15">WhatsApp us</a>
               </div>
             </div>
             <div className="flex flex-col gap-2">
-              <p className="text-xs font-bold uppercase tracking-widest text-amber-400/70 mb-1">Browse by category — click to source</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-[#c9935b] mb-1">Browse by category — click to source</p>
               <div className="grid grid-cols-3 gap-2">
                 {FABRIC_CATEGORIES.slice(0, 6).map((cat) => (
                   <button
                     key={cat.id}
                     type="button"
                     onClick={() => { setSelectedCategory(cat.id); setSelectedSubcategory(""); setActiveTab("submit"); document.getElementById("main-tabs")?.scrollIntoView({ behavior: "smooth" }); }}
-                    className="group relative overflow-hidden rounded-xl border border-white/10 cursor-pointer transition-all hover:scale-[1.04] hover:border-amber-500/40 p-0 bg-transparent"
+                    className="group relative overflow-hidden rounded-xl border border-white/15 cursor-pointer transition-all hover:scale-[1.04] hover:border-white/30 p-0 bg-transparent"
                   >
                     <FabricImage categoryId={cat.id} alt={cat.label} aspectRatio="square" overlay className="w-full" />
                     <div className="absolute inset-x-0 bottom-0 p-2">
@@ -453,7 +452,7 @@ export default function HomePage() {
               <button
                 type="button"
                 onClick={() => { setActiveTab("submit"); document.getElementById("main-tabs")?.scrollIntoView({ behavior: "smooth" }); }}
-                className="mt-1 w-full cursor-pointer rounded-xl border border-white/10 bg-white/5 py-2.5 text-center text-xs font-semibold text-slate-400 transition-all hover:bg-white/8 hover:text-amber-300 bg-transparent"
+                className="mt-1 w-full cursor-pointer rounded-xl border border-white/15 bg-white/8 py-2.5 text-center text-xs font-semibold text-[#e8dcc8] transition-all hover:bg-white/15"
               >
                 + 3 more categories — Kids, Industrial, Eco →
               </button>
@@ -462,19 +461,19 @@ export default function HomePage() {
         </section>
 
         {/* ── CATEGORIES SHOWCASE ── */}
-        <section className="rounded-3xl border border-white/10 bg-[#211e18] shadow-xl shadow-black/30 p-6 md:p-8">
-          <span className="mb-3 inline-block rounded-full bg-amber-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-amber-400">What we source</span>
-          <h2 className="mb-6 text-2xl font-black tracking-tight text-white md:text-3xl">9 fabric categories</h2>
+        <section className="rounded-2xl border border-stone-200 bg-white p-6 md:p-8">
+          <span className="mb-3 inline-block rounded-full bg-[#24483f]/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#24483f]">What we source</span>
+          <h2 className="mb-6 text-2xl font-black tracking-tight text-[#1f2933] md:text-3xl">9 fabric categories</h2>
           <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {FABRIC_CATEGORIES.map((cat) => {
               const color = getCategoryColor(cat.id);
               return (
                 <button key={cat.id} onClick={() => { setSelectedCategory(cat.id); setSelectedSubcategory(""); setActiveTab("submit"); document.getElementById("main-tabs")?.scrollIntoView({ behavior: "smooth" }); }}
-                  className={`flex flex-col overflow-hidden rounded-2xl border text-left transition-all cursor-pointer hover:scale-[1.02] ${color.bg} ${color.border}`}>
+                  className={`flex flex-col overflow-hidden rounded-xl border text-left transition-all cursor-pointer hover:scale-[1.02] hover:shadow-md ${color.bg} ${color.border}`}>
                   <FabricImage categoryId={cat.id} alt={cat.label} aspectRatio="video" overlay className="w-full" />
                   <div className="flex flex-col gap-0.5 p-3">
                     <span className={`text-sm font-bold ${color.text}`}>{cat.label}</span>
-                    <span className="text-xs text-slate-500">{cat.subcategories.length} types</span>
+                    <span className="text-xs text-stone-500">{cat.subcategories.length} types</span>
                   </div>
                 </button>
               );
@@ -483,31 +482,31 @@ export default function HomePage() {
         </section>
 
         {/* ── HOW IT WORKS ── */}
-        <section id="how-it-works" className="rounded-3xl border border-white/10 bg-[#211e18] shadow-xl shadow-black/30 p-6 md:p-10">
-          <span className="mb-3 inline-block rounded-full bg-amber-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-amber-400">How it works</span>
-          <h2 className="mb-8 text-2xl font-black tracking-tight text-white md:text-3xl">Three steps to your supplier</h2>
+        <section id="how-it-works" className="rounded-2xl border border-stone-200 bg-white p-6 md:p-10">
+          <span className="mb-3 inline-block rounded-full bg-[#24483f]/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#24483f]">How it works</span>
+          <h2 className="mb-8 text-2xl font-black tracking-tight text-[#1f2933] md:text-3xl">Three steps to your supplier</h2>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {[
-              { n: "01", title: "Submit your request", text: "Choose a fabric category, describe what you need. AI formats it into a professional sourcing spec.", color: "from-amber-500 to-amber-600", textColor: "text-amber-400" },
-              { n: "02", title: "Review supplier quotes", text: "We match you to verified Chinese suppliers in your category. See price, MOQ and lead time first.", color: "from-emerald-500 to-emerald-600", textColor: "text-emerald-400" },
-              { n: "03", title: "Unlock & connect", text: `Pay ${prices.unlock} to unlock direct supplier contact — phone, WeChat, email.`, color: "from-amber-500 to-amber-600", textColor: "text-amber-400" },
+              { n: "01", title: "Submit your request", text: "Choose a fabric category, describe what you need. AI formats it into a professional sourcing spec.", color: "from-[#a75635] to-[#c9935b]", textColor: "text-[#a75635]" },
+              { n: "02", title: "Review supplier quotes", text: "We match you to verified Chinese suppliers in your category. See price, MOQ and lead time first.", color: "from-[#24483f] to-[#2f7d57]", textColor: "text-[#24483f]" },
+              { n: "03", title: "Unlock & connect", text: `Pay ${prices.unlock} to unlock direct supplier contact — phone, WeChat, email.`, color: "from-[#a75635] to-[#c9935b]", textColor: "text-[#a75635]" },
             ].map((step) => (
-              <div key={step.n} className="rounded-2xl border border-white/7 bg-white/4 p-6">
+              <div key={step.n} className="rounded-xl border border-stone-200 bg-stone-50 p-6">
                 <div className={`mb-3 text-xs font-black uppercase tracking-widest ${step.textColor}`}>{step.n}</div>
                 <div className={`mb-4 h-1 w-10 rounded-full bg-gradient-to-r ${step.color}`} />
-                <h3 className="mb-2 text-base font-bold text-white">{step.title}</h3>
-                <p className="m-0 text-sm leading-relaxed text-slate-500">{step.text}</p>
+                <h3 className="mb-2 text-base font-bold text-[#1f2933]">{step.title}</h3>
+                <p className="m-0 text-sm leading-relaxed text-stone-500">{step.text}</p>
               </div>
             ))}
           </div>
         </section>
 
         {/* ── MAIN TABS ── */}
-        <section id="main-tabs" className="rounded-3xl border border-white/10 bg-[#211e18] shadow-xl shadow-black/30 p-4 md:p-8">
-          <div className="mb-6 flex gap-2 rounded-2xl border border-white/7 bg-white/4 p-1.5">
+        <section id="main-tabs" className="rounded-2xl border border-stone-200 bg-white p-4 md:p-8">
+          <div className="mb-6 flex gap-2 rounded-xl border border-stone-200 bg-stone-50 p-1.5">
             {(["submit", "track"] as const).map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
-                className={`flex-1 cursor-pointer rounded-xl border-0 px-4 py-3 text-sm font-bold transition-all ${activeTab === tab ? "bg-gradient-to-r from-amber-500 to-amber-700 text-white shadow-lg shadow-amber-500/25" : "bg-transparent text-slate-500 hover:text-slate-300"}`}>
+                className={`flex-1 cursor-pointer rounded-lg border-0 px-4 py-3 text-sm font-bold transition-all ${activeTab === tab ? "bg-gradient-to-r from-[#a75635] to-[#7b3525] text-white shadow-sm" : "bg-transparent text-stone-500 hover:text-stone-700"}`}>
                 {tab === "submit" ? "Get quotes" : "Track order"}
               </button>
             ))}
@@ -516,8 +515,8 @@ export default function HomePage() {
           {activeTab === "submit" && (
             <div className="flex flex-col gap-5">
               <div>
-                <h2 className="mb-1 text-xl font-black tracking-tight text-white md:text-2xl">Tell us what you need</h2>
-                <p className="m-0 text-sm leading-relaxed text-slate-500">Select a fabric category, then describe your requirement in detail.</p>
+                <h2 className="mb-1 text-xl font-black tracking-tight text-[#1f2933] md:text-2xl">Tell us what you need</h2>
+                <p className="m-0 text-sm leading-relaxed text-stone-500">Select a fabric category, then describe your requirement in detail.</p>
               </div>
 
               <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -529,9 +528,9 @@ export default function HomePage() {
                     { label: "WhatsApp / phone", value: clientPhone, setter: setClientPhone, placeholder: "+234 800 000 0000", type: "text" },
                   ].map((field) => (
                     <div key={field.label} className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-400">{field.label}</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-stone-400">{field.label}</label>
                       <input value={field.value} onChange={(e) => field.setter(e.target.value)} placeholder={field.placeholder} type={field.type}
-                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-amber-500 focus:bg-amber-500/5" />
+                        className="w-full rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-[#1f2933] outline-none transition-all placeholder:text-stone-400 focus:border-amber-500 focus:bg-white" />
                     </div>
                   ))}
                 </div>
@@ -539,8 +538,8 @@ export default function HomePage() {
                 {/* Category selection */}
                 <div className="flex flex-col gap-3">
                   <div>
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Fabric category <span className="text-red-400">*</span></label>
-                    <p className="mt-1 text-xs text-slate-600">Select the category that best matches your fabric need.</p>
+                    <label className="text-xs font-bold uppercase tracking-wider text-stone-400">Fabric category <span className="text-red-500">*</span></label>
+                    <p className="mt-1 text-xs text-stone-400">Select the category that best matches your fabric need.</p>
                   </div>
                   <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-5">
                     {FABRIC_CATEGORIES.map((cat) => {
@@ -548,7 +547,7 @@ export default function HomePage() {
                       const isSelected = selectedCategory === cat.id;
                       return (
                         <button key={cat.id} type="button" onClick={() => { setSelectedCategory(cat.id); setSelectedSubcategory(""); }}
-                          className={`rounded-xl border px-3 py-2.5 text-left text-xs font-bold transition-all cursor-pointer ${isSelected ? `${color.bg} ${color.text} ${color.border} ring-1 ring-offset-1 ring-offset-[#111827] ring-current` : "border-white/10 bg-white/4 text-slate-500 hover:border-white/20 hover:text-slate-300"}`}>
+                          className={`rounded-lg border px-3 py-2.5 text-left text-xs font-bold transition-all cursor-pointer ${isSelected ? `${color.bg} ${color.text} ${color.border}` : "border-stone-200 bg-stone-50 text-stone-500 hover:border-stone-300 hover:text-stone-700"}`}>
                           {cat.label}
                         </button>
                       );
@@ -559,14 +558,14 @@ export default function HomePage() {
                 {/* Subcategory selection */}
                 {activeCategory && (
                   <div className="flex flex-col gap-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Fabric type <span className="text-slate-600 normal-case font-normal">(optional — be more specific)</span></label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-stone-400">Fabric type <span className="text-stone-400 normal-case font-normal">(optional — be more specific)</span></label>
                     <div className="flex flex-wrap gap-2">
                       {activeCategory.subcategories.map((sub) => {
                         const color = getCategoryColor(activeCategory.id);
                         const isSelected = selectedSubcategory === sub;
                         return (
                           <button key={sub} type="button" onClick={() => setSelectedSubcategory(isSelected ? "" : sub)}
-                            className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${isSelected ? `${color.bg} ${color.text} ${color.border}` : "border-white/10 bg-white/4 text-slate-500 hover:text-slate-300"}`}>
+                            className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${isSelected ? `${color.bg} ${color.text} ${color.border}` : "border-stone-200 bg-stone-50 text-stone-500 hover:text-stone-700"}`}>
                             {sub}
                           </button>
                         );
@@ -577,7 +576,7 @@ export default function HomePage() {
 
                 {/* Description */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Fabric description <span className="text-red-400">*</span></label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-stone-400">Fabric description <span className="text-red-500">*</span></label>
                   <textarea value={description} onChange={(e) => setDescription(e.target.value)}
                     placeholder={
                       selectedCategory === "luxury" ? "Example: Swiss lace for bridal asoebi, ivory/cream, intricate floral pattern, soft handfeel, 5-yard packs, need 50+ packs..."
@@ -585,30 +584,30 @@ export default function HomePage() {
                       : selectedCategory === "sports" ? "Example: Dry-fit fabric for football jerseys, moisture-wicking, polyester blend, various colors, MOQ 500 meters..."
                       : "Describe the fabric type, color, quantity, quality and intended use..."
                     }
-                    rows={5} className="w-full resize-y rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-amber-500 focus:bg-amber-500/5" />
-                  <p className="m-0 text-xs text-slate-600">Include: fabric type · color · quantity · quality level · intended use</p>
+                    rows={5} className="w-full resize-y rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-[#1f2933] outline-none transition-all placeholder:text-stone-400 focus:border-amber-500 focus:bg-white" />
+                  <p className="m-0 text-xs text-stone-400">Include: fabric type · color · quantity · quality level · intended use</p>
                 </div>
 
                 {/* Selected category preview */}
                 {selectedCategory && (
-                  <div className="flex items-center gap-2 rounded-xl border border-white/7 bg-white/4 px-4 py-3">
-                    <span className="text-xs text-slate-500">Your request:</span>
+                  <div className="flex items-center gap-2 rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
+                    <span className="text-xs text-stone-500">Your request:</span>
                     <CategoryBadge categoryId={selectedCategory} subcategory={selectedSubcategory} />
                   </div>
                 )}
 
                 {formError && (
-                  <div className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/8 px-4 py-3 text-sm text-red-300">
+                  <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
                     <span>✕</span><span>{formError}</span>
                   </div>
                 )}
                 <div className="flex flex-wrap gap-3">
                   <button type="submit" disabled={loading || !selectedCategory}
-                    className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-amber-500 to-amber-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/25 disabled:cursor-not-allowed disabled:opacity-60">
+                    className="cursor-pointer rounded-lg border-0 bg-gradient-to-r from-[#a75635] to-[#7b3525] px-6 py-3 text-sm font-bold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60">
                     {loading ? "Processing..." : "Get supplier quotes →"}
                   </button>
                   <a href={genericSupportLink} target="_blank" rel="noreferrer"
-                    className="flex items-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-6 py-3 text-sm font-bold text-emerald-400 no-underline transition-all hover:bg-emerald-500/15">Need help?</a>
+                    className="flex items-center rounded-lg border border-emerald-200 bg-emerald-50 px-6 py-3 text-sm font-bold text-[#2f7d57] no-underline transition-all hover:bg-emerald-100">Need help?</a>
                 </div>
               </form>
             </div>
@@ -617,65 +616,65 @@ export default function HomePage() {
           {activeTab === "track" && (
             <div className="flex flex-col gap-5">
               <div>
-                <h2 className="mb-1 text-xl font-black tracking-tight text-white md:text-2xl">Track your request</h2>
-                <p className="m-0 text-sm leading-relaxed text-slate-500">Paste your request ID to see quotes, payment status and supplier contact.</p>
+                <h2 className="mb-1 text-xl font-black tracking-tight text-[#1f2933] md:text-2xl">Track your request</h2>
+                <p className="m-0 text-sm leading-relaxed text-stone-500">Paste your request ID to see quotes, payment status and supplier contact.</p>
               </div>
               <div className="flex flex-wrap gap-3">
                 <input value={lookupId} onChange={(e) => { setLookupId(e.target.value); setLookupError(""); }} placeholder="Paste your request ID here"
-                  className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-amber-500" />
+                  className="min-w-0 flex-1 rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-[#1f2933] outline-none transition-all placeholder:text-stone-400 focus:border-amber-500 focus:bg-white" />
                 <button onClick={() => handleLookup()} disabled={lookupLoading}
-                  className="shrink-0 cursor-pointer rounded-xl border-0 bg-gradient-to-r from-amber-500 to-amber-700 px-6 py-3 text-sm font-bold text-white disabled:opacity-60">
+                  className="shrink-0 cursor-pointer rounded-lg border-0 bg-gradient-to-r from-[#a75635] to-[#7b3525] px-6 py-3 text-sm font-bold text-white disabled:opacity-60">
                   {lookupLoading ? "Loading..." : "Track →"}
                 </button>
               </div>
               {lookupError && (
-                <div className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/8 px-4 py-3 text-sm text-red-300">
+                <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
                   <span>✕</span><span>{lookupError}</span>
                 </div>
               )}
               <div className="flex flex-wrap gap-5">
-                <a href="/history" className="text-sm font-semibold text-amber-400 no-underline transition-colors hover:text-amber-300">View all history →</a>
-                <a href={genericSupportLink} target="_blank" rel="noreferrer" className="text-sm font-semibold text-emerald-400 no-underline transition-colors hover:text-emerald-300">Chat support →</a>
+                <a href="/history" className="text-sm font-semibold text-[#a75635] no-underline transition-colors hover:text-[#7b3525]">View all history →</a>
+                <a href={genericSupportLink} target="_blank" rel="noreferrer" className="text-sm font-semibold text-[#2f7d57] no-underline transition-colors hover:text-[#24483f]">Chat support →</a>
               </div>
               {submittedRequest && (
-                <div id="request-result" className="flex flex-col gap-4 rounded-2xl border border-amber-500/20 bg-amber-500/6 p-5">
+                <div id="request-result" className="flex flex-col gap-4 rounded-xl border border-emerald-200 bg-emerald-50 p-5">
                   <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-base font-black text-white shadow-lg shadow-emerald-500/30">✓</div>
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#2f7d57] text-base font-black text-white shadow-sm">✓</div>
                     <div>
-                      <div className="text-base font-bold text-white">Request submitted!</div>
-                      <div className="text-sm text-slate-500">Save your ID to track quotes</div>
+                      <div className="text-base font-bold text-[#1f2933]">Request submitted!</div>
+                      <div className="text-sm text-stone-500">Save your ID to track quotes</div>
                     </div>
                   </div>
                   {submittedRequest.category && (
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-500">Category:</span>
+                      <span className="text-xs text-stone-500">Category:</span>
                       <CategoryBadge categoryId={submittedRequest.category} subcategory={submittedRequest.subcategory} />
                     </div>
                   )}
-                  <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/8 p-4">
-                    <div className="mb-2 text-xs font-bold uppercase tracking-widest text-emerald-400">Request ID — save this</div>
+                  <div className="rounded-lg border border-emerald-200 bg-white p-4">
+                    <div className="mb-2 text-xs font-bold uppercase tracking-widest text-[#2f7d57]">Request ID — save this</div>
                     <div className="flex items-center gap-3">
-                      <div className="break-all text-sm font-semibold text-emerald-300 flex-1">{submittedRequest.id}</div>
+                      <div className="break-all text-sm font-semibold text-[#24483f] flex-1">{submittedRequest.id}</div>
                       <button type="button" onClick={() => copyRequestId(submittedRequest.id)}
-                        className="shrink-0 cursor-pointer rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-400 transition-all hover:bg-emerald-500/20">
+                        className="shrink-0 cursor-pointer rounded-lg border border-emerald-200 bg-emerald-100 px-3 py-1.5 text-xs font-bold text-[#2f7d57] transition-all hover:bg-emerald-200">
                         {copiedId ? "Copied ✓" : "Copy"}
                       </button>
                     </div>
                   </div>
                   {submittedRequest.ai_output != null && (
-                    <div className="rounded-xl border border-white/7 bg-white/4 p-4">
-                      <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">AI sourcing spec</div>
-                      <p className="m-0 whitespace-pre-wrap text-sm leading-relaxed text-slate-400">{formatAiOutput(submittedRequest.ai_output)}</p>
+                    <div className="rounded-lg border border-stone-200 bg-white p-4">
+                      <div className="mb-2 text-xs font-bold uppercase tracking-widest text-stone-400">AI sourcing spec</div>
+                      <p className="m-0 whitespace-pre-wrap text-sm leading-relaxed text-stone-600">{formatAiOutput(submittedRequest.ai_output)}</p>
                     </div>
                   )}
-                  <div className="rounded-xl border border-amber-500/15 bg-amber-500/6 p-4">
-                    <p className="m-0 text-sm leading-relaxed text-slate-400">
-                      <strong className="text-amber-300">⚠ Save your Request ID.</strong> You will need it to track your quotes. Copy it above or bookmark this page — we cannot recover it for you if lost.
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                    <p className="m-0 text-sm leading-relaxed text-stone-600">
+                      <strong className="text-[#a75635]">⚠ Save your Request ID.</strong> You will need it to track your quotes. Copy it above or bookmark this page — we cannot recover it for you if lost.
                     </p>
                   </div>
-                  <div className="rounded-xl border border-amber-500/15 bg-amber-500/8 p-4">
-                    <p className="m-0 text-sm leading-relaxed text-slate-400">
-                      <strong className="text-white">What happens next?</strong> We are matching your request to verified suppliers. Quotes appear within 24 hours.
+                  <div className="rounded-lg border border-stone-200 bg-white p-4">
+                    <p className="m-0 text-sm leading-relaxed text-stone-600">
+                      <strong className="text-[#1f2933]">What happens next?</strong> We are matching your request to verified suppliers. Quotes appear within 24 hours.
                     </p>
                   </div>
                 </div>
@@ -687,19 +686,19 @@ export default function HomePage() {
         {/* ── TRACKER ── */}
         {activeRequest && stagePill && (
           <section id="request-tracker"
-            className={`flex flex-col gap-5 rounded-3xl border p-5 shadow-xl md:p-8 transition-all duration-500 ${realtimeFlash ? "border-emerald-500/40 bg-emerald-500/5 shadow-emerald-500/10" : "border-amber-500/15 bg-[#1c1a14] shadow-amber-500/8"}`}>
+            className={`flex flex-col gap-5 rounded-2xl border p-5 shadow-sm md:p-8 transition-all duration-500 ${realtimeFlash ? "border-emerald-300 bg-emerald-50" : "border-stone-200 bg-white"}`}>
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <h2 className="mb-1 flex items-center gap-2 text-xl font-black tracking-tight text-white md:text-2xl">
+                <h2 className="mb-1 flex items-center gap-2 text-xl font-black tracking-tight text-[#1f2933] md:text-2xl">
                   Request tracker
-                  <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-all ${isLive ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" : "border-slate-700 bg-slate-800/50 text-slate-500"}`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${isLive ? "animate-pulse bg-emerald-400" : "bg-slate-600"}`} />
+                  <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-all ${isLive ? "border-emerald-200 bg-emerald-100 text-[#2f7d57]" : "border-stone-200 bg-stone-100 text-stone-400"}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${isLive ? "animate-pulse bg-[#2f7d57]" : "bg-stone-400"}`} />
                     {isLive ? "Live" : "Connecting..."}
                   </span>
                 </h2>
-                <p className="m-0 text-sm text-slate-500">
+                <p className="m-0 text-sm text-stone-500">
                   Follow quotes, pay and unlock supplier contact
-                  {lastUpdated && <span className="ml-2 text-xs text-slate-600">· Updated {lastUpdated.toLocaleTimeString()}</span>}
+                  {lastUpdated && <span className="ml-2 text-xs text-stone-400">· Updated {lastUpdated.toLocaleTimeString()}</span>}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -709,15 +708,15 @@ export default function HomePage() {
             </div>
 
             {realtimeFlash && (
-              <div className="flex items-center gap-2 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-300">
-                <span className="h-2 w-2 animate-ping rounded-full bg-emerald-400" />
+              <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-100 px-4 py-3 text-sm font-semibold text-[#2f7d57]">
+                <span className="h-2 w-2 animate-ping rounded-full bg-[#2f7d57]" />
                 Tracker updated in real time
               </div>
             )}
 
-            <div className="rounded-2xl border border-white/7 bg-white/4 p-4">
-              <div className="mb-2 text-base font-bold text-white">{getStageLabel(activeRequest, activeQuotes.length)}</div>
-              <p className="m-0 text-sm leading-relaxed text-slate-500">
+            <div className="rounded-lg border border-stone-200 bg-stone-50 p-4">
+              <div className="mb-2 text-base font-bold text-[#1f2933]">{getStageLabel(activeRequest, activeQuotes.length)}</div>
+              <p className="m-0 text-sm leading-relaxed text-stone-500">
                 {activeRequest.contact_request_status === "approved" ? "Supplier contact approved — direct details visible below."
                   : activeRequest.payment_status === "paid" ? "Payment received. Admin is reviewing — contact will be released shortly."
                   : activeQuotes.length > 0 ? "Quote preview ready. Review below then proceed to unlock supplier contact."
@@ -736,40 +735,39 @@ export default function HomePage() {
                 { label: "Reference", value: activeRequest.payment_reference || "—" },
                 { label: "Paid at", value: activeRequest.paid_at ? new Date(activeRequest.paid_at).toLocaleString() : "—" },
               ].map((info) => (
-                <div key={info.label} className="rounded-xl border border-white/7 bg-white/4 p-3">
-                  <div className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-600">{info.label}</div>
-                  <div className="break-words text-xs leading-relaxed text-slate-300">{info.value}</div>
+                <div key={info.label} className="rounded-lg border border-stone-200 bg-stone-50 p-3">
+                  <div className="mb-1 text-xs font-bold uppercase tracking-wider text-stone-400">{info.label}</div>
+                  <div className="break-words text-xs leading-relaxed text-[#1f2933]">{info.value}</div>
                 </div>
               ))}
             </div>
 
-            <div className="rounded-xl border border-white/7 bg-white/4 p-4">
-              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">Fabric request</div>
-              <p className="m-0 whitespace-pre-wrap text-sm leading-relaxed text-slate-400">{activeRequest.user_input}</p>
+            <div className="rounded-lg border border-stone-200 bg-stone-50 p-4">
+              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-stone-400">Fabric request</div>
+              <p className="m-0 whitespace-pre-wrap text-sm leading-relaxed text-stone-600">{activeRequest.user_input}</p>
             </div>
 
             {activeRequest.ai_output != null && (
-              <div className="rounded-xl border border-white/7 bg-white/4 p-4">
-                <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">AI sourcing spec</div>
-                <p className="m-0 whitespace-pre-wrap text-sm leading-relaxed text-slate-400">{formatAiOutput(activeRequest.ai_output)}</p>
+              <div className="rounded-lg border border-stone-200 bg-stone-50 p-4">
+                <div className="mb-2 text-xs font-bold uppercase tracking-widest text-stone-400">AI sourcing spec</div>
+                <p className="m-0 whitespace-pre-wrap text-sm leading-relaxed text-stone-600">{formatAiOutput(activeRequest.ai_output)}</p>
               </div>
             )}
 
             {/* QUOTES */}
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
-                <h3 className="m-0 text-lg font-bold text-white">Supplier quotes</h3>
-                <span className="rounded-full bg-amber-500/15 px-3 py-1.5 text-xs font-bold text-amber-400">
+                <h3 className="m-0 text-lg font-bold text-[#1f2933]">Supplier quotes</h3>
+                <span className="rounded-full bg-[#24483f]/10 px-3 py-1.5 text-xs font-bold text-[#24483f]">
                   {activeQuotes.length} {activeQuotes.length === 1 ? "quote" : "quotes"}
                 </span>
-
               </div>
               {activeQuotes.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-white/10 bg-white/2 p-10 text-center">
+                <div className="rounded-xl border border-dashed border-stone-300 bg-stone-50 p-10 text-center">
                   <div className="mb-3 text-4xl">◎</div>
-                  <div className="mb-2 font-bold text-slate-400">Sourcing in progress</div>
-                  <p className="m-0 text-sm leading-relaxed text-slate-600">Matching your request to verified suppliers. Quotes appear here shortly.</p>
-                  {isLive && <p className="m-0 mt-2 text-xs text-emerald-500">This page will update automatically when quotes arrive.</p>}
+                  <div className="mb-2 font-bold text-stone-500">Sourcing in progress</div>
+                  <p className="m-0 text-sm leading-relaxed text-stone-400">Matching your request to verified suppliers. Quotes appear here shortly.</p>
+                  {isLive && <p className="m-0 mt-2 text-xs text-[#2f7d57]">This page will update automatically when quotes arrive.</p>}
                 </div>
               ) : (
                 activeQuotes.map((quote) => {
@@ -781,13 +779,13 @@ export default function HomePage() {
                   const existingReview = existingReviews.find((r) => r.quote_id === quote.id);
 
                   return (
-                    <div key={quote.id} className="flex flex-col gap-4 rounded-2xl border border-white/7 bg-white/3 p-5">
+                    <div key={quote.id} className="flex flex-col gap-4 rounded-xl border border-stone-200 bg-white p-5">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <div className="mb-1 text-lg font-bold text-white">{quote.supplier_name || "Verified Supplier"}</div>
-                          <div className="text-xs text-slate-500">{quote.supplier_region || "China"} · Verified partner</div>
+                          <div className="mb-1 text-lg font-bold text-[#1f2933]">{quote.supplier_name || "Verified Supplier"}</div>
+                          <div className="text-xs text-stone-500">{quote.supplier_region || "China"} · Verified partner</div>
                         </div>
-                        <span className={`rounded-full px-3 py-1.5 text-xs font-bold ${isReleased ? "border border-emerald-500/30 bg-emerald-900/60 text-emerald-300" : "border border-blue-500/30 bg-blue-900/60 text-blue-300"}`}>
+                        <span className={`rounded-full px-3 py-1.5 text-xs font-bold ${isReleased ? "border border-emerald-200 bg-emerald-100 text-[#2f7d57]" : "border border-blue-200 bg-blue-100 text-blue-700"}`}>
                           {isReleased ? "Contact released" : "Protected"}
                         </span>
                       </div>
@@ -798,87 +796,87 @@ export default function HomePage() {
                           { label: "Lead time", value: quote.lead_time || "—" },
                           { label: "Region", value: quote.supplier_region || "—" },
                         ].map((s) => (
-                          <div key={s.label} className="rounded-xl border border-white/7 bg-white/4 p-3">
-                            <div className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-600">{s.label}</div>
-                            <div className="text-sm font-semibold text-white">{s.value}</div>
+                          <div key={s.label} className="rounded-lg border border-stone-200 bg-stone-50 p-3">
+                            <div className="mb-1 text-xs font-bold uppercase tracking-wider text-stone-400">{s.label}</div>
+                            <div className="text-sm font-semibold text-[#1f2933]">{s.value}</div>
                           </div>
                         ))}
                       </div>
                       {quote.note && (
-                        <div className="rounded-xl border border-white/7 bg-white/4 p-4">
-                          <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">Supplier note</div>
-                          <p className="m-0 whitespace-pre-wrap text-sm leading-relaxed text-slate-400">{quote.note}</p>
+                        <div className="rounded-lg border border-stone-200 bg-stone-50 p-4">
+                          <div className="mb-2 text-xs font-bold uppercase tracking-widest text-stone-400">Supplier note</div>
+                          <p className="m-0 whitespace-pre-wrap text-sm leading-relaxed text-stone-600">{quote.note}</p>
                         </div>
                       )}
                       {!isReleased && contactStatus === "none" && (
-                        <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-[#111827] to-[#1a1300] p-5">
+                        <div className="rounded-xl border border-stone-200 bg-stone-50 p-5">
                           <div className="mb-4">
-                            <h4 className="mb-1 text-base font-bold text-white">Unlock supplier contact</h4>
-                            <p className="m-0 text-sm leading-relaxed text-slate-400">Choose a one-time unlock or upgrade to Pro for better value.</p>
+                            <h4 className="mb-1 text-base font-bold text-[#1f2933]">Unlock supplier contact</h4>
+                            <p className="m-0 text-sm leading-relaxed text-stone-500">Choose a one-time unlock or upgrade to Pro for better value.</p>
                           </div>
                           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                            <div className="rounded-xl border border-white/10 bg-white/4 p-4">
-                              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">One-time unlock</div>
-                              <div className="mb-2 text-2xl font-black text-white">{prices.unlock}</div>
-                              <div className="mb-4 text-sm leading-relaxed text-slate-400">Unlock this supplier's phone, WeChat and email for this request.</div>
+                            <div className="rounded-lg border border-stone-200 bg-white p-4">
+                              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-stone-400">One-time unlock</div>
+                              <div className="mb-2 text-2xl font-black text-[#1f2933]">{prices.unlock}</div>
+                              <div className="mb-4 text-sm leading-relaxed text-stone-500">Unlock this supplier's phone, WeChat and email for this request.</div>
                               <button onClick={() => requestContact(activeRequest.id)}
-                                className="w-full cursor-pointer rounded-xl border-0 bg-gradient-to-r from-amber-500 to-amber-700 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/25">
+                                className="w-full cursor-pointer rounded-lg border-0 bg-gradient-to-r from-[#a75635] to-[#7b3525] px-5 py-3 text-sm font-bold text-white shadow-sm">
                                 Proceed to unlock
                               </button>
                             </div>
-                            <div className="relative overflow-hidden rounded-xl border border-violet-500/25 bg-violet-500/8 p-4">
+                            <div className="relative overflow-hidden rounded-lg border border-violet-200 bg-violet-50 p-4">
                               <span className="absolute right-3 top-3 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white">Best value</span>
-                              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-violet-300">Weinly Pro</div>
-                              <div className="mb-1 text-2xl font-black text-white">{prices.proMonthly}<span className="ml-1 text-sm font-semibold text-slate-400">/month</span></div>
-                              <div className="mb-3 text-sm leading-relaxed text-slate-300">Includes 3 contact unlocks every month plus priority matching and support.</div>
+                              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-violet-600">Weinly Pro</div>
+                              <div className="mb-1 text-2xl font-black text-[#1f2933]">{prices.proMonthly}<span className="ml-1 text-sm font-semibold text-stone-400">/month</span></div>
+                              <div className="mb-3 text-sm leading-relaxed text-stone-600">Includes 3 contact unlocks every month plus priority matching and support.</div>
                               <div className="mb-4 flex flex-col gap-2">
                                 {["3 unlocks included monthly", "Priority supplier matching", "Dedicated support", "Better value for active buyers"].map((item) => (
-                                  <div key={item} className="flex items-start gap-2 text-sm text-slate-300"><span className="text-emerald-400">✓</span><span>{item}</span></div>
+                                  <div key={item} className="flex items-start gap-2 text-sm text-stone-600"><span className="text-[#2f7d57]">✓</span><span>{item}</span></div>
                                 ))}
                               </div>
-                              <a href="/pricing" className="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-violet-500 to-indigo-600 px-5 py-3 text-sm font-bold text-white no-underline shadow-lg shadow-violet-500/20">Upgrade to Pro</a>
+                              <a href="/pricing" className="inline-flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-violet-500 to-indigo-600 px-5 py-3 text-sm font-bold text-white no-underline shadow-sm">Upgrade to Pro</a>
                             </div>
                           </div>
                           <div className="mt-4">
-                            <a href={supportLink} target="_blank" rel="noreferrer" className="inline-flex items-center rounded-xl border border-white/10 bg-white/6 px-5 py-2.5 text-sm font-semibold text-slate-400 no-underline transition-all hover:bg-white/10">Ask support</a>
+                            <a href={supportLink} target="_blank" rel="noreferrer" className="inline-flex items-center rounded-lg border border-stone-200 bg-stone-100 px-5 py-2.5 text-sm font-semibold text-stone-600 no-underline transition-all hover:bg-stone-200">Ask support</a>
                           </div>
                         </div>
                       )}
                       {!isReleased && contactStatus === "pending" && paymentStatus === "unpaid" && (
-                        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/6 p-5">
-                          <h4 className="m-0 mb-4 text-base font-bold text-white">Unlock supplier contact</h4>
-                          <div className="mb-4 flex flex-col gap-2 rounded-xl border border-amber-500/15 bg-amber-500/8 p-4">
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+                          <h4 className="m-0 mb-4 text-base font-bold text-[#1f2933]">Unlock supplier contact</h4>
+                          <div className="mb-4 flex flex-col gap-2 rounded-lg border border-amber-200 bg-white p-4">
                             {[{ label: "Access fee", value: prices.unlock }, { label: "Payment method", value: "Paystack" }, { label: "Request ID", value: activeRequest.id }].map((row) => (
                               <div key={row.label} className="flex flex-wrap justify-between gap-3">
-                                <span className="text-sm text-slate-500">{row.label}</span>
-                                <strong className="text-sm text-white">{row.value}</strong>
+                                <span className="text-sm text-stone-500">{row.label}</span>
+                                <strong className="text-sm text-[#1f2933]">{row.value}</strong>
                               </div>
                             ))}
                           </div>
-                          <p className="m-0 mb-4 text-sm leading-relaxed text-slate-500">Get direct access to supplier phone, WeChat and contact person.</p>
+                          <p className="m-0 mb-4 text-sm leading-relaxed text-stone-500">Get direct access to supplier phone, WeChat and contact person.</p>
                           <div className="flex flex-wrap gap-3">
                             <button onClick={() => startPayment(activeRequest)} disabled={paymentLoading}
-                              className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-amber-500 to-amber-700 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-amber-500/25 disabled:cursor-not-allowed disabled:opacity-60">
+                              className="cursor-pointer rounded-lg border-0 bg-gradient-to-r from-[#a75635] to-[#7b3525] px-5 py-2.5 text-sm font-bold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60">
                               {paymentLoading ? "Processing..." : `Pay ${prices.unlock} & unlock`}
                             </button>
-                            <a href={supportLink} target="_blank" rel="noreferrer" className="flex items-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-5 py-2.5 text-sm font-semibold text-emerald-400 no-underline transition-all hover:bg-emerald-500/15">Need help?</a>
+                            <a href={supportLink} target="_blank" rel="noreferrer" className="flex items-center rounded-lg border border-emerald-200 bg-emerald-100 px-5 py-2.5 text-sm font-semibold text-[#2f7d57] no-underline transition-all hover:bg-emerald-200">Need help?</a>
                           </div>
                         </div>
                       )}
                       {!isReleased && contactStatus === "pending" && paymentStatus === "paid" && (
-                        <div className="rounded-xl border border-amber-500/20 bg-amber-500/8 p-4 text-sm leading-relaxed text-amber-300">
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-700">
                           <strong>Payment confirmed.</strong> Awaiting admin approval — supplier contact will be released shortly.
                         </div>
                       )}
                       {!isReleased && contactStatus === "rejected" && (
-                        <div className="rounded-xl border border-red-500/20 bg-red-500/8 p-4 text-sm leading-relaxed text-red-300">Contact release was not approved. Please contact support on WhatsApp.</div>
+                        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm leading-relaxed text-red-600">Contact release was not approved. Please contact support on WhatsApp.</div>
                       )}
                       {isReleased && (
                         <>
-                          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/6 p-5">
+                          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5">
                             <div className="mb-4 flex items-center gap-3">
-                              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/20 text-sm font-black text-emerald-400">✓</span>
-                              <h4 className="m-0 text-base font-bold text-emerald-300">Supplier contact details</h4>
+                              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#2f7d57] text-sm font-black text-white">✓</span>
+                              <h4 className="m-0 text-base font-bold text-[#24483f]">Supplier contact details</h4>
                             </div>
                             <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
                               {[
@@ -887,20 +885,20 @@ export default function HomePage() {
                                 { label: "WeChat", value: quote.contact_wechat || "—" },
                                 { label: "Email", value: quote.contact_email || "—" },
                               ].map((c) => (
-                                <div key={c.label} className="rounded-xl border border-emerald-500/15 bg-emerald-500/8 p-3">
-                                  <div className="mb-1 text-xs font-bold uppercase tracking-wider text-emerald-600">{c.label}</div>
-                                  <div className="break-words text-sm font-semibold text-emerald-300">{c.value}</div>
+                                <div key={c.label} className="rounded-lg border border-emerald-200 bg-white p-3">
+                                  <div className="mb-1 text-xs font-bold uppercase tracking-wider text-[#2f7d57]">{c.label}</div>
+                                  <div className="break-words text-sm font-semibold text-[#24483f]">{c.value}</div>
                                 </div>
                               ))}
                             </div>
                           </div>
                           {alreadyReviewed && existingReview ? (
-                            <div className="rounded-2xl border border-amber-500/20 bg-amber-500/6 p-5">
+                            <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
                               <div className="mb-3 flex items-center gap-2">
-                                <span className="text-sm font-bold text-amber-300">Your review</span>
+                                <span className="text-sm font-bold text-[#a75635]">Your review</span>
                                 <StarRating value={existingReview.rating} size="sm" />
                               </div>
-                              {existingReview.comment && <p className="m-0 text-sm leading-relaxed text-slate-400">{existingReview.comment}</p>}
+                              {existingReview.comment && <p className="m-0 text-sm leading-relaxed text-stone-600">{existingReview.comment}</p>}
                             </div>
                           ) : (
                             <ReviewForm request={activeRequest} quote={quote} onSubmitted={() => { setSubmittedReviews((prev) => new Set([...prev, quote.id])); syncState(activeRequest.id); }} />
@@ -913,15 +911,15 @@ export default function HomePage() {
               )}
             </div>
 
-            <div className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-white/7 bg-white/4 p-5 md:flex-row md:items-center">
+            <div className="flex flex-col items-start justify-between gap-4 rounded-xl border border-stone-200 bg-stone-50 p-5 md:flex-row md:items-center">
               <div>
-                <div className="mb-1 font-bold text-white">Need help with this request?</div>
-                <p className="m-0 text-sm text-slate-500">Our team is on WhatsApp for quotes, payment and contact release help.</p>
+                <div className="mb-1 font-bold text-[#1f2933]">Need help with this request?</div>
+                <p className="m-0 text-sm text-stone-500">Our team is on WhatsApp for quotes, payment and contact release help.</p>
               </div>
               <div className="flex shrink-0 flex-wrap gap-3">
                 <a href={buildWhatsappLink(`Hello Weinly, I need help with request ID: ${activeRequest.id}`)} target="_blank" rel="noreferrer"
-                  className="flex items-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-5 py-2.5 text-sm font-bold text-emerald-400 no-underline transition-all hover:bg-emerald-500/15">Chat on WhatsApp</a>
-                <a href="/history" className="flex items-center rounded-xl border border-white/10 bg-white/6 px-5 py-2.5 text-sm font-semibold text-slate-400 no-underline transition-all hover:bg-white/10">View history</a>
+                  className="flex items-center rounded-lg border border-emerald-200 bg-emerald-100 px-5 py-2.5 text-sm font-bold text-[#2f7d57] no-underline transition-all hover:bg-emerald-200">Chat on WhatsApp</a>
+                <a href="/history" className="flex items-center rounded-lg border border-stone-200 bg-white px-5 py-2.5 text-sm font-semibold text-stone-600 no-underline transition-all hover:bg-stone-100">View history</a>
               </div>
             </div>
           </section>
@@ -929,34 +927,34 @@ export default function HomePage() {
 
         {/* ── PUBLIC REVIEWS ── */}
         {reviewsLoaded && publicReviews.length > 0 && (
-          <section className="rounded-3xl border border-white/10 bg-[#211e18] shadow-xl shadow-black/30 p-6 md:p-10">
+          <section className="rounded-2xl border border-stone-200 bg-white p-6 md:p-10">
             <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
               <div>
-                <span className="mb-3 inline-block rounded-full bg-amber-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-amber-400">Buyer reviews</span>
-                <h2 className="mb-1 text-2xl font-black tracking-tight text-white md:text-3xl">What buyers say about our suppliers</h2>
-                <p className="m-0 text-sm text-slate-500">Real reviews from verified buyers who unlocked supplier contact through Weinly.</p>
+                <span className="mb-3 inline-block rounded-full bg-[#24483f]/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#24483f]">Buyer reviews</span>
+                <h2 className="mb-1 text-2xl font-black tracking-tight text-[#1f2933] md:text-3xl">What buyers say about our suppliers</h2>
+                <p className="m-0 text-sm text-stone-500">Real reviews from verified buyers who unlocked supplier contact through Weinly.</p>
               </div>
               {avgRating && (
                 <div className="flex flex-col items-end gap-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-4xl font-black text-white">{avgRating}</span>
+                    <span className="text-4xl font-black text-[#1f2933]">{avgRating}</span>
                     <StarRating value={Math.round(Number(avgRating))} size="lg" />
                   </div>
-                  <span className="text-xs text-slate-500">{publicReviews.length} verified {publicReviews.length === 1 ? "review" : "reviews"}</span>
+                  <span className="text-xs text-stone-500">{publicReviews.length} verified {publicReviews.length === 1 ? "review" : "reviews"}</span>
                 </div>
               )}
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {publicReviews.slice(0, 6).map((review) => (
-                <div key={review.id} className="flex flex-col gap-3 rounded-2xl border border-white/7 bg-white/4 p-5">
+                <div key={review.id} className="flex flex-col gap-3 rounded-xl border border-stone-200 bg-stone-50 p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="mb-0.5 text-sm font-bold text-white">{review.supplier_name}</div>
-                      <div className="text-xs text-slate-500">{review.buyer_name ? `by ${review.buyer_name}` : "Verified buyer"} · {new Date(review.created_at).toLocaleDateString()}</div>
+                      <div className="mb-0.5 text-sm font-bold text-[#1f2933]">{review.supplier_name}</div>
+                      <div className="text-xs text-stone-500">{review.buyer_name ? `by ${review.buyer_name}` : "Verified buyer"} · {new Date(review.created_at).toLocaleDateString()}</div>
                     </div>
                     <StarRating value={review.rating} size="sm" />
                   </div>
-                  {review.comment && <p className="m-0 text-sm leading-relaxed text-slate-400">{review.comment}</p>}
+                  {review.comment && <p className="m-0 text-sm leading-relaxed text-stone-600">{review.comment}</p>}
                 </div>
               ))}
             </div>
@@ -964,107 +962,107 @@ export default function HomePage() {
         )}
 
         {/* ── PRO TEASER ── */}
-        <section className="rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-950 to-violet-950 p-6 md:p-10">
+        <section className="rounded-2xl border border-[#24483f]/20 bg-[#24483f] p-6 md:p-10">
           <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-2">
             <div>
-              <span className="mb-3 inline-block rounded-full bg-indigo-500/15 px-3 py-1 text-xs font-bold uppercase tracking-widest text-indigo-400">Weinly Pro</span>
+              <span className="mb-3 inline-block rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#f8efe2]">Weinly Pro</span>
               <h2 className="mb-3 text-2xl font-black tracking-tight text-white md:text-3xl">Upgrade when you're ready to move faster</h2>
-              <p className="mb-5 text-sm leading-relaxed text-slate-400 md:text-base">Serious buyers use Weinly Pro to unlock suppliers faster, get priority matching, and scale their sourcing business with less risk.</p>
+              <p className="mb-5 text-sm leading-relaxed text-[#e8dcc8] md:text-base">Serious buyers use Weinly Pro to unlock suppliers faster, get priority matching, and scale their sourcing business with less risk.</p>
               <div className="mb-6 flex flex-wrap gap-3">
-                <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">3 unlocks / month</span>
-                <span className="rounded-full border border-sky-500/20 bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-300">Priority suppliers</span>
-                <span className="rounded-full border border-violet-500/20 bg-violet-500/10 px-3 py-1 text-xs font-semibold text-violet-300">Dedicated support</span>
+                <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-[#f8efe2]">3 unlocks / month</span>
+                <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-[#f8efe2]">Priority suppliers</span>
+                <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-[#f8efe2]">Dedicated support</span>
               </div>
-              <a href="/pricing" className="inline-flex items-center rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 px-6 py-3 text-sm font-bold text-white no-underline shadow-lg shadow-indigo-500/20">View Pro pricing →</a>
+              <a href="/pricing" className="inline-flex items-center rounded-lg bg-gradient-to-r from-[#a75635] to-[#7b3525] px-6 py-3 text-sm font-bold text-white no-underline shadow-md">View Pro pricing →</a>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-              <div className="mb-3 text-sm font-bold text-white">Why buyers upgrade</div>
-              <div className="flex flex-col gap-3 text-sm text-slate-300">
-                {["Access suppliers faster when ready to buy", "Reduce delays and middlemen issues", "Make better sourcing decisions", "Scale your fabric business faster"].map((item) => (
-                  <div key={item} className="flex gap-2"><span className="text-emerald-400">✓</span><span>{item}</span></div>
-                ))}
-              </div>
+            <div className="flex flex-col gap-2">
+              {["Access suppliers faster when ready to buy", "Reduce delays and middlemen issues", "Make better sourcing decisions", "Scale your fabric business faster"].map((item) => (
+                <div key={item} className="flex items-center gap-3 rounded-lg border border-white/15 bg-white/10 p-3">
+                  <span className="text-[#c9935b]">✓</span>
+                  <span className="text-sm text-[#e8dcc8]">{item}</span>
+                </div>
+              ))}
             </div>
           </div>
         </section>
 
         {/* ── PRICING ── */}
-        <section id="pricing" className="rounded-3xl border border-white/10 bg-[#211e18] shadow-xl shadow-black/30 p-6 md:p-10">
-          <span className="mb-3 inline-block rounded-full bg-amber-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-amber-400">Pricing</span>
+        <section id="pricing" className="rounded-2xl border border-stone-200 bg-white p-6 md:p-10">
+          <span className="mb-3 inline-block rounded-full bg-[#24483f]/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#24483f]">Pricing</span>
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h2 className="mb-2 text-2xl font-black tracking-tight text-white md:text-3xl">Simple, transparent pricing</h2>
-              <p className="m-0 text-sm leading-relaxed text-slate-500">Start for free. Only pay when you want direct access to a supplier.</p>
+              <h2 className="mb-2 text-2xl font-black tracking-tight text-[#1f2933] md:text-3xl">Simple, transparent pricing</h2>
+              <p className="m-0 text-sm leading-relaxed text-stone-500">Start for free. Only pay when you want direct access to a supplier.</p>
             </div>
-            <a href="/pricing" className="shrink-0 text-sm font-semibold text-amber-400 no-underline hover:text-amber-300 transition-colors">See full pricing →</a>
+            <a href="/pricing" className="shrink-0 text-sm font-semibold text-[#a75635] no-underline hover:text-[#7b3525] transition-colors">See full pricing →</a>
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {/* Free */}
-            <div className="flex flex-col rounded-2xl border border-white/7 bg-white/4 p-6">
-              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">Free</div>
-              <div className="mb-2 text-4xl font-black tracking-tight text-white">{prices.symbol}0</div>
-              <p className="mb-5 text-sm leading-relaxed text-slate-500">Submit requests, get AI specs and review supplier quotes — no payment needed.</p>
+            <div className="flex flex-col rounded-xl border border-stone-200 bg-stone-50 p-6">
+              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-stone-400">Free</div>
+              <div className="mb-2 text-4xl font-black tracking-tight text-[#1f2933]">{prices.symbol}0</div>
+              <p className="mb-5 text-sm leading-relaxed text-stone-500">Submit requests, get AI specs and review supplier quotes — no payment needed.</p>
               <div className="mb-5 flex flex-col gap-2">
                 {["Submit sourcing requests", "AI sourcing spec", "Quote preview", "Track request progress"].map((item) => (
-                  <div key={item} className="flex items-center gap-2 text-sm text-slate-400"><span className="font-bold text-emerald-400">✓</span>{item}</div>
+                  <div key={item} className="flex items-center gap-2 text-sm text-stone-600"><span className="font-bold text-[#2f7d57]">✓</span>{item}</div>
                 ))}
               </div>
-              <a href="/#main-tabs" className="mt-auto block rounded-xl border border-white/10 bg-white/6 py-3 text-center text-sm font-bold text-slate-300 no-underline transition-all hover:bg-white/10">Start free</a>
+              <a href="/#main-tabs" className="mt-auto block rounded-lg border border-stone-200 bg-white py-3 text-center text-sm font-bold text-stone-600 no-underline transition-all hover:bg-stone-100">Start free</a>
             </div>
             {/* Contact Unlock */}
-            <div className="flex flex-col rounded-2xl border border-white/7 bg-white/4 p-6">
-              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">Contact Unlock</div>
-              <div className="mb-1 text-4xl font-black tracking-tight text-white">{prices.unlock}</div>
-              <div className="mb-2 text-xs text-slate-500">one-time per request</div>
-              <p className="mb-5 text-sm leading-relaxed text-slate-500">Pay once to unlock a supplier's direct phone, WeChat and email for that request.</p>
+            <div className="flex flex-col rounded-xl border border-stone-200 bg-stone-50 p-6">
+              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-stone-400">Contact Unlock</div>
+              <div className="mb-1 text-4xl font-black tracking-tight text-[#1f2933]">{prices.unlock}</div>
+              <div className="mb-2 text-xs text-stone-400">one-time per request</div>
+              <p className="mb-5 text-sm leading-relaxed text-stone-500">Pay once to unlock a supplier's direct phone, WeChat and email for that request.</p>
               <div className="mb-5 flex flex-col gap-2">
                 {["Direct phone number", "WeChat ID", "Email address", "Contact person name"].map((item) => (
-                  <div key={item} className="flex items-center gap-2 text-sm text-slate-400"><span className="font-bold text-emerald-400">✓</span>{item}</div>
+                  <div key={item} className="flex items-center gap-2 text-sm text-stone-600"><span className="font-bold text-[#2f7d57]">✓</span>{item}</div>
                 ))}
               </div>
               <button onClick={() => { setActiveTab("submit"); document.getElementById("main-tabs")?.scrollIntoView({ behavior: "smooth" }); }}
-                className="mt-auto block w-full cursor-pointer rounded-xl border border-amber-500/30 bg-amber-500/10 py-3 text-center text-sm font-bold text-amber-300 transition-all hover:bg-amber-500/15">
+                className="mt-auto block w-full cursor-pointer rounded-lg border border-[#24483f]/30 bg-[#24483f]/10 py-3 text-center text-sm font-bold text-[#24483f] transition-all hover:bg-[#24483f]/15">
                 Submit a request
               </button>
             </div>
             {/* Pro */}
-            <div className="relative flex flex-col rounded-2xl border border-indigo-500/30 bg-gradient-to-b from-indigo-950 to-violet-950 p-6 shadow-2xl shadow-indigo-500/15">
-              <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-1.5 text-xs font-bold text-white">Most popular</span>
-              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-indigo-300">Weinly Pro</div>
+            <div className="relative flex flex-col rounded-xl border border-[#24483f]/20 bg-[#24483f] p-6 shadow-lg">
+              <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-to-r from-[#a75635] to-[#7b3525] px-4 py-1.5 text-xs font-bold text-white">Most popular</span>
+              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-[#c9935b]">Weinly Pro</div>
               <div className="mb-1 flex items-end gap-2">
                 <div className="text-4xl font-black tracking-tight text-white">{prices.proMonthly}</div>
-                <div className="mb-1 text-sm text-slate-400">/month</div>
+                <div className="mb-1 text-sm text-[#e8dcc8]">/month</div>
               </div>
-              <div className="mb-2 text-xs text-emerald-400 font-semibold">Save {prices.currency === "NGN" ? "₦100k" : "$120"} on yearly plan</div>
-              <p className="mb-5 text-sm leading-relaxed text-indigo-200/80">3 contact unlocks per month, priority matching and dedicated support.</p>
+              <div className="mb-2 text-xs text-[#c9935b] font-semibold">Save {prices.currency === "NGN" ? "₦100k" : "$120"} on yearly plan</div>
+              <p className="mb-5 text-sm leading-relaxed text-[#e8dcc8]">3 contact unlocks per month, priority matching and dedicated support.</p>
               <div className="mb-5 flex flex-col gap-2">
                 {["3 unlocks included monthly", "Priority supplier matching", "Dedicated WhatsApp support", "Reorder from past requests"].map((item) => (
-                  <div key={item} className="flex items-center gap-2 text-sm text-indigo-100"><span className="font-bold text-cyan-400">✓</span>{item}</div>
+                  <div key={item} className="flex items-center gap-2 text-sm text-[#f8efe2]"><span className="font-bold text-[#c9935b]">✓</span>{item}</div>
                 ))}
               </div>
               <div className="mt-auto flex flex-col gap-2">
-                <a href="/pricing" className="block w-full rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 py-3.5 text-center text-sm font-bold text-white no-underline shadow-lg shadow-indigo-500/30">Get Pro →</a>
-                <a href={proSupportLink} target="_blank" rel="noreferrer" className="block w-full rounded-xl border border-emerald-500/20 bg-emerald-500/10 py-3 text-center text-sm font-bold text-emerald-400 no-underline transition-all hover:bg-emerald-500/15">Pay via bank transfer</a>
+                <a href="/pricing" className="block w-full rounded-lg bg-gradient-to-r from-[#a75635] to-[#7b3525] py-3.5 text-center text-sm font-bold text-white no-underline shadow-md">Get Pro →</a>
+                <a href={proSupportLink} target="_blank" rel="noreferrer" className="block w-full rounded-lg border border-white/20 bg-white/10 py-3 text-center text-sm font-bold text-[#f8efe2] no-underline transition-all hover:bg-white/15">Pay via bank transfer</a>
               </div>
             </div>
           </div>
         </section>
 
         {/* ── TRUST ── */}
-        <section className="rounded-3xl border border-white/10 bg-[#211e18] shadow-xl shadow-black/30 p-6 md:p-10">
-          <span className="mb-3 inline-block rounded-full bg-amber-500/12 px-3 py-1 text-xs font-bold uppercase tracking-widest text-amber-400">Why Weinly</span>
-          <h2 className="mb-8 text-2xl font-black tracking-tight text-white md:text-3xl">Built for serious fabric buyers</h2>
+        <section className="rounded-2xl border border-stone-200 bg-white p-6 md:p-10">
+          <span className="mb-3 inline-block rounded-full bg-[#24483f]/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#24483f]">Why Weinly</span>
+          <h2 className="mb-8 text-2xl font-black tracking-tight text-[#1f2933] md:text-3xl">Built for serious fabric buyers</h2>
           <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             {[
-              { title: "See quotes before paying", text: "Review price, MOQ and lead time before spending anything.", accent: "from-amber-500 to-amber-600" },
-              { title: "Protected supplier details", text: "Supplier contact stays protected until approval is complete.", accent: "from-emerald-500 to-emerald-600" },
-              { title: "China sourcing expertise", text: "Designed for buyers sourcing fabrics from China for Africa.", accent: "from-amber-500 to-amber-600" },
-              { title: "WhatsApp support", text: "Real human support throughout your entire sourcing journey.", accent: "from-pink-500 to-pink-600" },
+              { title: "See quotes before paying", text: "Review price, MOQ and lead time before spending anything.", accent: "from-[#a75635] to-[#c9935b]" },
+              { title: "Protected supplier details", text: "Supplier contact stays protected until approval is complete.", accent: "from-[#24483f] to-[#2f7d57]" },
+              { title: "China sourcing expertise", text: "Designed for buyers sourcing fabrics from China for Africa.", accent: "from-[#a75635] to-[#c9935b]" },
+              { title: "WhatsApp support", text: "Real human support throughout your entire sourcing journey.", accent: "from-[#c9935b] to-[#a75635]" },
             ].map((t) => (
-              <div key={t.title} className="rounded-2xl border border-white/7 bg-white/4 p-5">
+              <div key={t.title} className="rounded-xl border border-stone-200 bg-stone-50 p-5">
                 <div className={`mb-4 h-1 w-full rounded-full bg-gradient-to-r ${t.accent}`} />
-                <h3 className="m-0 mb-2 text-sm font-bold text-white">{t.title}</h3>
-                <p className="m-0 text-xs leading-relaxed text-slate-500">{t.text}</p>
+                <h3 className="m-0 mb-2 text-sm font-bold text-[#1f2933]">{t.title}</h3>
+                <p className="m-0 text-xs leading-relaxed text-stone-500">{t.text}</p>
               </div>
             ))}
           </div>
@@ -1075,9 +1073,9 @@ export default function HomePage() {
               { q: "Why are contacts protected?", a: "It keeps the process serious and controlled, ensuring quality interactions between buyers and suppliers." },
               { q: "Can I get help before paying?", a: "Yes, always. Chat with us on WhatsApp at any point during your sourcing journey." },
             ].map((faq) => (
-              <div key={faq.q} className="rounded-2xl border border-white/7 bg-white/4 p-5">
-                <h3 className="m-0 mb-2 text-sm font-bold text-white">{faq.q}</h3>
-                <p className="m-0 text-xs leading-relaxed text-slate-500">{faq.a}</p>
+              <div key={faq.q} className="rounded-xl border border-stone-200 bg-stone-50 p-5">
+                <h3 className="m-0 mb-2 text-sm font-bold text-[#1f2933]">{faq.q}</h3>
+                <p className="m-0 text-xs leading-relaxed text-stone-500">{faq.a}</p>
               </div>
             ))}
           </div>

@@ -20,11 +20,8 @@ html { scroll-behavior: smooth; }
 html, body {
   margin: 0;
   padding: 0;
-  background-color: #faf8f4;
-  background-image:
-    repeating-linear-gradient(0deg, rgba(0,0,0,0.022) 0px, rgba(0,0,0,0.022) 1px, transparent 1px, transparent 6px),
-    repeating-linear-gradient(90deg, rgba(0,0,0,0.015) 0px, rgba(0,0,0,0.015) 1px, transparent 1px, transparent 6px);
-  color: #f1f5f9;
+  background-color: #f5ecdc;
+  color: #1f2933;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 
