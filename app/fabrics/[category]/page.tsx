@@ -206,15 +206,15 @@ export default function CategorySEOPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
-      <main className="min-h-screen bg-[#0a0f1e] px-3 py-3 font-sans md:px-4 md:py-4">
+      <main className="min-h-screen bg-[#f5ecdc] px-3 py-3 font-sans md:px-4 md:py-4">
         <div className="mx-auto flex max-w-5xl flex-col gap-4">
           <SiteHeader />
 
           {/* Breadcrumb */}
-          <nav className="flex items-center gap-2 text-xs text-slate-600">
-            <Link href="/" className="text-slate-600 no-underline hover:text-slate-400 transition-colors">Home</Link>
+          <nav className="flex items-center gap-2 text-xs text-stone-500">
+            <Link href="/" className="text-stone-500 no-underline hover:text-stone-700 transition-colors">Home</Link>
             <span>/</span>
-            <Link href="/fabrics" className="text-slate-600 no-underline hover:text-slate-400 transition-colors">Fabrics</Link>
+            <Link href="/fabrics" className="text-stone-500 no-underline hover:text-stone-700 transition-colors">Fabrics</Link>
             <span>/</span>
             <span className={color.text}>{cat.label}</span>
           </nav>
@@ -275,11 +275,11 @@ export default function CategorySEOPage({ params }: Props) {
           </div>
 
           {/* Subcategories */}
-          <section className="rounded-3xl border border-white/7 bg-[#111827] p-5 md:p-8">
-            <h2 className="mb-2 text-xl font-black tracking-tight text-white md:text-2xl">
+          <section className="rounded-3xl border border-stone-200 bg-white p-5 md:p-8">
+            <h2 className="mb-2 text-xl font-black tracking-tight text-[#1f2933] md:text-2xl">
               {cat.label} we source
             </h2>
-            <p className="mb-5 text-sm text-slate-500">
+            <p className="mb-5 text-sm text-stone-500">
               Browse all {cat.subcategories.length} fabric types in this category. Click any to see detailed sourcing information.
             </p>
             <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4">
@@ -297,26 +297,26 @@ export default function CategorySEOPage({ params }: Props) {
           </section>
 
           {/* Why buyers use Weinly for this category */}
-          <section className="rounded-3xl border border-white/7 bg-[#111827] p-5 md:p-8">
-            <h2 className="mb-5 text-xl font-black tracking-tight text-white md:text-2xl">
+          <section className="rounded-3xl border border-stone-200 bg-white p-5 md:p-8">
+            <h2 className="mb-5 text-xl font-black tracking-tight text-[#1f2933] md:text-2xl">
               Why source {cat.label.toLowerCase()} from China through Weinly
             </h2>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
               {seo.whyChina.map((reason) => (
-                <div key={reason} className="flex items-start gap-3 rounded-2xl border border-white/7 bg-white/4 p-4">
-                  <span className="text-emerald-400 font-bold shrink-0">✓</span>
-                  <span className="text-sm text-slate-300 leading-relaxed">{reason}</span>
+                <div key={reason} className="flex items-start gap-3 rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                  <span className="text-[#24483f] font-bold shrink-0">✓</span>
+                  <span className="text-sm text-stone-600 leading-relaxed">{reason}</span>
                 </div>
               ))}
             </div>
           </section>
 
           {/* Who buys this */}
-          <section className="rounded-3xl border border-white/7 bg-[#111827] p-5 md:p-8">
-            <h2 className="mb-2 text-xl font-black tracking-tight text-white md:text-2xl">
+          <section className="rounded-3xl border border-stone-200 bg-white p-5 md:p-8">
+            <h2 className="mb-2 text-xl font-black tracking-tight text-[#1f2933] md:text-2xl">
               Who sources {cat.label.toLowerCase()} through Weinly
             </h2>
-            <p className="mb-5 text-sm text-slate-500">
+            <p className="mb-5 text-sm text-stone-500">
               Buyers from over 30 countries use Weinly to source {cat.label.toLowerCase()} directly from verified Chinese manufacturers.
             </p>
             <div className="flex flex-wrap gap-2">
@@ -329,43 +329,43 @@ export default function CategorySEOPage({ params }: Props) {
           </section>
 
           {/* CTA */}
-          <section className="rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-950 to-violet-950 p-6 md:p-10 text-center">
+          <section className="rounded-3xl border border-[#24483f]/20 bg-[#24483f] p-6 md:p-10 text-center">
             <h2 className="mb-3 text-2xl font-black tracking-tight text-white md:text-3xl">
               Ready to source {cat.label.toLowerCase()}?
             </h2>
-            <p className="mb-6 text-sm leading-relaxed text-slate-400 max-w-lg mx-auto">
+            <p className="mb-6 text-sm leading-relaxed text-[#e8dcc8] max-w-lg mx-auto">
               Submit a free sourcing request and get quotes from verified Chinese suppliers within 24 hours. No commitment required.
             </p>
             <div className="flex flex-wrap justify-center gap-3">
               <Link href="/#main-tabs"
-                className="inline-flex items-center rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 px-8 py-3.5 text-sm font-bold text-white no-underline shadow-lg shadow-indigo-500/25">
+                className="inline-flex items-center rounded-xl bg-gradient-to-r from-[#a75635] to-[#7b3525] px-8 py-3.5 text-sm font-bold text-white no-underline shadow-lg">
                 Submit free sourcing request →
               </Link>
               <a href={whatsappLink} target="_blank" rel="noreferrer"
-                className="inline-flex items-center rounded-xl border border-white/10 bg-white/6 px-8 py-3.5 text-sm font-semibold text-slate-300 no-underline hover:bg-white/10 transition-all">
+                className="inline-flex items-center rounded-xl border border-white/20 bg-white/10 px-8 py-3.5 text-sm font-semibold text-white no-underline hover:bg-white/15 transition-all">
                 Ask on WhatsApp
               </a>
             </div>
           </section>
 
           {/* FAQ */}
-          <section className="rounded-3xl border border-white/7 bg-[#111827] p-5 md:p-8">
-            <h2 className="mb-5 text-xl font-black tracking-tight text-white md:text-2xl">
+          <section className="rounded-3xl border border-stone-200 bg-white p-5 md:p-8">
+            <h2 className="mb-5 text-xl font-black tracking-tight text-[#1f2933] md:text-2xl">
               Frequently asked questions
             </h2>
             <div className="flex flex-col gap-3">
               {seo.faqs.map((faq) => (
-                <div key={faq.q} className="rounded-2xl border border-white/7 bg-white/4 p-5">
-                  <h3 className="mb-2 text-sm font-bold text-white">{faq.q}</h3>
-                  <p className="m-0 text-sm leading-relaxed text-slate-400">{faq.a}</p>
+                <div key={faq.q} className="rounded-2xl border border-stone-200 bg-stone-50 p-5">
+                  <h3 className="mb-2 text-sm font-bold text-[#1f2933]">{faq.q}</h3>
+                  <p className="m-0 text-sm leading-relaxed text-stone-500">{faq.a}</p>
                 </div>
               ))}
             </div>
           </section>
 
           {/* Internal links to other categories */}
-          <section className="rounded-3xl border border-white/7 bg-[#111827] p-5 md:p-8">
-            <h2 className="mb-4 text-lg font-black tracking-tight text-white">
+          <section className="rounded-3xl border border-stone-200 bg-white p-5 md:p-8">
+            <h2 className="mb-4 text-lg font-black tracking-tight text-[#1f2933]">
               Explore other fabric categories
             </h2>
             <div className="grid grid-cols-2 gap-2 md:grid-cols-4">

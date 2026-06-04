@@ -97,19 +97,19 @@ export default function SubcategorySEOPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
-      <main className="min-h-screen bg-[#0a0f1e] px-3 py-3 font-sans md:px-4 md:py-4">
+      <main className="min-h-screen bg-[#f5ecdc] px-3 py-3 font-sans md:px-4 md:py-4">
         <div className="mx-auto flex max-w-5xl flex-col gap-4">
           <SiteHeader />
 
           {/* Breadcrumb */}
-          <nav className="flex items-center gap-2 text-xs text-slate-600 flex-wrap">
-            <Link href="/" className="text-slate-600 no-underline hover:text-slate-400 transition-colors">Home</Link>
+          <nav className="flex items-center gap-2 text-xs text-stone-500 flex-wrap">
+            <Link href="/" className="text-stone-500 no-underline hover:text-stone-700 transition-colors">Home</Link>
             <span>/</span>
-            <Link href="/fabrics" className="text-slate-600 no-underline hover:text-slate-400 transition-colors">Fabrics</Link>
+            <Link href="/fabrics" className="text-stone-500 no-underline hover:text-stone-700 transition-colors">Fabrics</Link>
             <span>/</span>
             <Link href={`/fabrics/${params.category}`} className={`no-underline hover:opacity-80 transition-opacity ${color.text}`}>{cat.label}</Link>
             <span>/</span>
-            <span className="text-slate-400">{subLabel}</span>
+            <span className="text-stone-400">{subLabel}</span>
           </nav>
 
           {/* Hero */}
@@ -142,8 +142,8 @@ export default function SubcategorySEOPage({ params }: Props) {
           </section>
 
           {/* What you get */}
-          <section className="rounded-3xl border border-white/7 bg-[#111827] p-5 md:p-8">
-            <h2 className="mb-5 text-xl font-black tracking-tight text-white md:text-2xl">
+          <section className="rounded-3xl border border-stone-200 bg-white p-5 md:p-8">
+            <h2 className="mb-5 text-xl font-black tracking-tight text-[#1f2933] md:text-2xl">
               How Weinly helps you source {subLabel}
             </h2>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -164,18 +164,18 @@ export default function SubcategorySEOPage({ params }: Props) {
                   desc: `Pay once to unlock direct supplier contact — phone, WeChat and email. Negotiate, sample, and order on your own terms.`,
                 },
               ].map((item) => (
-                <div key={item.title} className="rounded-2xl border border-white/7 bg-white/4 p-5">
+                <div key={item.title} className="rounded-2xl border border-stone-200 bg-stone-50 p-5">
                   <div className="mb-3 text-2xl">{item.icon}</div>
-                  <h3 className="mb-2 text-sm font-bold text-white">{item.title}</h3>
-                  <p className="m-0 text-xs leading-relaxed text-slate-400">{item.desc}</p>
+                  <h3 className="mb-2 text-sm font-bold text-[#1f2933]">{item.title}</h3>
+                  <p className="m-0 text-xs leading-relaxed text-stone-500">{item.desc}</p>
                 </div>
               ))}
             </div>
           </section>
 
           {/* Key facts */}
-          <section className="rounded-3xl border border-white/7 bg-[#111827] p-5 md:p-8">
-            <h2 className="mb-5 text-xl font-black tracking-tight text-white md:text-2xl">
+          <section className="rounded-3xl border border-stone-200 bg-white p-5 md:p-8">
+            <h2 className="mb-5 text-xl font-black tracking-tight text-[#1f2933] md:text-2xl">
               Sourcing {subLabel} from China — what to know
             </h2>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -187,29 +187,29 @@ export default function SubcategorySEOPage({ params }: Props) {
                 { label: "Quality verification", text: `Weinly connects you directly to verified suppliers. You can request fabric swatches and negotiate quality specifications before placing bulk orders.` },
                 { label: "Payment terms", text: `Most suppliers accept T/T bank transfer, with 30% deposit and 70% before shipment as standard. Some offer PayPal or Alibaba trade assurance for new relationships.` },
               ].map((fact) => (
-                <div key={fact.label} className="rounded-2xl border border-white/7 bg-white/4 p-4">
+                <div key={fact.label} className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
                   <div className={`mb-1.5 text-xs font-black uppercase tracking-widest ${color.text}`}>{fact.label}</div>
-                  <p className="m-0 text-sm leading-relaxed text-slate-400">{fact.text}</p>
+                  <p className="m-0 text-sm leading-relaxed text-stone-500">{fact.text}</p>
                 </div>
               ))}
             </div>
           </section>
 
           {/* CTA */}
-          <section className={`rounded-3xl border p-6 md:p-8 text-center ${color.bg} ${color.border}`}>
+          <section className="rounded-3xl border border-[#24483f]/20 bg-[#24483f] p-6 md:p-8 text-center">
             <h2 className="mb-2 text-2xl font-black tracking-tight text-white md:text-3xl">
               Source {subLabel} today
             </h2>
-            <p className="mb-6 text-sm leading-relaxed text-slate-300 max-w-lg mx-auto">
+            <p className="mb-6 text-sm leading-relaxed text-[#e8dcc8] max-w-lg mx-auto">
               Submit a free request and get quotes from verified {subLabel} suppliers in China within 24 hours.
             </p>
             <div className="flex flex-wrap justify-center gap-3">
               <Link href="/#main-tabs"
-                className="inline-flex items-center rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-slate-900 no-underline shadow-lg transition-all hover:bg-white/90">
+                className="inline-flex items-center rounded-xl bg-gradient-to-r from-[#a75635] to-[#7b3525] px-8 py-3.5 text-sm font-bold text-white no-underline shadow-lg transition-all hover:opacity-90">
                 Submit free request →
               </Link>
               <a href={whatsappLink} target="_blank" rel="noreferrer"
-                className="inline-flex items-center rounded-xl border border-white/20 bg-black/20 px-8 py-3.5 text-sm font-semibold text-white no-underline hover:bg-black/30 transition-all">
+                className="inline-flex items-center rounded-xl border border-white/20 bg-white/10 px-8 py-3.5 text-sm font-semibold text-white no-underline hover:bg-white/15 transition-all">
                 Ask on WhatsApp
               </a>
             </div>
@@ -217,8 +217,8 @@ export default function SubcategorySEOPage({ params }: Props) {
 
           {/* Related subcategories */}
           {relatedSubs.length > 0 && (
-            <section className="rounded-3xl border border-white/7 bg-[#111827] p-5 md:p-6">
-              <h2 className="mb-4 text-lg font-black tracking-tight text-white">
+            <section className="rounded-3xl border border-stone-200 bg-white p-5 md:p-6">
+              <h2 className="mb-4 text-lg font-black tracking-tight text-[#1f2933]">
                 More {cat.label.toLowerCase()} fabrics
               </h2>
               <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
@@ -226,7 +226,7 @@ export default function SubcategorySEOPage({ params }: Props) {
                   <Link key={sub} href={`/fabrics/${params.category}/${labelToSlug(sub)}`}
                     className={`rounded-xl border p-3 no-underline transition-all hover:scale-[1.02] ${color.bg} ${color.border}`}>
                     <div className={`text-xs font-bold ${color.text}`}>{sub}</div>
-                    <div className="text-xs text-slate-500 mt-0.5">Source from China →</div>
+                    <div className="text-xs text-stone-500 mt-0.5">Source from China →</div>
                   </Link>
                 ))}
               </div>
@@ -239,15 +239,15 @@ export default function SubcategorySEOPage({ params }: Props) {
           )}
 
           {/* All categories */}
-          <section className="rounded-3xl border border-white/7 bg-[#111827] p-5">
-            <h2 className="mb-4 text-sm font-black uppercase tracking-widest text-slate-500">All fabric categories</h2>
+          <section className="rounded-3xl border border-stone-200 bg-white p-5">
+            <h2 className="mb-4 text-sm font-black uppercase tracking-widest text-stone-500">All fabric categories</h2>
             <div className="grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-5">
               {FABRIC_CATEGORIES.map((c) => {
                 const cc = getCategoryColor(c.id);
                 return (
                   <Link key={c.id} href={`/fabrics/${c.id}`}
-                    className={`rounded-xl border p-3 no-underline transition-all hover:scale-[1.02] ${c.id === params.category ? `${cc.bg} ${cc.border}` : "border-white/7 bg-white/4"}`}>
-                    <span className={`text-xs font-bold ${c.id === params.category ? cc.text : "text-slate-400"}`}>{c.label}</span>
+                    className={`rounded-xl border p-3 no-underline transition-all hover:scale-[1.02] ${c.id === params.category ? `${cc.bg} ${cc.border}` : "border-stone-200 bg-stone-50"}`}>
+                    <span className={`text-xs font-bold ${c.id === params.category ? cc.text : "text-stone-500"}`}>{c.label}</span>
                   </Link>
                 );
               })}

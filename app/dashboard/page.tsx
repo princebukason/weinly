@@ -86,7 +86,7 @@ export default async function DashboardPage() {
 
   if (requestsError) {
     return (
-      <main className="min-h-screen bg-[#0a0f1e] p-6 text-white">
+      <main className="min-h-screen bg-[#f5ecdc] p-6 text-[#1f2933]">
         Failed to load dashboard.
       </main>
     );
@@ -122,7 +122,7 @@ export default async function DashboardPage() {
 
     if (quotesError) {
       return (
-        <main className="min-h-screen bg-[#0a0f1e] p-6 text-white">
+        <main className="min-h-screen bg-[#f5ecdc] p-6 text-[#1f2933]">
           Failed to load supplier quotes.
         </main>
       );

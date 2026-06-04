@@ -66,16 +66,16 @@ function getIntentScore(r: FabricRequest) {
 
 function getIntentLevel(r: FabricRequest) {
   const s = getIntentScore(r);
-  if (s >= 3) return { label: "High intent", cls: "bg-emerald-900/60 text-emerald-300 border border-emerald-500/30" };
-  if (s >= 2) return { label: "Warm buyer", cls: "bg-blue-900/60 text-blue-300 border border-blue-500/30" };
-  return { label: "General inquiry", cls: "bg-slate-800/80 text-slate-300 border border-slate-600/30" };
+  if (s >= 3) return { label: "High intent", cls: "bg-emerald-100 text-[#2f7d57] border border-emerald-200" };
+  if (s >= 2) return { label: "Warm buyer", cls: "bg-blue-100 text-blue-700 border border-blue-200" };
+  return { label: "General inquiry", cls: "bg-stone-100 text-stone-600 border border-stone-200" };
 }
 
 function getUrgencyLevel(createdAt: string) {
   const hours = (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60);
-  if (hours <= 24) return { label: "Fresh lead", cls: "bg-amber-900/60 text-amber-300 border border-amber-500/30", priority: 3 };
-  if (hours <= 72) return { label: "Recent", cls: "bg-indigo-900/60 text-indigo-300 border border-indigo-500/30", priority: 2 };
-  return { label: "Older lead", cls: "bg-slate-800/80 text-slate-300 border border-slate-600/30", priority: 1 };
+  if (hours <= 24) return { label: "Fresh lead", cls: "bg-amber-100 text-amber-700 border border-amber-200", priority: 3 };
+  if (hours <= 72) return { label: "Recent", cls: "bg-[#24483f]/10 text-[#24483f] border border-[#24483f]/20", priority: 2 };
+  return { label: "Older lead", cls: "bg-stone-100 text-stone-500 border border-stone-200", priority: 1 };
 }
 
 function CategoryBadge({ categoryId, subcategory }: { categoryId: string; subcategory?: string | null }) {
@@ -92,7 +92,7 @@ function StarDisplay({ rating, size = "sm" }: { rating: number; size?: "sm" | "l
   return (
     <div className="flex gap-0.5">
       {[1, 2, 3, 4, 5].map((s) => (
-        <span key={s} className={`${sz} ${s <= rating ? "text-amber-400" : "text-slate-700"}`}>★</span>
+        <span key={s} className={`${sz} ${s <= rating ? "text-amber-500" : "text-stone-300"}`}>★</span>
       ))}
     </div>
   );
@@ -329,63 +329,62 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
   const activeStockCategory = FABRIC_CATEGORIES.find((c) => c.id === stockForm.category);
 
   const stats = [
-    { value: String(filteredRequests.length), label: "Matching requests", color: "text-amber-400" },
-    { value: String(myQuotes.length), label: "Quotes sent", color: "text-sky-400" },
-    { value: String(closedDeals), label: "Deals closed", color: "text-emerald-400" },
-    { value: `${winRate}%`, label: "Win rate", color: "text-violet-400" },
-    ...(avgRating ? [{ value: `${avgRating}★`, label: "Avg rating", color: "text-amber-300" }] : []),
+    { value: String(filteredRequests.length), label: "Matching requests", color: "text-[#24483f]" },
+    { value: String(myQuotes.length), label: "Quotes sent", color: "text-[#24483f]" },
+    { value: String(closedDeals), label: "Deals closed", color: "text-[#24483f]" },
+    { value: `${winRate}%`, label: "Win rate", color: "text-[#a75635]" },
+    ...(avgRating ? [{ value: `${avgRating}★`, label: "Avg rating", color: "text-amber-500" }] : []),
   ];
 
   return (
-    <main className="min-h-screen bg-[#0a0f1e] px-3 py-3 font-sans md:px-4 md:py-4">
+    <main className="min-h-screen bg-[#f5ecdc] px-3 py-3 font-sans md:px-4 md:py-4">
       <div className="mx-auto flex max-w-5xl flex-col gap-3">
 
-        <nav className="flex items-center justify-between gap-4 rounded-2xl border border-white/8 bg-[#0d1424] px-4 py-3">
+        <nav className="flex items-center justify-between gap-4 rounded-2xl border border-stone-200 bg-white px-4 py-3">
           <a href="/" className="flex shrink-0 items-center gap-2 no-underline">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-amber-700 text-sm font-black text-white shadow-lg shadow-amber-500/30">W</span>
-            <span className="text-xl font-black tracking-tight text-white">Weinly</span>
+            <img src="/weinly-logo.svg" alt="Weinly" className="h-9 w-auto" />
           </a>
           <div className="flex items-center gap-3">
-            <a href={`/suppliers/${user.id}`} className="hidden text-xs font-semibold text-indigo-400 no-underline hover:text-indigo-300 md:block">View public profile →</a>
-            <span className="hidden text-sm text-slate-500 md:block">{user.email}</span>
-            <button onClick={handleLogout} disabled={loggingOut} className="cursor-pointer rounded-xl border border-white/10 bg-white/6 px-4 py-2 text-sm font-semibold text-slate-400 transition-all hover:bg-white/10 disabled:opacity-60">
+            <a href={`/suppliers/${user.id}`} className="hidden text-xs font-semibold text-[#24483f] no-underline hover:underline md:block">View public profile →</a>
+            <span className="hidden text-sm text-stone-500 md:block">{user.email}</span>
+            <button onClick={handleLogout} disabled={loggingOut} className="cursor-pointer rounded-xl border border-stone-200 bg-stone-50 px-4 py-2 text-sm font-semibold text-stone-600 transition-all hover:bg-stone-100 disabled:opacity-60">
               {loggingOut ? "..." : "Log out"}
             </button>
           </div>
         </nav>
 
         {/* Header */}
-        <section className="relative overflow-hidden rounded-3xl border border-amber-500/15 bg-gradient-to-br from-[#1a0f00] via-[#1a1200] to-[#0f0a00] p-6 shadow-2xl shadow-amber-500/8 md:p-8">
-          <div className="pointer-events-none absolute right-0 top-0 h-64 w-64 translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-500/8 blur-3xl" />
+        <section className="relative overflow-hidden rounded-3xl border border-[#24483f]/20 bg-[#24483f] p-6 md:p-8">
+          <div className="pointer-events-none absolute right-0 top-0 h-64 w-64 translate-x-1/2 -translate-y-1/2 rounded-full bg-white/5 blur-3xl" />
           <div className="relative z-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-start">
             <div>
               <div className="mb-3 flex flex-wrap items-center gap-2">
-                <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/25 bg-amber-500/10 px-4 py-1.5">
-                  <span className="h-2 w-2 rounded-full bg-amber-400" />
-                  <span className="text-xs font-semibold text-amber-300">Supplier portal</span>
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5">
+                  <span className="h-2 w-2 rounded-full bg-[#e8dcc8]" />
+                  <span className="text-xs font-semibold text-[#e8dcc8]">Supplier portal</span>
                 </div>
                 {profile?.is_verified && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-400">✓ Verified Supplier</span>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-[#2f7d57]">✓ Verified Supplier</span>
                 )}
               </div>
               <h1 className="mb-1 text-2xl font-black tracking-tight text-white md:text-3xl">{profile?.company_name || user.name || "Supplier dashboard"}</h1>
-              <p className="m-0 text-sm text-slate-400">{profile?.region || user.email}</p>
+              <p className="m-0 text-sm text-[#e8dcc8]">{profile?.region || user.email}</p>
               {supplierCategories.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {supplierCategories.map((catId) => <CategoryBadge key={catId} categoryId={catId} />)}
                 </div>
               )}
               {!profileComplete && (
-                <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1">
-                  <span className="text-xs font-bold text-red-300">Complete your profile to receive buyer contact releases</span>
+                <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-100 px-3 py-1">
+                  <span className="text-xs font-bold text-red-700">Complete your profile to receive buyer contact releases</span>
                 </div>
               )}
             </div>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
               {stats.map((s) => (
-                <div key={s.label} className="rounded-2xl border border-white/8 bg-white/5 p-3 text-center">
+                <div key={s.label} className="rounded-2xl border border-white/15 bg-white/10 p-3 text-center">
                   <div className={`text-2xl font-black ${s.color}`}>{s.value}</div>
-                  <div className="mt-0.5 text-xs text-slate-600">{s.label}</div>
+                  <div className="mt-0.5 text-xs text-[#e8dcc8]/70">{s.label}</div>
                 </div>
               ))}
             </div>
@@ -393,15 +392,15 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
         </section>
 
         {successMessage && (
-          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/8 p-4 text-sm text-emerald-300">{successMessage}</div>
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-[#2f7d57]">{successMessage}</div>
         )}
 
-        <section className="rounded-3xl border border-white/7 bg-[#111827] p-4 md:p-6">
+        <section className="rounded-3xl border border-stone-200 bg-white p-4 md:p-6">
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex gap-1.5 overflow-x-auto rounded-2xl border border-white/7 bg-white/4 p-1.5">
+            <div className="flex gap-1.5 overflow-x-auto rounded-2xl border border-stone-200 bg-stone-50 p-1.5">
               {(["requests", "quotes", "stock", "reviews", "profile"] as const).map((tab) => (
                 <button key={tab} onClick={() => setActiveTab(tab)}
-                  className={`shrink-0 cursor-pointer rounded-xl px-3 py-2.5 text-xs font-bold transition-all md:text-sm ${activeTab === tab ? "bg-gradient-to-r from-amber-500 to-amber-700 text-white shadow-lg shadow-amber-500/25" : "bg-transparent text-slate-500 hover:text-slate-300"}`}>
+                  className={`shrink-0 cursor-pointer rounded-xl px-3 py-2.5 text-xs font-bold transition-all md:text-sm ${activeTab === tab ? "bg-gradient-to-r from-[#24483f] to-[#1a3530] text-white shadow-lg" : "bg-transparent text-stone-500 hover:text-stone-700"}`}>
                   {tab === "requests" ? `Requests (${filteredRequests.length})`
                     : tab === "quotes" ? `Quotes (${myQuotes.length})`
                     : tab === "stock" ? `Ready Stock (${stock.filter((s) => !s.is_sold_out && s.is_active !== false).length})`
@@ -412,7 +411,7 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
             </div>
             {(activeTab === "requests" || activeTab === "quotes") && (
               <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search..."
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-amber-500 md:max-w-xs" />
+                className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-[#1f2933] outline-none transition-all placeholder:text-stone-400 focus:border-[#24483f] focus:bg-[#24483f]/5 md:max-w-xs" />
             )}
           </div>
 
@@ -420,12 +419,12 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
           {activeTab === "requests" && (
             <div className="flex flex-col gap-4">
               <div>
-                <h2 className="mb-1 text-xl font-black tracking-tight text-white">Open buyer requests</h2>
-                <p className="m-0 text-sm text-slate-500">{supplierCategories.length > 0 ? `Showing requests matching your ${supplierCategories.length} selected categories.` : "All buyer requests."}</p>
+                <h2 className="mb-1 text-xl font-black tracking-tight text-[#1f2933]">Open buyer requests</h2>
+                <p className="m-0 text-sm text-stone-500">{supplierCategories.length > 0 ? `Showing requests matching your ${supplierCategories.length} selected categories.` : "All buyer requests."}</p>
               </div>
               {availableCategories.length > 1 && (
                 <div className="flex flex-wrap gap-2">
-                  <button onClick={() => setCategoryFilter("all")} className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${categoryFilter === "all" ? "border-white/30 bg-white/15 text-white" : "border-white/10 bg-white/4 text-slate-500 hover:text-slate-300"}`}>
+                  <button onClick={() => setCategoryFilter("all")} className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${categoryFilter === "all" ? "border-[#24483f] bg-[#24483f]/10 text-[#24483f]" : "border-stone-200 bg-stone-50 text-stone-500 hover:border-stone-300 hover:text-stone-700"}`}>
                     All ({matchingRequests.length})
                   </button>
                   {availableCategories.map((cat) => {
@@ -433,33 +432,33 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                     const count = matchingRequests.filter((r) => r.category === cat.id).length;
                     return (
                       <button key={cat.id} onClick={() => setCategoryFilter(cat.id)}
-                        className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${categoryFilter === cat.id ? `${color.bg} ${color.text} ${color.border}` : "border-white/10 bg-white/4 text-slate-500 hover:text-slate-300"}`}>
+                        className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${categoryFilter === cat.id ? `${color.bg} ${color.text} ${color.border}` : "border-stone-200 bg-stone-50 text-stone-500 hover:border-stone-300 hover:text-stone-700"}`}>
                         {cat.label} ({count})
                       </button>
                     );
                   })}
                 </div>
               )}
-              <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/6 p-4 text-xs leading-relaxed text-indigo-300">
+              <div className="rounded-2xl border border-[#24483f]/15 bg-[#24483f]/5 p-4 text-xs leading-relaxed text-[#24483f]">
                 Tip: Fast response, clear MOQ, and competitive pricing improve your win rate.
               </div>
               {filteredRequests.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-white/10 bg-white/2 p-10 text-center">
+                <div className="rounded-2xl border border-dashed border-stone-300 bg-stone-50 p-10 text-center">
                   <div className="mb-3 text-4xl">◎</div>
-                  <div className="mb-2 font-bold text-slate-400">No matching requests</div>
-                  <p className="m-0 text-sm text-slate-600">{supplierCategories.length > 0 ? "No new requests in your categories. Check back soon or update your categories in Profile." : "No new requests right now."}</p>
+                  <div className="mb-2 font-bold text-stone-500">No matching requests</div>
+                  <p className="m-0 text-sm text-stone-400">{supplierCategories.length > 0 ? "No new requests in your categories. Check back soon or update your categories in Profile." : "No new requests right now."}</p>
                 </div>
               ) : (
                 filteredRequests.map((request) => {
                   const intent = getIntentLevel(request);
                   const urgency = getUrgencyLevel(request.created_at);
                   return (
-                    <div key={request.id} className="flex flex-col gap-4 rounded-2xl border border-white/7 bg-white/3 p-5">
+                    <div key={request.id} className="flex flex-col gap-4 rounded-2xl border border-stone-200 bg-stone-50 p-5">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <div className="mb-1 text-xs font-bold uppercase tracking-widest text-slate-500">Request ID</div>
-                          <div className="mb-2 font-mono text-xs text-slate-400">{request.id}</div>
-                          <div className="text-xs text-slate-500">{getRequestAge(request.created_at)}</div>
+                          <div className="mb-1 text-xs font-bold uppercase tracking-widest text-stone-500">Request ID</div>
+                          <div className="mb-2 font-mono text-xs text-stone-400">{request.id}</div>
+                          <div className="text-xs text-stone-500">{getRequestAge(request.created_at)}</div>
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {request.category && <CategoryBadge categoryId={request.category} subcategory={request.subcategory} />}
@@ -467,45 +466,45 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                           <span className={`rounded-full px-3 py-1.5 text-xs font-bold ${urgency.cls}`}>{urgency.label}</span>
                         </div>
                       </div>
-                      <div className="rounded-xl border border-white/7 bg-white/4 p-4">
-                        <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">Buyer request</div>
-                        <p className="m-0 text-sm leading-relaxed text-slate-300">{request.user_input}</p>
+                      <div className="rounded-xl border border-stone-200 bg-white p-4">
+                        <div className="mb-2 text-xs font-bold uppercase tracking-widest text-stone-500">Buyer request</div>
+                        <p className="m-0 text-sm leading-relaxed text-stone-600">{request.user_input}</p>
                       </div>
                       {request.ai_output != null && (
-                        <div className="rounded-xl border border-white/7 bg-white/4 p-4">
-                          <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">AI sourcing spec</div>
-                          <p className="m-0 whitespace-pre-wrap text-sm leading-relaxed text-slate-400">{formatAiOutput(request.ai_output)}</p>
+                        <div className="rounded-xl border border-stone-200 bg-white p-4">
+                          <div className="mb-2 text-xs font-bold uppercase tracking-widest text-stone-500">AI sourcing spec</div>
+                          <p className="m-0 whitespace-pre-wrap text-sm leading-relaxed text-stone-500">{formatAiOutput(request.ai_output)}</p>
                         </div>
                       )}
                       {quoteForm.open && quoteForm.requestId === request.id ? (
-                        <form onSubmit={submitQuote} className="flex flex-col gap-4 rounded-2xl border border-amber-500/20 bg-amber-500/6 p-5">
-                          <h4 className="m-0 text-base font-bold text-white">Submit your quote</h4>
+                        <form onSubmit={submitQuote} className="flex flex-col gap-4 rounded-2xl border border-[#24483f]/20 bg-[#24483f]/5 p-5">
+                          <h4 className="m-0 text-base font-bold text-[#1f2933]">Submit your quote</h4>
                           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                             {quoteFormFields.map((field) => (
                               <div key={field.key} className="flex flex-col gap-1.5">
-                                <label className="text-xs font-bold uppercase tracking-wider text-slate-400">{field.label}</label>
+                                <label className="text-xs font-bold uppercase tracking-wider text-stone-600">{field.label}</label>
                                 <input value={formData[field.key as keyof typeof formData]} onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })} placeholder={field.placeholder}
-                                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-amber-500" />
+                                  className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-[#1f2933] outline-none transition-all placeholder:text-stone-400 focus:border-[#24483f] focus:bg-[#24483f]/5" />
                               </div>
                             ))}
                           </div>
                           <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Additional note</label>
+                            <label className="text-xs font-bold uppercase tracking-wider text-stone-600">Additional note</label>
                             <textarea value={formData.note} onChange={(e) => setFormData({ ...formData, note: e.target.value })} rows={3}
                               placeholder="Any additional details about your product, certifications, samples, etc."
-                              className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-amber-500" />
+                              className="w-full resize-none rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-[#1f2933] outline-none transition-all placeholder:text-stone-400 focus:border-[#24483f] focus:bg-[#24483f]/5" />
                           </div>
                           <div className="flex flex-wrap gap-3">
                             <button type="submit" disabled={submitting}
-                              className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-amber-500 to-amber-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/25 disabled:opacity-60">
+                              className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-[#24483f] to-[#1a3530] px-6 py-3 text-sm font-bold text-white shadow-lg disabled:opacity-60">
                               {submitting ? "Submitting..." : "Submit quote & notify buyer →"}
                             </button>
-                            <button type="button" onClick={resetQuoteForm} className="cursor-pointer rounded-xl border border-white/10 bg-white/6 px-6 py-3 text-sm font-semibold text-slate-400 transition-all hover:bg-white/10">Cancel</button>
+                            <button type="button" onClick={resetQuoteForm} className="cursor-pointer rounded-xl border border-stone-200 bg-stone-50 px-6 py-3 text-sm font-semibold text-stone-600 transition-all hover:bg-stone-100">Cancel</button>
                           </div>
                         </form>
                       ) : (
                         <button onClick={() => { setEditingQuoteId(null); setQuoteForm({ requestId: request.id, open: true }); setFormData({ price: "", moq: "", lead_time: "", note: "", supplier_region: profile?.region || "" }); setSuccessMessage(null); }}
-                          className="cursor-pointer self-start rounded-xl border-0 bg-gradient-to-r from-amber-500 to-amber-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/20">
+                          className="cursor-pointer self-start rounded-xl border-0 bg-gradient-to-r from-[#24483f] to-[#1a3530] px-6 py-3 text-sm font-bold text-white shadow-lg">
                           Submit a quote →
                         </button>
                       )}
@@ -520,51 +519,51 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
           {activeTab === "quotes" && (
             <div className="flex flex-col gap-4">
               <div>
-                <h2 className="mb-1 text-xl font-black tracking-tight text-white">My submitted quotes</h2>
-                <p className="m-0 text-sm text-slate-500">Track, update or remove your quotes.</p>
+                <h2 className="mb-1 text-xl font-black tracking-tight text-[#1f2933]">My submitted quotes</h2>
+                <p className="m-0 text-sm text-stone-500">Track, update or remove your quotes.</p>
               </div>
               {filteredQuotes.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-white/10 bg-white/2 p-10 text-center">
+                <div className="rounded-2xl border border-dashed border-stone-300 bg-stone-50 p-10 text-center">
                   <div className="mb-3 text-4xl">◎</div>
-                  <div className="mb-2 font-bold text-slate-400">No quotes yet</div>
-                  <p className="m-0 text-sm text-slate-600">Go to open requests and submit your first quote.</p>
+                  <div className="mb-2 font-bold text-stone-500">No quotes yet</div>
+                  <p className="m-0 text-sm text-stone-400">Go to open requests and submit your first quote.</p>
                 </div>
               ) : (
                 filteredQuotes.map((quote) => (
-                  <div key={quote.id} className="flex flex-col gap-3 rounded-2xl border border-white/7 bg-white/3 p-5">
+                  <div key={quote.id} className="flex flex-col gap-3 rounded-2xl border border-stone-200 bg-stone-50 p-5">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <div className="mb-1 text-xs font-bold uppercase tracking-widest text-slate-500">Request ID</div>
-                        <div className="font-mono text-xs text-slate-400">{quote.request_id}</div>
+                        <div className="mb-1 text-xs font-bold uppercase tracking-widest text-stone-500">Request ID</div>
+                        <div className="font-mono text-xs text-stone-400">{quote.request_id}</div>
                       </div>
-                      <span className={`rounded-full px-3 py-1.5 text-xs font-bold ${quote.is_contact_released ? "border border-emerald-500/30 bg-emerald-900/60 text-emerald-300" : "border border-blue-500/30 bg-blue-900/60 text-blue-300"}`}>
+                      <span className={`rounded-full px-3 py-1.5 text-xs font-bold ${quote.is_contact_released ? "border border-emerald-200 bg-emerald-100 text-[#2f7d57]" : "border border-blue-200 bg-blue-100 text-blue-700"}`}>
                         {quote.is_contact_released ? "Deal closed ✓" : "Awaiting buyer"}
                       </span>
                     </div>
                     <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
                       {[{ label: "Price", value: quote.price || "—" }, { label: "MOQ", value: quote.moq || "—" }, { label: "Lead time", value: quote.lead_time || "—" }, { label: "Region", value: quote.supplier_region || "—" }].map((s) => (
-                        <div key={s.label} className="rounded-xl border border-white/7 bg-white/4 p-3">
-                          <div className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-600">{s.label}</div>
-                          <div className="text-sm font-semibold text-white">{s.value}</div>
+                        <div key={s.label} className="rounded-xl border border-stone-200 bg-white p-3">
+                          <div className="mb-1 text-xs font-bold uppercase tracking-wider text-stone-600">{s.label}</div>
+                          <div className="text-sm font-semibold text-[#1f2933]">{s.value}</div>
                         </div>
                       ))}
                     </div>
                     {quote.note && (
-                      <div className="rounded-xl border border-white/7 bg-white/4 p-3">
-                        <div className="mb-1.5 text-xs font-bold uppercase tracking-widest text-slate-500">Your note</div>
-                        <p className="m-0 text-sm leading-relaxed text-slate-400">{quote.note}</p>
+                      <div className="rounded-xl border border-stone-200 bg-white p-3">
+                        <div className="mb-1.5 text-xs font-bold uppercase tracking-widest text-stone-500">Your note</div>
+                        <p className="m-0 text-sm leading-relaxed text-stone-500">{quote.note}</p>
                       </div>
                     )}
                     {quote.is_contact_released && (
-                      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/6 p-3 text-sm leading-relaxed text-emerald-300">
+                      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm leading-relaxed text-[#2f7d57]">
                         <strong>Buyer has unlocked your contact.</strong> They may reach out directly.
                       </div>
                     )}
                     <div className="flex flex-wrap gap-3 pt-1">
                       <button onClick={() => { setActiveTab("quotes"); setEditingQuoteId(quote.id); setQuoteForm({ requestId: quote.request_id, open: true }); setFormData({ price: quote.price || "", moq: quote.moq || "", lead_time: quote.lead_time || "", note: quote.note || "", supplier_region: quote.supplier_region || profile?.region || "" }); setSuccessMessage(null); }}
-                        className="cursor-pointer rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-2.5 text-sm font-bold text-amber-400 transition-all hover:bg-amber-500/15">Edit quote</button>
+                        className="cursor-pointer rounded-xl border border-emerald-200 bg-emerald-100 px-4 py-2.5 text-sm font-bold text-[#2f7d57] transition-all hover:bg-emerald-200">Edit quote</button>
                       <button onClick={() => deleteQuote(quote.id)} disabled={deletingQuoteId === quote.id}
-                        className="cursor-pointer rounded-xl border border-red-500/20 bg-red-500/8 px-4 py-2.5 text-sm font-bold text-red-400 transition-all hover:bg-red-500/12 disabled:opacity-60">
+                        className="cursor-pointer rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-600 transition-all hover:bg-red-100 disabled:opacity-60">
                         {deletingQuoteId === quote.id ? "Deleting..." : "Delete"}
                       </button>
                     </div>
@@ -572,24 +571,24 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                 ))
               )}
               {quoteForm.open && editingQuoteId && (
-                <form onSubmit={submitQuote} className="flex flex-col gap-4 rounded-2xl border border-amber-500/20 bg-amber-500/6 p-5">
-                  <h4 className="m-0 text-base font-bold text-white">Edit quote</h4>
+                <form onSubmit={submitQuote} className="flex flex-col gap-4 rounded-2xl border border-[#24483f]/20 bg-[#24483f]/5 p-5">
+                  <h4 className="m-0 text-base font-bold text-[#1f2933]">Edit quote</h4>
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                     {quoteFormFields.map((field) => (
                       <div key={field.key} className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold uppercase tracking-wider text-slate-400">{field.label}</label>
+                        <label className="text-xs font-bold uppercase tracking-wider text-stone-600">{field.label}</label>
                         <input value={formData[field.key as keyof typeof formData]} onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })} placeholder={field.placeholder}
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-amber-500" />
+                          className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-[#1f2933] outline-none transition-all placeholder:text-stone-400 focus:border-[#24483f] focus:bg-[#24483f]/5" />
                       </div>
                     ))}
                   </div>
                   <textarea value={formData.note} onChange={(e) => setFormData({ ...formData, note: e.target.value })} rows={3} placeholder="Additional note..."
-                    className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-amber-500" />
+                    className="w-full resize-none rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-[#1f2933] outline-none transition-all placeholder:text-stone-400 focus:border-[#24483f] focus:bg-[#24483f]/5" />
                   <div className="flex flex-wrap gap-3">
-                    <button type="submit" disabled={submitting} className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-amber-500 to-amber-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/25 disabled:opacity-60">
+                    <button type="submit" disabled={submitting} className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-[#24483f] to-[#1a3530] px-6 py-3 text-sm font-bold text-white shadow-lg disabled:opacity-60">
                       {submitting ? "Updating..." : "Update quote →"}
                     </button>
-                    <button type="button" onClick={resetQuoteForm} className="cursor-pointer rounded-xl border border-white/10 bg-white/6 px-6 py-3 text-sm font-semibold text-slate-400 transition-all hover:bg-white/10">Cancel</button>
+                    <button type="button" onClick={resetQuoteForm} className="cursor-pointer rounded-xl border border-stone-200 bg-stone-50 px-6 py-3 text-sm font-semibold text-stone-600 transition-all hover:bg-stone-100">Cancel</button>
                   </div>
                 </form>
               )}
@@ -601,8 +600,8 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
             <div className="flex flex-col gap-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h2 className="mb-1 text-xl font-black tracking-tight text-white">Ready stock</h2>
-                  <p className="m-0 text-sm text-slate-500">List fabric you have available right now. Buyers can browse and enquire directly.</p>
+                  <h2 className="mb-1 text-xl font-black tracking-tight text-[#1f2933]">Ready stock</h2>
+                  <p className="m-0 text-sm text-stone-500">List fabric you have available right now. Buyers can browse and enquire directly.</p>
                 </div>
                 <button onClick={() => { setShowStockForm(true); setEditingStockId(null); setStockForm({ ...emptyStockForm }); }}
                   className="cursor-pointer rounded-xl border-0 bg-gradient-to-r from-emerald-500 to-emerald-700 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-500/20">
@@ -612,59 +611,59 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
 
               {/* Add/edit form */}
               {showStockForm && (
-                <form onSubmit={saveStock} className="flex flex-col gap-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/6 p-5">
-                  <h4 className="m-0 text-base font-bold text-white">{editingStockId ? "Edit stock item" : "Add fabric to ready stock"}</h4>
+                <form onSubmit={saveStock} className="flex flex-col gap-4 rounded-2xl border border-stone-200 bg-stone-50 p-5">
+                  <h4 className="m-0 text-base font-bold text-[#1f2933]">{editingStockId ? "Edit stock item" : "Add fabric to ready stock"}</h4>
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                     <div className="flex flex-col gap-1.5 md:col-span-2">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Fabric name *</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-stone-600">Fabric name *</label>
                       <input value={stockForm.name} onChange={(e) => setStockForm({ ...stockForm, name: e.target.value })} placeholder="e.g. Premium Swiss Lace — Ivory"
-                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-emerald-500" />
+                        className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-[#1f2933] outline-none transition-all placeholder:text-stone-400 focus:border-[#24483f] focus:bg-[#24483f]/5" />
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Category *</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-stone-600">Category *</label>
                       <select value={stockForm.category} onChange={(e) => setStockForm({ ...stockForm, category: e.target.value, subcategory: "" })}
-                        className="w-full rounded-xl border border-white/10 bg-[#111827] px-4 py-3 text-sm text-white outline-none transition-all focus:border-emerald-500">
+                        className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-[#1f2933] outline-none transition-all focus:border-[#24483f]">
                         <option value="">Select category</option>
                         {FABRIC_CATEGORIES.map((cat) => <option key={cat.id} value={cat.id}>{cat.label}</option>)}
                       </select>
                     </div>
                     {activeStockCategory && (
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Fabric type</label>
+                        <label className="text-xs font-bold uppercase tracking-wider text-stone-600">Fabric type</label>
                         <select value={stockForm.subcategory} onChange={(e) => setStockForm({ ...stockForm, subcategory: e.target.value })}
-                          className="w-full rounded-xl border border-white/10 bg-[#111827] px-4 py-3 text-sm text-white outline-none transition-all focus:border-emerald-500">
+                          className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-[#1f2933] outline-none transition-all focus:border-[#24483f]">
                           <option value="">Select type (optional)</option>
                           {activeStockCategory.subcategories.map((sub) => <option key={sub} value={sub}>{sub}</option>)}
                         </select>
                       </div>
                     )}
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Price per unit *</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-stone-600">Price per unit *</label>
                       <input value={stockForm.price_per_unit} onChange={(e) => setStockForm({ ...stockForm, price_per_unit: e.target.value })} placeholder="e.g. $4.50"
-                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-emerald-500" />
+                        className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-[#1f2933] outline-none transition-all placeholder:text-stone-400 focus:border-[#24483f] focus:bg-[#24483f]/5" />
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Unit</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-stone-600">Unit</label>
                       <select value={stockForm.unit} onChange={(e) => setStockForm({ ...stockForm, unit: e.target.value })}
-                        className="w-full rounded-xl border border-white/10 bg-[#111827] px-4 py-3 text-sm text-white outline-none transition-all focus:border-emerald-500">
+                        className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-[#1f2933] outline-none transition-all focus:border-[#24483f]">
                         {["yard", "meter", "roll", "kg", "piece", "set"].map((u) => <option key={u} value={u}>{u}</option>)}
                       </select>
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-400">MOQ *</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-stone-600">MOQ *</label>
                       <input value={stockForm.moq} onChange={(e) => setStockForm({ ...stockForm, moq: e.target.value })} placeholder="e.g. 50 yards"
-                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-emerald-500" />
+                        className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-[#1f2933] outline-none transition-all placeholder:text-stone-400 focus:border-[#24483f] focus:bg-[#24483f]/5" />
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Available quantity</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-stone-600">Available quantity</label>
                       <input value={stockForm.available_quantity} onChange={(e) => setStockForm({ ...stockForm, available_quantity: e.target.value })} placeholder="e.g. 500 yards in stock"
-                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-emerald-500" />
+                        className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-[#1f2933] outline-none transition-all placeholder:text-stone-400 focus:border-[#24483f] focus:bg-[#24483f]/5" />
                     </div>
                     <div className="flex flex-col gap-1.5 md:col-span-2">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Description</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-stone-600">Description</label>
                       <textarea value={stockForm.description} onChange={(e) => setStockForm({ ...stockForm, description: e.target.value })} rows={3}
                         placeholder="Describe the fabric — GSM, width, color options, feel, usage..."
-                        className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-emerald-500" />
+                        className="w-full resize-none rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-[#1f2933] outline-none transition-all placeholder:text-stone-400 focus:border-[#24483f] focus:bg-[#24483f]/5" />
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-3">
@@ -673,18 +672,18 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                       {savingStock ? "Saving..." : editingStockId ? "Update item →" : "Add to ready stock →"}
                     </button>
                     <button type="button" onClick={() => { setShowStockForm(false); setEditingStockId(null); setStockForm({ ...emptyStockForm }); }}
-                      className="cursor-pointer rounded-xl border border-white/10 bg-white/6 px-6 py-3 text-sm font-semibold text-slate-400 transition-all hover:bg-white/10">Cancel</button>
+                      className="cursor-pointer rounded-xl border border-stone-200 bg-stone-50 px-6 py-3 text-sm font-semibold text-stone-600 transition-all hover:bg-stone-100">Cancel</button>
                   </div>
                 </form>
               )}
 
               {stockLoading ? (
-                <div className="py-10 text-center text-sm text-slate-500">Loading...</div>
+                <div className="py-10 text-center text-sm text-stone-500">Loading...</div>
               ) : stock.filter((s) => s.is_active !== false).length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-white/10 bg-white/2 p-10 text-center">
+                <div className="rounded-2xl border border-dashed border-stone-300 bg-stone-50 p-10 text-center">
                   <div className="mb-3 text-4xl">◎</div>
-                  <div className="mb-2 font-bold text-slate-400">No ready stock listed</div>
-                  <p className="m-0 mb-4 text-sm text-slate-600">Add fabric you have in stock right now to attract buyers who need fast delivery.</p>
+                  <div className="mb-2 font-bold text-stone-500">No ready stock listed</div>
+                  <p className="m-0 mb-4 text-sm text-stone-400">Add fabric you have in stock right now to attract buyers who need fast delivery.</p>
                   <button onClick={() => setShowStockForm(true)}
                     className="inline-flex cursor-pointer items-center rounded-xl border-0 bg-gradient-to-r from-emerald-500 to-emerald-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/20">
                     Add your first fabric →
@@ -699,34 +698,34 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <div className={`text-sm font-bold ${color.text} mb-0.5`}>{item.name}</div>
-                            <div className="text-xs text-slate-500">{getCategoryLabel(item.category)}{item.subcategory ? ` · ${item.subcategory}` : ""}</div>
+                            <div className="text-xs text-stone-500">{getCategoryLabel(item.category)}{item.subcategory ? ` · ${item.subcategory}` : ""}</div>
                           </div>
-                          <span className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-bold ${item.is_sold_out ? "border-red-500/25 bg-red-500/15 text-red-400" : "border-emerald-500/25 bg-emerald-500/15 text-emerald-400"}`}>
+                          <span className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-bold ${item.is_sold_out ? "border-red-200 bg-red-50 text-red-600" : "border-emerald-200 bg-emerald-50 text-[#2f7d57]"}`}>
                             {item.is_sold_out ? "Sold out" : "In stock"}
                           </span>
                         </div>
-                        {item.description && <p className="m-0 text-xs leading-relaxed text-slate-400">{item.description}</p>}
+                        {item.description && <p className="m-0 text-xs leading-relaxed text-stone-500">{item.description}</p>}
                         <div className="grid grid-cols-3 gap-2">
                           {[
                             { label: "Price", value: `${item.price_per_unit}/${item.unit}` },
                             { label: "MOQ", value: item.moq },
                             { label: "Stock", value: item.available_quantity || "—" },
                           ].map((s) => (
-                            <div key={s.label} className="rounded-xl border border-white/7 bg-black/20 p-2.5">
-                              <div className="mb-0.5 text-xs font-bold uppercase tracking-wider text-slate-600">{s.label}</div>
-                              <div className="text-sm font-semibold text-white">{s.value}</div>
+                            <div key={s.label} className="rounded-xl border border-stone-200 bg-white p-2.5">
+                              <div className="mb-0.5 text-xs font-bold uppercase tracking-wider text-stone-600">{s.label}</div>
+                              <div className="text-sm font-semibold text-[#1f2933]">{s.value}</div>
                             </div>
                           ))}
                         </div>
                         <div className="flex flex-wrap gap-2">
                           <button onClick={() => toggleSoldOut(item)}
-                            className={`cursor-pointer rounded-xl border px-3 py-2 text-xs font-bold transition-all ${item.is_sold_out ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/15" : "border-amber-500/20 bg-amber-500/10 text-amber-400 hover:bg-amber-500/15"}`}>
+                            className={`cursor-pointer rounded-xl border px-3 py-2 text-xs font-bold transition-all ${item.is_sold_out ? "border-emerald-200 bg-emerald-50 text-[#2f7d57] hover:bg-emerald-100" : "border-stone-200 bg-stone-50 text-stone-600 hover:bg-stone-100"}`}>
                             {item.is_sold_out ? "Mark available" : "Mark sold out"}
                           </button>
                           <button onClick={() => { setEditingStockId(item.id); setStockForm({ name: item.name, description: item.description || "", category: item.category, subcategory: item.subcategory || "", price_per_unit: item.price_per_unit, unit: item.unit, moq: item.moq, available_quantity: item.available_quantity || "" }); setShowStockForm(true); }}
-                            className="cursor-pointer rounded-xl border border-white/10 bg-white/6 px-3 py-2 text-xs font-bold text-slate-400 transition-all hover:bg-white/10">Edit</button>
+                            className="cursor-pointer rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-xs font-bold text-stone-600 transition-all hover:bg-stone-100">Edit</button>
                           <button onClick={() => deleteStockItem(item.id)}
-                            className="cursor-pointer rounded-xl border border-red-500/20 bg-red-500/8 px-3 py-2 text-xs font-bold text-red-400 transition-all hover:bg-red-500/12">Remove</button>
+                            className="cursor-pointer rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-600 transition-all hover:bg-red-100">Remove</button>
                         </div>
                       </div>
                     );
@@ -740,34 +739,34 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
           {activeTab === "reviews" && (
             <div className="flex flex-col gap-4">
               <div>
-                <h2 className="mb-1 text-xl font-black tracking-tight text-white">Your reviews</h2>
-                <p className="m-0 text-sm text-slate-500">Reviews left by buyers after unlocking your contact details.</p>
+                <h2 className="mb-1 text-xl font-black tracking-tight text-[#1f2933]">Your reviews</h2>
+                <p className="m-0 text-sm text-stone-500">Reviews left by buyers after unlocking your contact details.</p>
               </div>
               {reviewsLoading ? (
-                <div className="py-10 text-center text-sm text-slate-500">Loading reviews...</div>
+                <div className="py-10 text-center text-sm text-stone-500">Loading reviews...</div>
               ) : reviews.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-white/10 bg-white/2 p-10 text-center">
+                <div className="rounded-2xl border border-dashed border-stone-300 bg-stone-50 p-10 text-center">
                   <div className="mb-3 text-4xl">★</div>
-                  <div className="mb-2 font-bold text-slate-400">No reviews yet</div>
-                  <p className="m-0 text-sm text-slate-600">Reviews appear here after buyers unlock your contact and leave feedback.</p>
+                  <div className="mb-2 font-bold text-stone-500">No reviews yet</div>
+                  <p className="m-0 text-sm text-stone-400">Reviews appear here after buyers unlock your contact and leave feedback.</p>
                 </div>
               ) : (
                 <>
-                  <div className="rounded-2xl border border-amber-500/20 bg-amber-500/6 p-5">
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
                     <div className="flex flex-wrap items-center justify-between gap-6">
                       <div className="flex flex-col items-center gap-1">
-                        <div className="text-5xl font-black text-white">{avgRating}</div>
+                        <div className="text-5xl font-black text-[#1f2933]">{avgRating}</div>
                         <StarDisplay rating={Math.round(Number(avgRating))} size="lg" />
-                        <div className="text-xs text-slate-500">{reviews.length} {reviews.length === 1 ? "review" : "reviews"}</div>
+                        <div className="text-xs text-stone-500">{reviews.length} {reviews.length === 1 ? "review" : "reviews"}</div>
                       </div>
                       <div className="flex flex-1 flex-col gap-2 min-w-[160px]">
                         {ratingDistribution.map(({ star, count, pct }) => (
                           <div key={star} className="flex items-center gap-2">
-                            <span className="w-4 text-xs text-slate-500">{star}★</span>
-                            <div className="flex-1 h-2 rounded-full bg-white/10 overflow-hidden">
-                              <div className="h-full rounded-full bg-amber-400 transition-all" style={{ width: `${pct}%` }} />
+                            <span className="w-4 text-xs text-stone-500">{star}★</span>
+                            <div className="flex-1 h-2 rounded-full bg-stone-200 overflow-hidden">
+                              <div className="h-full rounded-full bg-amber-500 transition-all" style={{ width: `${pct}%` }} />
                             </div>
-                            <span className="w-6 text-right text-xs text-slate-500">{count}</span>
+                            <span className="w-6 text-right text-xs text-stone-500">{count}</span>
                           </div>
                         ))}
                       </div>
@@ -775,15 +774,15 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                   </div>
                   <div className="flex flex-col gap-3">
                     {reviews.map((review) => (
-                      <div key={review.id} className="flex flex-col gap-3 rounded-2xl border border-white/7 bg-white/3 p-5">
+                      <div key={review.id} className="flex flex-col gap-3 rounded-2xl border border-stone-200 bg-stone-50 p-5">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div>
-                            <div className="mb-0.5 text-sm font-bold text-white">{review.buyer_name || "Verified buyer"}</div>
-                            <div className="text-xs text-slate-500">{new Date(review.created_at).toLocaleDateString()} · Request {review.request_id.slice(0, 8)}...</div>
+                            <div className="mb-0.5 text-sm font-bold text-[#1f2933]">{review.buyer_name || "Verified buyer"}</div>
+                            <div className="text-xs text-stone-500">{new Date(review.created_at).toLocaleDateString()} · Request {review.request_id.slice(0, 8)}...</div>
                           </div>
                           <StarDisplay rating={review.rating} size="sm" />
                         </div>
-                        {review.comment && <p className="m-0 text-sm leading-relaxed text-slate-400">{review.comment}</p>}
+                        {review.comment && <p className="m-0 text-sm leading-relaxed text-stone-500">{review.comment}</p>}
                       </div>
                     ))}
                   </div>
@@ -797,22 +796,22 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
             <div className="flex flex-col gap-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h2 className="mb-1 text-xl font-black tracking-tight text-white">Supplier profile</h2>
-                  <p className="m-0 text-sm text-slate-500">This information is shown to buyers when your contact is released.</p>
+                  <h2 className="mb-1 text-xl font-black tracking-tight text-[#1f2933]">Supplier profile</h2>
+                  <p className="m-0 text-sm text-stone-500">This information is shown to buyers when your contact is released.</p>
                 </div>
                 <button onClick={() => setEditProfile(!editProfile)}
-                  className="cursor-pointer rounded-xl border border-amber-500/20 bg-amber-500/10 px-5 py-2.5 text-sm font-bold text-amber-400 transition-all hover:bg-amber-500/15">
+                  className="cursor-pointer rounded-xl border border-[#24483f]/20 bg-[#24483f]/10 px-5 py-2.5 text-sm font-bold text-[#24483f] transition-all hover:bg-[#24483f]/15">
                   {editProfile ? "Cancel" : "Edit profile"}
                 </button>
               </div>
-              {profileMsg && <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/8 p-4 text-sm text-emerald-300">{profileMsg}</div>}
-              {!profileComplete && <div className="rounded-2xl border border-red-500/20 bg-red-500/8 p-4 text-sm text-red-300">Complete your profile fully. Buyers will only trust and contact suppliers with complete details.</div>}
+              {profileMsg && <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-[#2f7d57]">{profileMsg}</div>}
+              {!profileComplete && <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">Complete your profile fully. Buyers will only trust and contact suppliers with complete details.</div>}
               {profile?.is_verified && (
-                <div className="flex items-center gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/6 p-4">
-                  <span className="text-xl text-emerald-400">✓</span>
+                <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                  <span className="text-xl text-[#2f7d57]">✓</span>
                   <div>
-                    <div className="text-sm font-bold text-emerald-300">Verified Supplier</div>
-                    <div className="text-xs text-slate-500">Your account has been verified by the Weinly team. This badge appears on all your quotes.</div>
+                    <div className="text-sm font-bold text-[#2f7d57]">Verified Supplier</div>
+                    <div className="text-xs text-stone-500">Your account has been verified by the Weinly team. This badge appears on all your quotes.</div>
                   </div>
                 </div>
               )}
@@ -827,22 +826,22 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                       { label: "Region / city", key: "region", placeholder: "e.g. Guangzhou, China" },
                     ].map((field) => (
                       <div key={field.key} className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold uppercase tracking-wider text-slate-400">{field.label}</label>
+                        <label className="text-xs font-bold uppercase tracking-wider text-stone-600">{field.label}</label>
                         <input value={profileForm[field.key as keyof typeof profileForm] as string} onChange={(e) => setProfileForm({ ...profileForm, [field.key]: e.target.value })} placeholder={field.placeholder}
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-amber-500" />
+                          className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-[#1f2933] outline-none transition-all placeholder:text-stone-400 focus:border-[#24483f] focus:bg-[#24483f]/5" />
                       </div>
                     ))}
                     <div className="flex flex-col gap-1.5 md:col-span-2">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Bio / company description</label>
+                      <label className="text-xs font-bold uppercase tracking-wider text-stone-600">Bio / company description</label>
                       <textarea value={profileForm.bio} onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })} rows={3}
                         placeholder="Describe your company, specialties, years of experience, export markets..."
-                        className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-amber-500" />
+                        className="w-full resize-none rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-[#1f2933] outline-none transition-all placeholder:text-stone-400 focus:border-[#24483f] focus:bg-[#24483f]/5" />
                     </div>
                   </div>
                   <div className="flex flex-col gap-3">
                     <div>
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Fabric categories you supply</label>
-                      <p className="mt-1 text-xs text-slate-600">Select all categories you can fulfil. You'll only see matching buyer requests.</p>
+                      <label className="text-xs font-bold uppercase tracking-wider text-stone-600">Fabric categories you supply</label>
+                      <p className="mt-1 text-xs text-stone-500">Select all categories you can fulfil. You'll only see matching buyer requests.</p>
                     </div>
                     <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
                       {FABRIC_CATEGORIES.map((cat) => {
@@ -850,7 +849,7 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                         const isSelected = profileForm.categories.includes(cat.id);
                         return (
                           <button key={cat.id} type="button" onClick={() => setProfileForm((prev) => ({ ...prev, categories: isSelected ? prev.categories.filter((c) => c !== cat.id) : [...prev.categories, cat.id] }))}
-                            className={`flex items-center justify-between gap-2 rounded-xl border px-4 py-3 text-left text-sm font-semibold transition-all cursor-pointer ${isSelected ? `${color.bg} ${color.text} ${color.border}` : "border-white/10 bg-white/4 text-slate-500 hover:border-white/20 hover:text-slate-300"}`}>
+                            className={`flex items-center justify-between gap-2 rounded-xl border px-4 py-3 text-left text-sm font-semibold transition-all cursor-pointer ${isSelected ? `${color.bg} ${color.text} ${color.border}` : "border-stone-200 bg-stone-50 text-stone-500 hover:border-stone-300 hover:text-stone-700"}`}>
                             <span>{cat.label}</span>
                             {isSelected && <span className="text-xs">✓</span>}
                           </button>
@@ -858,11 +857,11 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                       })}
                     </div>
                     {profileForm.categories.length > 0 && (
-                      <p className="text-xs text-slate-500">{profileForm.categories.length} {profileForm.categories.length === 1 ? "category" : "categories"} selected</p>
+                      <p className="text-xs text-stone-500">{profileForm.categories.length} {profileForm.categories.length === 1 ? "category" : "categories"} selected</p>
                     )}
                   </div>
                   <button type="submit" disabled={savingProfile}
-                    className="self-start rounded-xl border-0 bg-gradient-to-r from-amber-500 to-amber-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/25 disabled:opacity-60">
+                    className="self-start rounded-xl border-0 bg-gradient-to-r from-[#24483f] to-[#1a3530] px-6 py-3 text-sm font-bold text-white shadow-lg disabled:opacity-60">
                     {savingProfile ? "Saving..." : "Save profile →"}
                   </button>
                 </form>
@@ -877,31 +876,31 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
                       { label: "Region", value: profile?.region || "Not set" },
                       { label: "Email", value: user.email },
                     ].map((info) => (
-                      <div key={info.label} className="rounded-xl border border-white/7 bg-white/4 p-4">
-                        <div className="mb-1 text-xs font-bold uppercase tracking-widest text-slate-500">{info.label}</div>
-                        <div className="break-words text-sm font-semibold text-white">{info.value}</div>
+                      <div key={info.label} className="rounded-xl border border-stone-200 bg-stone-50 p-4">
+                        <div className="mb-1 text-xs font-bold uppercase tracking-widest text-stone-500">{info.label}</div>
+                        <div className="break-words text-sm font-semibold text-[#1f2933]">{info.value}</div>
                       </div>
                     ))}
                   </div>
                   {profile?.bio && (
-                    <div className="rounded-xl border border-white/7 bg-white/4 p-4">
-                      <div className="mb-1 text-xs font-bold uppercase tracking-widest text-slate-500">Bio</div>
-                      <p className="m-0 text-sm leading-relaxed text-white">{profile.bio}</p>
+                    <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
+                      <div className="mb-1 text-xs font-bold uppercase tracking-widest text-stone-500">Bio</div>
+                      <p className="m-0 text-sm leading-relaxed text-[#1f2933]">{profile.bio}</p>
                     </div>
                   )}
-                  <div className="rounded-xl border border-white/7 bg-white/4 p-4">
-                    <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">Fabric categories</div>
+                  <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
+                    <div className="mb-2 text-xs font-bold uppercase tracking-widest text-stone-500">Fabric categories</div>
                     {supplierCategories.length > 0 ? (
                       <div className="flex flex-wrap gap-2">{supplierCategories.map((catId) => <CategoryBadge key={catId} categoryId={catId} />)}</div>
                     ) : (
-                      <p className="m-0 text-sm text-slate-600">No categories set. Edit your profile to select the categories you supply.</p>
+                      <p className="m-0 text-sm text-stone-400">No categories set. Edit your profile to select the categories you supply.</p>
                     )}
                   </div>
                 </div>
               )}
-              <div className="mt-2 rounded-2xl border border-amber-500/20 bg-amber-500/6 p-5">
-                <h3 className="m-0 mb-2 text-sm font-bold text-amber-300">Important — keep your contact details updated</h3>
-                <p className="m-0 text-xs leading-relaxed text-slate-500">When a buyer unlocks your contact, Weinly releases your phone, WeChat and email directly to them. Make sure these are always accurate.</p>
+              <div className="mt-2 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+                <h3 className="m-0 mb-2 text-sm font-bold text-amber-800">Important — keep your contact details updated</h3>
+                <p className="m-0 text-xs leading-relaxed text-amber-800/70">When a buyer unlocks your contact, Weinly releases your phone, WeChat and email directly to them. Make sure these are always accurate.</p>
               </div>
             </div>
           )}
