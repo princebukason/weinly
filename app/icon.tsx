@@ -10,18 +10,26 @@ export default function Icon() {
         style={{
           width: 32,
           height: 32,
-          borderRadius: 16,
-          background: "linear-gradient(135deg, #f59e0b, #d97706)",
+          borderRadius: 7,
+          background: "#24483f",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: 18,
-          fontWeight: 900,
-          color: "white",
           fontFamily: "sans-serif",
         }}
       >
-        W
+        {/* W mark — two strokes meeting at a terracotta dot */}
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <polyline
+            points="2,4 6,17 11,8 16,17 20,4"
+            stroke="white"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+          <circle cx="11" cy="8" r="2" fill="#c9935b" />
+        </svg>
       </div>
     ),
     { ...size }
