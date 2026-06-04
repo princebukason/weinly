@@ -76,11 +76,11 @@ function formatAiOutput(aiOutput: unknown) {
 }
 
 function getStagePill(request: FabricRequest, quoteCount: number) {
-  if (request.contact_request_status === "approved") return { cls: "bg-emerald-900/60 text-emerald-300 border border-emerald-500/30", label: "Contact released" };
-  if (request.payment_status === "paid" && request.contact_request_status === "pending") return { cls: "bg-violet-900/60 text-violet-300 border border-violet-500/30", label: "Paid — needs approval" };
-  if (request.payment_status === "paid") return { cls: "bg-violet-900/60 text-violet-300 border border-violet-500/30", label: "Paid" };
-  if (quoteCount > 0) return { cls: "bg-blue-900/60 text-blue-300 border border-blue-500/30", label: "Quotes ready" };
-  return { cls: "bg-amber-900/60 text-amber-300 border border-amber-500/30", label: "In progress" };
+  if (request.contact_request_status === "approved") return { cls: "bg-emerald-100 text-[#2f7d57] border border-emerald-200", label: "Contact released" };
+  if (request.payment_status === "paid" && request.contact_request_status === "pending") return { cls: "bg-violet-100 text-violet-700 border border-violet-200", label: "Paid — needs approval" };
+  if (request.payment_status === "paid") return { cls: "bg-violet-100 text-violet-700 border border-violet-200", label: "Paid" };
+  if (quoteCount > 0) return { cls: "bg-blue-100 text-blue-700 border border-blue-200", label: "Quotes ready" };
+  return { cls: "bg-amber-100 text-amber-700 border border-amber-200", label: "In progress" };
 }
 
 function CategoryBadge({ categoryId, subcategory }: { categoryId: string; subcategory?: string | null }) {
@@ -93,7 +93,7 @@ function CategoryBadge({ categoryId, subcategory }: { categoryId: string; subcat
 }
 
 function StarDisplay({ rating }: { rating: number }) {
-  return <span className="text-amber-400">{"★".repeat(rating)}{"☆".repeat(5 - rating)}</span>;
+  return <span className="text-amber-500">{"★".repeat(rating)}<span className="text-stone-300">{"★".repeat(5 - rating)}</span></span>;
 }
 
 async function sendPushNotification(requestId: string, title: string, message: string) {
@@ -345,7 +345,6 @@ export default function AdminPage() {
     catch { alert("Failed to delete invite."); }
   }
 
-  // Category counts for filter tabs
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     requests.forEach((r) => { if (r.category) counts[r.category] = (counts[r.category] || 0) + 1; });
@@ -379,7 +378,6 @@ export default function AdminPage() {
     return map;
   }, [readyStock]);
 
-  // Categories that have requests
   const activeCategoriesInRequests = useMemo(() => {
     const { FABRIC_CATEGORIES } = require("@/lib/categories");
     return FABRIC_CATEGORIES.filter((c: any) => categoryCounts[c.id] > 0);
@@ -400,30 +398,30 @@ export default function AdminPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#0a0f1e] flex items-center justify-center font-sans">
-        <div className="text-slate-400 text-sm">Loading...</div>
+      <main className="min-h-screen bg-[#f5ecdc] flex items-center justify-center font-sans">
+        <div className="text-stone-400 text-sm">Loading...</div>
       </main>
     );
   }
 
   if (!authenticated) {
     return (
-      <main className="min-h-screen bg-[#0a0f1e] flex items-center justify-center px-4 font-sans">
-        <div className="w-full max-w-sm bg-[#111827] border border-white/7 rounded-3xl p-8 shadow-xl">
-          <div className="flex items-center gap-2 mb-6">
-            <span className="w-9 h-9 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white font-black text-sm">W</span>
-            <span className="text-white font-black text-xl">Weinly Admin</span>
+      <main className="min-h-screen bg-[#f5ecdc] flex items-center justify-center px-4 font-sans">
+        <div className="w-full max-w-sm bg-white border border-stone-200 rounded-2xl p-8 shadow-sm">
+          <div className="flex items-center gap-3 mb-6">
+            <img src="/weinly-logo.svg" alt="Weinly" height="36" className="h-9 w-auto" />
+            <span className="rounded-full bg-red-100 border border-red-200 px-2.5 py-1 text-xs font-bold text-red-600">Admin</span>
           </div>
-          <p className="text-slate-500 text-sm mb-4">Enter admin password to continue.</p>
+          <p className="text-stone-500 text-sm mb-4">Enter admin password to continue.</p>
           <input type="password" value={password} onChange={(e) => { setPassword(e.target.value); setLoginError(""); }} onKeyDown={(e) => e.key === "Enter" && handleLogin()}
             placeholder="Admin password"
-            className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-red-500 transition-all mb-3" />
+            className="w-full px-4 py-3 rounded-lg bg-stone-50 border border-stone-200 text-[#1f2933] text-sm placeholder:text-stone-400 outline-none focus:border-[#24483f] transition-all mb-3" />
           {loginError && (
-            <div className="mb-3 flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/8 px-4 py-3 text-sm text-red-300">
+            <div className="mb-3 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
               <span>✕</span><span>{loginError}</span>
             </div>
           )}
-          <button onClick={handleLogin} className="w-full bg-gradient-to-r from-red-500 to-red-700 text-white font-bold text-sm py-3 rounded-xl border-0 cursor-pointer shadow-lg shadow-red-500/25">
+          <button onClick={handleLogin} className="w-full bg-gradient-to-r from-[#24483f] to-[#1a3530] text-white font-bold text-sm py-3 rounded-lg border-0 cursor-pointer shadow-sm">
             Login to Admin
           </button>
         </div>
@@ -432,51 +430,48 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0f1e] px-3 py-3 md:px-4 md:py-4 font-sans">
+    <main className="min-h-screen bg-[#f5ecdc] px-3 py-3 md:px-4 md:py-4 font-sans">
       <div className="max-w-6xl mx-auto flex flex-col gap-3">
 
         {/* Header */}
-        <nav className="bg-[#0d1424] border border-white/8 rounded-2xl px-4 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="w-9 h-9 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white font-black text-sm shadow-lg shadow-red-500/30">W</span>
-            <div>
-              <span className="text-white font-black text-lg">Weinly Admin</span>
-              <span className="ml-2 bg-red-500/15 text-red-400 text-xs font-bold px-2 py-0.5 rounded-full border border-red-500/25">Admin</span>
-            </div>
+        <nav className="bg-white border border-stone-200 rounded-2xl px-4 py-3 flex items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <img src="/weinly-logo.svg" alt="Weinly" height="36" className="h-9 w-auto" />
+            <span className="rounded-full bg-red-100 border border-red-200 px-2.5 py-1 text-xs font-bold text-red-600">Admin</span>
           </div>
           <div className="flex gap-2">
-            <button onClick={fetchAll} className="bg-white/6 border border-white/10 text-slate-400 font-semibold text-xs px-4 py-2 rounded-xl cursor-pointer hover:bg-white/10 transition-all">Refresh</button>
-            <button onClick={handleLogout} className="bg-red-500/10 border border-red-500/20 text-red-400 font-semibold text-xs px-4 py-2 rounded-xl cursor-pointer hover:bg-red-500/15 transition-all">Logout</button>
+            <button onClick={fetchAll} className="border border-stone-200 bg-stone-50 text-stone-500 font-semibold text-xs px-4 py-2 rounded-lg cursor-pointer hover:bg-stone-100 transition-all">Refresh</button>
+            <button onClick={handleLogout} className="bg-red-50 border border-red-200 text-red-600 font-semibold text-xs px-4 py-2 rounded-lg cursor-pointer hover:bg-red-100 transition-all">Logout</button>
           </div>
         </nav>
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-10 gap-2">
           {[
-            { label: "Requests", value: String(stats.total), color: "text-indigo-400", bg: "bg-indigo-500/8 border-indigo-500/20" },
-            { label: "Needs approval", value: String(stats.pendingApproval), color: "text-violet-400", bg: "bg-violet-500/8 border-violet-500/20" },
-            { label: "Released", value: String(stats.released), color: "text-emerald-400", bg: "bg-emerald-500/8 border-emerald-500/20" },
-            { label: "Revenue", value: `₦${stats.totalRevenue.toLocaleString()}`, color: "text-amber-400", bg: "bg-amber-500/8 border-amber-500/20" },
-            { label: "Suppliers", value: String(stats.activeSuppliers), color: "text-sky-400", bg: "bg-sky-500/8 border-sky-500/20" },
-            { label: "Verified", value: String(stats.verifiedSuppliers), color: "text-emerald-300", bg: "bg-emerald-500/8 border-emerald-500/20" },
-            { label: "Invites left", value: String(stats.unusedInvites), color: "text-pink-400", bg: "bg-pink-500/8 border-pink-500/20" },
-            { label: "Reviews", value: String(stats.totalReviews), color: "text-amber-300", bg: "bg-amber-500/8 border-amber-500/20" },
-            { label: "Avg rating", value: stats.avgRating === "—" ? "—" : `${stats.avgRating}★`, color: "text-amber-400", bg: "bg-amber-500/8 border-amber-500/20" },
-            { label: "Stock items", value: String(stats.activeStock), color: "text-teal-400", bg: "bg-teal-500/8 border-teal-500/20" },
+            { label: "Requests",      value: String(stats.total),                                                   cls: "bg-blue-50 border-blue-200 text-blue-700" },
+            { label: "Needs approval",value: String(stats.pendingApproval),                                          cls: "bg-violet-50 border-violet-200 text-violet-700" },
+            { label: "Released",      value: String(stats.released),                                                 cls: "bg-emerald-50 border-emerald-200 text-[#2f7d57]" },
+            { label: "Revenue",       value: `₦${stats.totalRevenue.toLocaleString()}`,                              cls: "bg-amber-50 border-amber-200 text-amber-700" },
+            { label: "Suppliers",     value: String(stats.activeSuppliers),                                          cls: "bg-sky-50 border-sky-200 text-sky-700" },
+            { label: "Verified",      value: String(stats.verifiedSuppliers),                                        cls: "bg-emerald-50 border-emerald-200 text-[#2f7d57]" },
+            { label: "Invites left",  value: String(stats.unusedInvites),                                            cls: "bg-pink-50 border-pink-200 text-pink-700" },
+            { label: "Reviews",       value: String(stats.totalReviews),                                             cls: "bg-amber-50 border-amber-200 text-amber-700" },
+            { label: "Avg rating",    value: stats.avgRating === "—" ? "—" : `${stats.avgRating}★`,                 cls: "bg-amber-50 border-amber-200 text-amber-700" },
+            { label: "Stock items",   value: String(stats.activeStock),                                              cls: "bg-teal-50 border-teal-200 text-teal-700" },
           ].map((stat) => (
-            <div key={stat.label} className={`${stat.bg} border rounded-2xl p-3`}>
-              <div className={`text-lg font-black ${stat.color} mb-0.5`}>{stat.value}</div>
-              <div className="text-slate-600 text-xs font-semibold leading-tight">{stat.label}</div>
+            <div key={stat.label} className={`${stat.cls} border rounded-xl p-3`}>
+              <div className="text-lg font-black mb-0.5">{stat.value}</div>
+              <div className="text-xs font-semibold leading-tight opacity-70">{stat.label}</div>
             </div>
           ))}
         </div>
 
         {/* Tabs */}
-        <div className="bg-[#111827] border border-white/7 rounded-3xl p-4 md:p-6">
-          <div className="flex gap-2 mb-6 bg-white/4 border border-white/7 rounded-2xl p-1.5 overflow-x-auto">
+        <div className="bg-white border border-stone-200 rounded-2xl p-4 md:p-6 shadow-sm">
+          <div className="flex gap-2 mb-6 bg-stone-50 border border-stone-200 rounded-xl p-1.5 overflow-x-auto">
             {(["requests", "suppliers", "applications", "invites", "reviews", "stock"] as const).map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
-                className={`shrink-0 flex-1 py-2.5 px-3 rounded-xl text-xs md:text-sm font-bold border-0 cursor-pointer transition-all ${activeTab === tab ? "bg-gradient-to-r from-red-500 to-red-700 text-white shadow-lg shadow-red-500/25" : "text-slate-500 bg-transparent hover:text-slate-300"}`}>
+                className={`shrink-0 flex-1 py-2.5 px-3 rounded-lg text-xs md:text-sm font-bold border-0 cursor-pointer transition-all ${activeTab === tab ? "bg-gradient-to-r from-[#24483f] to-[#1a3530] text-white shadow-sm" : "text-stone-500 bg-transparent hover:text-stone-700"}`}>
                 {tab === "requests" ? `Requests (${requests.length})`
                   : tab === "suppliers" ? `Suppliers (${suppliers.length})`
                   : tab === "applications" ? `Applications (${applications.filter((a) => a.status === "pending").length})`
@@ -493,21 +488,20 @@ export default function AdminPage() {
               <div className="flex flex-col gap-3 md:flex-row md:items-center">
                 <input value={search} onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search by ID, name, email, phone or request text..."
-                  className="flex-1 w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-red-500 transition-all" />
+                  className="flex-1 w-full px-4 py-3 rounded-lg bg-stone-50 border border-stone-200 text-[#1f2933] text-sm placeholder:text-stone-400 outline-none focus:border-[#24483f] transition-all" />
               </div>
 
-              {/* Category filter */}
               {activeCategoriesInRequests.length > 1 && (
                 <div className="flex flex-wrap gap-2">
                   <button onClick={() => setCategoryFilter("all")}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${categoryFilter === "all" ? "bg-white/15 border-white/30 text-white" : "border-white/10 bg-white/4 text-slate-500 hover:text-slate-300"}`}>
+                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${categoryFilter === "all" ? "bg-[#24483f]/10 border-[#24483f]/30 text-[#24483f]" : "border-stone-200 bg-stone-50 text-stone-500 hover:text-stone-700"}`}>
                     All ({requests.length})
                   </button>
                   {activeCategoriesInRequests.map((cat: any) => {
                     const color = getCategoryColor(cat.id);
                     return (
                       <button key={cat.id} onClick={() => setCategoryFilter(cat.id)}
-                        className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${categoryFilter === cat.id ? `${color.bg} ${color.text} ${color.border}` : "border-white/10 bg-white/4 text-slate-500 hover:text-slate-300"}`}>
+                        className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${categoryFilter === cat.id ? `${color.bg} ${color.text} ${color.border}` : "border-stone-200 bg-stone-50 text-stone-500 hover:text-stone-700"}`}>
                         {cat.label} ({categoryCounts[cat.id] || 0})
                       </button>
                     );
@@ -516,7 +510,7 @@ export default function AdminPage() {
               )}
 
               {filteredRequests.length === 0 ? (
-                <div className="border border-dashed border-white/10 rounded-2xl p-10 text-center text-slate-600 text-sm">No requests found.</div>
+                <div className="border border-dashed border-stone-300 rounded-xl p-10 text-center text-stone-400 text-sm">No requests found.</div>
               ) : (
                 filteredRequests.map((request) => {
                   const quotes = quotesMap[request.id] || [];
@@ -524,32 +518,32 @@ export default function AdminPage() {
                   const isExpanded = expandedId === request.id;
 
                   return (
-                    <div key={request.id} className="bg-white/3 border border-white/7 rounded-2xl overflow-hidden">
-                      <div className="p-4 flex justify-between gap-3 flex-wrap items-start cursor-pointer hover:bg-white/2 transition-all"
+                    <div key={request.id} className="border border-stone-200 rounded-xl overflow-hidden bg-white">
+                      <div className="p-4 flex justify-between gap-3 flex-wrap items-start cursor-pointer hover:bg-stone-50 transition-all"
                         onClick={() => setExpandedId(isExpanded ? null : request.id)}>
                         <div className="flex flex-col gap-1.5 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-white font-bold text-sm">{request.client_name || "Unnamed buyer"}</span>
+                            <span className="text-[#1f2933] font-bold text-sm">{request.client_name || "Unnamed buyer"}</span>
                             <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${pill.cls}`}>{pill.label}</span>
                             {request.category && <CategoryBadge categoryId={request.category} subcategory={request.subcategory} />}
                             {request.payment_status === "paid" && request.contact_request_status === "pending" && (
-                              <span className="bg-red-500/15 text-red-400 border border-red-500/25 text-xs font-bold px-2.5 py-1 rounded-full animate-pulse">Action needed</span>
+                              <span className="bg-red-100 text-red-600 border border-red-200 text-xs font-bold px-2.5 py-1 rounded-full animate-pulse">Action needed</span>
                             )}
                           </div>
-                          <div className="text-slate-500 text-xs">{request.client_email || "—"} · {new Date(request.created_at).toLocaleDateString()}</div>
-                          <div className="text-slate-600 text-xs font-mono">{request.id}</div>
+                          <div className="text-stone-400 text-xs">{request.client_email || "—"} · {new Date(request.created_at).toLocaleDateString()}</div>
+                          <div className="text-stone-300 text-xs font-mono">{request.id}</div>
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
                           <div className="text-center">
-                            <div className="text-white font-black text-lg">{quotes.length}</div>
-                            <div className="text-slate-600 text-xs">quotes</div>
+                            <div className="text-[#1f2933] font-black text-lg">{quotes.length}</div>
+                            <div className="text-stone-400 text-xs">quotes</div>
                           </div>
-                          <span className={`text-slate-400 text-lg transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}>↓</span>
+                          <span className={`text-stone-400 text-lg transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}>↓</span>
                         </div>
                       </div>
 
                       {isExpanded && (
-                        <div className="border-t border-white/6 p-4 flex flex-col gap-4">
+                        <div className="border-t border-stone-100 p-4 flex flex-col gap-4 bg-stone-50/50">
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
                             {[
                               { label: "Email", value: request.client_email || "—" },
@@ -561,75 +555,75 @@ export default function AdminPage() {
                               { label: "Reference", value: request.payment_reference || "—" },
                               { label: "Paid at", value: request.paid_at ? new Date(request.paid_at).toLocaleDateString() : "—" },
                             ].map((info) => (
-                              <div key={info.label} className="bg-white/4 border border-white/7 rounded-xl p-3">
-                                <div className="text-slate-600 text-xs font-bold uppercase tracking-wider mb-1">{info.label}</div>
-                                <div className="text-slate-300 text-xs break-words">{info.value}</div>
+                              <div key={info.label} className="bg-white border border-stone-200 rounded-lg p-3">
+                                <div className="text-stone-400 text-xs font-bold uppercase tracking-wider mb-1">{info.label}</div>
+                                <div className="text-[#1f2933] text-xs break-words">{info.value}</div>
                               </div>
                             ))}
                           </div>
 
-                          <div className="bg-white/4 border border-white/7 rounded-xl p-4">
-                            <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">Fabric request</div>
-                            <p className="text-slate-300 text-sm leading-relaxed m-0 whitespace-pre-wrap">{request.user_input}</p>
+                          <div className="bg-white border border-stone-200 rounded-lg p-4">
+                            <div className="text-stone-400 text-xs font-bold uppercase tracking-widest mb-2">Fabric request</div>
+                            <p className="text-stone-600 text-sm leading-relaxed m-0 whitespace-pre-wrap">{request.user_input}</p>
                           </div>
 
                           {request.ai_output != null && (
-                            <div className="bg-white/4 border border-white/7 rounded-xl p-4">
-                              <div className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">AI sourcing spec</div>
-                              <p className="text-slate-400 text-sm leading-relaxed m-0 whitespace-pre-wrap">{formatAiOutput(request.ai_output)}</p>
+                            <div className="bg-white border border-stone-200 rounded-lg p-4">
+                              <div className="text-stone-400 text-xs font-bold uppercase tracking-widest mb-2">AI sourcing spec</div>
+                              <p className="text-stone-500 text-sm leading-relaxed m-0 whitespace-pre-wrap">{formatAiOutput(request.ai_output)}</p>
                             </div>
                           )}
 
                           <div className="flex flex-col gap-1.5">
-                            <label className="text-slate-500 text-xs font-bold uppercase tracking-widest">Internal note</label>
+                            <label className="text-stone-400 text-xs font-bold uppercase tracking-widest">Internal note</label>
                             <textarea defaultValue={request.internal_note || ""} onBlur={(e) => saveInternalNote(request.id, e.target.value)}
                               placeholder="Add internal notes here..." rows={3}
-                              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-red-500 transition-all resize-none" />
+                              className="w-full px-4 py-3 rounded-lg bg-white border border-stone-200 text-[#1f2933] text-sm placeholder:text-stone-400 outline-none focus:border-[#24483f] transition-all resize-none" />
                           </div>
 
                           <div className="flex flex-col gap-3">
-                            <div className="text-slate-500 text-xs font-bold uppercase tracking-widest">Request status</div>
+                            <div className="text-stone-400 text-xs font-bold uppercase tracking-widest">Request status</div>
                             <div className="flex gap-2 flex-wrap">
                               {["submitted", "quoted", "completed"].map((s) => (
                                 <button key={s} onClick={() => updateRequestStatus(request.id, s)}
-                                  className={`text-xs font-bold px-4 py-2 rounded-xl border-0 cursor-pointer transition-all ${request.status === s ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30" : "bg-white/6 text-slate-400 hover:bg-white/10"}`}>
+                                  className={`text-xs font-bold px-4 py-2 rounded-lg border cursor-pointer transition-all ${request.status === s ? "bg-[#24483f]/10 text-[#24483f] border-[#24483f]/30" : "bg-stone-50 text-stone-500 border-stone-200 hover:bg-stone-100"}`}>
                                   {s.charAt(0).toUpperCase() + s.slice(1)}
                                 </button>
                               ))}
                             </div>
 
-                            <div className="text-slate-500 text-xs font-bold uppercase tracking-widest">Payment</div>
+                            <div className="text-stone-400 text-xs font-bold uppercase tracking-widest">Payment</div>
                             <div className="flex gap-2 flex-wrap">
-                              <button onClick={() => updatePaymentStatus(request.id, "paid")} className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-xs px-4 py-2 rounded-xl cursor-pointer hover:bg-emerald-500/15 transition-all">Mark paid</button>
-                              <button onClick={() => updatePaymentStatus(request.id, "unpaid")} className="bg-white/6 text-slate-400 font-bold text-xs px-4 py-2 rounded-xl cursor-pointer hover:bg-white/10 transition-all">Mark unpaid</button>
+                              <button onClick={() => updatePaymentStatus(request.id, "paid")} className="bg-emerald-100 border border-emerald-200 text-[#2f7d57] font-bold text-xs px-4 py-2 rounded-lg cursor-pointer hover:bg-emerald-200 transition-all">Mark paid</button>
+                              <button onClick={() => updatePaymentStatus(request.id, "unpaid")} className="bg-stone-50 text-stone-500 font-bold text-xs px-4 py-2 rounded-lg border border-stone-200 cursor-pointer hover:bg-stone-100 transition-all">Mark unpaid</button>
                             </div>
 
-                            <div className="text-slate-500 text-xs font-bold uppercase tracking-widest">Contact release</div>
+                            <div className="text-stone-400 text-xs font-bold uppercase tracking-widest">Contact release</div>
                             <div className="flex gap-2 flex-wrap">
                               {request.contact_request_status === "pending" && (
                                 <>
-                                  <button onClick={() => approveContactRelease(request.id, request.payment_status)} className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-xs px-4 py-2.5 rounded-xl cursor-pointer hover:bg-emerald-500/15 transition-all shadow-lg shadow-emerald-500/10">✓ Approve & release</button>
-                                  <button onClick={() => rejectContactRelease(request.id)} className="bg-red-500/10 border border-red-500/20 text-red-400 font-bold text-xs px-4 py-2.5 rounded-xl cursor-pointer hover:bg-red-500/15 transition-all">✕ Reject</button>
+                                  <button onClick={() => approveContactRelease(request.id, request.payment_status)} className="bg-emerald-100 border border-emerald-200 text-[#2f7d57] font-bold text-xs px-4 py-2.5 rounded-lg cursor-pointer hover:bg-emerald-200 transition-all">✓ Approve &amp; release</button>
+                                  <button onClick={() => rejectContactRelease(request.id)} className="bg-red-50 border border-red-200 text-red-600 font-bold text-xs px-4 py-2.5 rounded-lg cursor-pointer hover:bg-red-100 transition-all">✕ Reject</button>
                                 </>
                               )}
                               {request.contact_request_status === "approved" && (
-                                <button onClick={() => revokeContactAccess(request.id)} className="bg-red-500/10 border border-red-500/20 text-red-400 font-bold text-xs px-4 py-2.5 rounded-xl cursor-pointer hover:bg-red-500/15 transition-all">Revoke access</button>
+                                <button onClick={() => revokeContactAccess(request.id)} className="bg-red-50 border border-red-200 text-red-600 font-bold text-xs px-4 py-2.5 rounded-lg cursor-pointer hover:bg-red-100 transition-all">Revoke access</button>
                               )}
                             </div>
 
-                            <div className="pt-2 border-t border-white/6">
-                              <button onClick={() => deleteRequest(request.id)} className="bg-red-500/8 border border-red-500/15 text-red-500 font-bold text-xs px-4 py-2 rounded-xl cursor-pointer hover:bg-red-500/15 transition-all">Delete request</button>
+                            <div className="pt-2 border-t border-stone-100">
+                              <button onClick={() => deleteRequest(request.id)} className="bg-red-50 border border-red-200 text-red-600 font-bold text-xs px-4 py-2 rounded-lg cursor-pointer hover:bg-red-100 transition-all">Delete request</button>
                             </div>
                           </div>
 
                           {quotes.length > 0 && (
                             <div className="flex flex-col gap-3">
-                              <div className="text-slate-500 text-xs font-bold uppercase tracking-widest">Existing quotes ({quotes.length})</div>
+                              <div className="text-stone-400 text-xs font-bold uppercase tracking-widest">Existing quotes ({quotes.length})</div>
                               {quotes.map((quote) => (
-                                <div key={quote.id} className="bg-white/4 border border-white/7 rounded-xl p-4 flex flex-col gap-3">
+                                <div key={quote.id} className="bg-white border border-stone-200 rounded-xl p-4 flex flex-col gap-3">
                                   <div className="flex justify-between gap-3 flex-wrap">
-                                    <div className="text-white font-bold text-sm">{quote.supplier_name}</div>
-                                    <span className={`text-xs font-bold px-3 py-1 rounded-full ${quote.is_contact_released ? "bg-emerald-900/60 text-emerald-300 border border-emerald-500/30" : "bg-blue-900/60 text-blue-300 border border-blue-500/30"}`}>
+                                    <div className="text-[#1f2933] font-bold text-sm">{quote.supplier_name}</div>
+                                    <span className={`text-xs font-bold px-3 py-1 rounded-full ${quote.is_contact_released ? "bg-emerald-100 text-[#2f7d57] border border-emerald-200" : "bg-blue-100 text-blue-700 border border-blue-200"}`}>
                                       {quote.is_contact_released ? "Released" : "Protected"}
                                     </span>
                                   </div>
@@ -640,16 +634,16 @@ export default function AdminPage() {
                                       { label: "Contact", value: quote.contact_name || "—" }, { label: "Phone", value: quote.contact_phone || "—" },
                                       { label: "WeChat", value: quote.contact_wechat || "—" }, { label: "Email", value: quote.contact_email || "—" },
                                     ].map((s) => (
-                                      <div key={s.label} className="bg-white/4 border border-white/7 rounded-lg p-2.5">
-                                        <div className="text-slate-600 text-xs font-bold uppercase tracking-wider mb-0.5">{s.label}</div>
-                                        <div className="text-slate-300 text-xs break-words">{s.value}</div>
+                                      <div key={s.label} className="bg-stone-50 border border-stone-200 rounded-lg p-2.5">
+                                        <div className="text-stone-400 text-xs font-bold uppercase tracking-wider mb-0.5">{s.label}</div>
+                                        <div className="text-[#1f2933] text-xs break-words">{s.value}</div>
                                       </div>
                                     ))}
                                   </div>
                                   {quote.note && (
-                                    <div className="bg-white/4 border border-white/7 rounded-lg p-3">
-                                      <div className="text-slate-600 text-xs font-bold uppercase tracking-widest mb-1">Note</div>
-                                      <p className="text-slate-400 text-xs leading-relaxed m-0">{quote.note}</p>
+                                    <div className="bg-stone-50 border border-stone-200 rounded-lg p-3">
+                                      <div className="text-stone-400 text-xs font-bold uppercase tracking-widest mb-1">Note</div>
+                                      <p className="text-stone-600 text-xs leading-relaxed m-0">{quote.note}</p>
                                     </div>
                                   )}
                                 </div>
@@ -657,9 +651,9 @@ export default function AdminPage() {
                             </div>
                           )}
 
-                          {/* Add quote manually */}
-                          <div className="bg-indigo-500/6 border border-indigo-500/20 rounded-2xl p-5 flex flex-col gap-4">
-                            <div className="text-indigo-300 font-bold text-sm">Add new quote manually</div>
+                          {/* Add quote */}
+                          <div className="bg-[#24483f]/5 border border-[#24483f]/20 rounded-xl p-5 flex flex-col gap-4">
+                            <div className="text-[#24483f] font-bold text-sm">Add new quote manually</div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                               {[
                                 { label: "Supplier name *", key: "supplier_name", placeholder: "Company name" },
@@ -673,19 +667,19 @@ export default function AdminPage() {
                                 { label: "Contact email", key: "contact_email", placeholder: "Email address" },
                               ].map((field) => (
                                 <div key={field.key} className="flex flex-col gap-1.5">
-                                  <label className="text-slate-500 text-xs font-bold uppercase tracking-wider">{field.label}</label>
+                                  <label className="text-stone-500 text-xs font-bold uppercase tracking-wider">{field.label}</label>
                                   <input value={newQuotes[request.id]?.[field.key as keyof NewQuoteForm] || ""}
                                     onChange={(e) => updateNewQuoteField(request.id, field.key as keyof NewQuoteForm, e.target.value)}
                                     placeholder={field.placeholder}
-                                    className="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-indigo-500 transition-all" />
+                                    className="w-full px-3 py-2.5 rounded-lg bg-white border border-stone-200 text-[#1f2933] text-sm placeholder:text-stone-400 outline-none focus:border-[#24483f] transition-all" />
                                 </div>
                               ))}
                             </div>
                             <textarea value={newQuotes[request.id]?.note || ""} onChange={(e) => updateNewQuoteField(request.id, "note", e.target.value)}
                               placeholder="Supplier note..." rows={3}
-                              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-indigo-500 transition-all resize-none" />
-                            <button onClick={() => addQuote(request.id)} className="self-start bg-gradient-to-r from-indigo-500 to-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl border-0 cursor-pointer shadow-lg shadow-indigo-500/25">
-                              Add quote & notify buyer →
+                              className="w-full px-4 py-3 rounded-lg bg-white border border-stone-200 text-[#1f2933] text-sm placeholder:text-stone-400 outline-none focus:border-[#24483f] transition-all resize-none" />
+                            <button onClick={() => addQuote(request.id)} className="self-start bg-gradient-to-r from-[#24483f] to-[#1a3530] text-white font-bold text-sm px-6 py-3 rounded-lg border-0 cursor-pointer shadow-sm">
+                              Add quote &amp; notify buyer →
                             </button>
                           </div>
                         </div>
@@ -701,12 +695,12 @@ export default function AdminPage() {
           {activeTab === "suppliers" && (
             <div className="flex flex-col gap-4">
               <div>
-                <h2 className="text-xl font-black text-white tracking-tight mb-1">Registered suppliers</h2>
-                <p className="text-slate-500 text-sm m-0">{suppliers.length} supplier{suppliers.length === 1 ? "" : "s"} · {stats.verifiedSuppliers} verified</p>
+                <h2 className="text-xl font-black text-[#1f2933] tracking-tight mb-1">Registered suppliers</h2>
+                <p className="text-stone-500 text-sm m-0">{suppliers.length} supplier{suppliers.length === 1 ? "" : "s"} · {stats.verifiedSuppliers} verified</p>
               </div>
 
               {suppliers.length === 0 ? (
-                <div className="border border-dashed border-white/10 rounded-2xl p-10 text-center text-slate-600 text-sm">No suppliers registered yet.</div>
+                <div className="border border-dashed border-stone-300 rounded-xl p-10 text-center text-stone-400 text-sm">No suppliers registered yet.</div>
               ) : (
                 suppliers.map((supplier) => {
                   const supplierReviews = reviewsBySupplier[supplier.id] || [];
@@ -718,19 +712,18 @@ export default function AdminPage() {
                   const supplierCategories: string[] = supplier.categories || [];
 
                   return (
-                    <div key={supplier.id} className="bg-white/3 border border-white/7 rounded-2xl p-5 flex flex-col gap-4">
-                      {/* Supplier header */}
+                    <div key={supplier.id} className="bg-white border border-stone-200 rounded-xl p-5 flex flex-col gap-4">
                       <div className="flex justify-between gap-3 flex-wrap items-start">
                         <div>
                           <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <div className="text-white font-bold text-base">{supplier.company_name}</div>
+                            <div className="text-[#1f2933] font-bold text-base">{supplier.company_name}</div>
                             {supplier.is_verified && (
-                              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-400">✓ Verified</span>
+                              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-100 px-2.5 py-1 text-xs font-bold text-[#2f7d57]">✓ Verified</span>
                             )}
                           </div>
-                          <div className="text-slate-500 text-xs mb-0.5">{supplier.contact_name || "—"} · {supplier.email || "—"}</div>
-                          <div className="text-slate-600 text-xs">{supplier.region || "Region not set"} · Joined {new Date(supplier.created_at).toLocaleDateString()}</div>
-                          {supplier.bio && <p className="text-slate-500 text-xs mt-1 leading-relaxed max-w-lg">{supplier.bio}</p>}
+                          <div className="text-stone-400 text-xs mb-0.5">{supplier.contact_name || "—"} · {supplier.email || "—"}</div>
+                          <div className="text-stone-400 text-xs">{supplier.region || "Region not set"} · Joined {new Date(supplier.created_at).toLocaleDateString()}</div>
+                          {supplier.bio && <p className="text-stone-500 text-xs mt-1 leading-relaxed max-w-lg">{supplier.bio}</p>}
                           {supplierCategories.length > 0 && (
                             <div className="mt-2 flex flex-wrap gap-1.5">
                               {supplierCategories.map((catId) => <CategoryBadge key={catId} categoryId={catId} />)}
@@ -738,71 +731,64 @@ export default function AdminPage() {
                           )}
                         </div>
 
-                        {/* Action buttons */}
                         <div className="flex gap-2 items-center flex-wrap">
                           {avgRating && (
-                            <span className="bg-amber-500/15 text-amber-300 border border-amber-500/25 text-xs font-bold px-3 py-1.5 rounded-full">
+                            <span className="bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold px-3 py-1.5 rounded-full">
                               {avgRating}★ ({supplierReviews.length})
                             </span>
                           )}
                           {supplierStock.filter((s) => s.is_active && !s.is_sold_out).length > 0 && (
-                            <span className="bg-teal-500/15 text-teal-300 border border-teal-500/25 text-xs font-bold px-3 py-1.5 rounded-full">
+                            <span className="bg-teal-50 text-teal-700 border border-teal-200 text-xs font-bold px-3 py-1.5 rounded-full">
                               {supplierStock.filter((s) => s.is_active && !s.is_sold_out).length} in stock
                             </span>
                           )}
-
-                          {/* Verify toggle */}
-                          <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${supplier.is_verified ? "bg-emerald-900/60 text-emerald-300 border border-emerald-500/30" : "bg-slate-800 text-slate-400 border border-slate-600/30"}`}>
+                          <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${supplier.is_verified ? "bg-emerald-100 text-[#2f7d57] border border-emerald-200" : "bg-stone-100 text-stone-500 border border-stone-200"}`}>
                             {supplier.is_verified ? "✓ Verified" : "Unverified"}
                           </span>
                           <button onClick={() => toggleSupplierVerified(supplier.id, !!supplier.is_verified)}
-                            className={`text-xs font-bold px-3 py-1.5 rounded-xl border-0 cursor-pointer transition-all ${supplier.is_verified ? "bg-amber-500/10 text-amber-400 hover:bg-amber-500/15" : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/15"}`}>
+                            className={`text-xs font-bold px-3 py-1.5 rounded-lg border cursor-pointer transition-all ${supplier.is_verified ? "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100" : "bg-emerald-100 text-[#2f7d57] border-emerald-200 hover:bg-emerald-200"}`}>
                             {supplier.is_verified ? "Unverify" : "Verify ✓"}
                           </button>
-
-                          {/* Active toggle */}
-                          <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${supplier.is_active ? "bg-emerald-900/60 text-emerald-300 border border-emerald-500/30" : "bg-red-900/60 text-red-300 border border-red-500/30"}`}>
+                          <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${supplier.is_active ? "bg-emerald-100 text-[#2f7d57] border border-emerald-200" : "bg-red-100 text-red-600 border border-red-200"}`}>
                             {supplier.is_active ? "Active" : "Inactive"}
                           </span>
                           <button onClick={() => toggleSupplierActive(supplier.id, !!supplier.is_active)}
-                            className={`text-xs font-bold px-3 py-1.5 rounded-xl border-0 cursor-pointer transition-all ${supplier.is_active ? "bg-red-500/10 text-red-400 hover:bg-red-500/15" : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/15"}`}>
+                            className={`text-xs font-bold px-3 py-1.5 rounded-lg border cursor-pointer transition-all ${supplier.is_active ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100" : "bg-emerald-100 text-[#2f7d57] border-emerald-200 hover:bg-emerald-200"}`}>
                             {supplier.is_active ? "Deactivate" : "Activate"}
                           </button>
                         </div>
                       </div>
 
-                      {/* Contact grid */}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
                         {[
                           { label: "Phone", value: supplier.phone || "—" }, { label: "WeChat", value: supplier.wechat || "—" },
                           { label: "Region", value: supplier.region || "—" }, { label: "Email", value: supplier.email || "—" },
                         ].map((info) => (
-                          <div key={info.label} className="bg-white/4 border border-white/7 rounded-xl p-3">
-                            <div className="text-slate-600 text-xs font-bold uppercase tracking-wider mb-1">{info.label}</div>
-                            <div className="text-slate-300 text-xs break-words">{info.value}</div>
+                          <div key={info.label} className="bg-stone-50 border border-stone-200 rounded-lg p-3">
+                            <div className="text-stone-400 text-xs font-bold uppercase tracking-wider mb-1">{info.label}</div>
+                            <div className="text-[#1f2933] text-xs break-words">{info.value}</div>
                           </div>
                         ))}
                       </div>
 
-                      {/* Reviews expandable */}
                       {supplierReviews.length > 0 && (
                         <div>
                           <button onClick={() => setExpandedSupplierId(isExpanded ? null : supplier.id)}
-                            className="text-xs font-semibold text-amber-400 cursor-pointer bg-transparent border-0 p-0 hover:text-amber-300 transition-colors">
+                            className="text-xs font-semibold text-[#a75635] cursor-pointer bg-transparent border-0 p-0 hover:text-[#7b3525] transition-colors">
                             {isExpanded ? "Hide reviews ↑" : `View ${supplierReviews.length} review${supplierReviews.length > 1 ? "s" : ""} ↓`}
                           </button>
                           {isExpanded && (
                             <div className="mt-3 flex flex-col gap-2">
                               {supplierReviews.map((review) => (
-                                <div key={review.id} className="bg-white/4 border border-white/7 rounded-xl p-3 flex flex-col gap-2">
+                                <div key={review.id} className="bg-stone-50 border border-stone-200 rounded-lg p-3 flex flex-col gap-2">
                                   <div className="flex items-center justify-between gap-3 flex-wrap">
                                     <div className="flex items-center gap-2">
                                       <StarDisplay rating={review.rating} />
-                                      <span className="text-xs text-slate-500">{review.buyer_name || "Verified buyer"} · {new Date(review.created_at).toLocaleDateString()}</span>
+                                      <span className="text-xs text-stone-400">{review.buyer_name || "Verified buyer"} · {new Date(review.created_at).toLocaleDateString()}</span>
                                     </div>
-                                    <button onClick={() => deleteReview(review.id)} className="text-xs text-red-400 cursor-pointer bg-transparent border-0 p-0 hover:text-red-300 transition-colors">Delete</button>
+                                    <button onClick={() => deleteReview(review.id)} className="text-xs text-red-500 cursor-pointer bg-transparent border-0 p-0 hover:text-red-700 transition-colors">Delete</button>
                                   </div>
-                                  {review.comment && <p className="m-0 text-xs leading-relaxed text-slate-400">{review.comment}</p>}
+                                  {review.comment && <p className="m-0 text-xs leading-relaxed text-stone-600">{review.comment}</p>}
                                 </div>
                               ))}
                             </div>
@@ -810,10 +796,9 @@ export default function AdminPage() {
                         </div>
                       )}
 
-                      {/* View public profile link */}
                       <div className="flex gap-3">
                         <a href={`/suppliers/${supplier.id}`} target="_blank" rel="noreferrer"
-                          className="text-xs font-semibold text-indigo-400 no-underline hover:text-indigo-300 transition-colors">
+                          className="text-xs font-semibold text-[#24483f] no-underline hover:text-[#1a3530] transition-colors">
                           View public profile →
                         </a>
                       </div>
@@ -828,44 +813,44 @@ export default function AdminPage() {
           {activeTab === "invites" && (
             <div className="flex flex-col gap-4">
               <div>
-                <h2 className="text-xl font-black text-white tracking-tight mb-1">Supplier invite codes</h2>
-                <p className="text-slate-500 text-sm m-0">Generate and manage invite codes for new suppliers.</p>
+                <h2 className="text-xl font-black text-[#1f2933] tracking-tight mb-1">Supplier invite codes</h2>
+                <p className="text-stone-500 text-sm m-0">Generate and manage invite codes for new suppliers.</p>
               </div>
 
-              <div className="bg-amber-500/6 border border-amber-500/20 rounded-2xl p-5 flex flex-col gap-4">
-                <div className="text-amber-300 font-bold text-sm">Create new invite code</div>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 flex flex-col gap-4">
+                <div className="text-amber-700 font-bold text-sm">Create new invite code</div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-slate-400 text-xs font-bold uppercase tracking-wider">Invite code *</label>
+                    <label className="text-stone-500 text-xs font-bold uppercase tracking-wider">Invite code *</label>
                     <input value={newInviteCode} onChange={(e) => setNewInviteCode(e.target.value.toUpperCase())} placeholder="e.g. WEINLY-SUP-004"
-                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-amber-500 transition-all" />
+                      className="w-full px-4 py-3 rounded-lg bg-white border border-stone-200 text-[#1f2933] text-sm placeholder:text-stone-400 outline-none focus:border-amber-500 transition-all" />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-slate-400 text-xs font-bold uppercase tracking-wider">Supplier email (optional)</label>
+                    <label className="text-stone-500 text-xs font-bold uppercase tracking-wider">Supplier email (optional)</label>
                     <input value={newInviteEmail} onChange={(e) => setNewInviteEmail(e.target.value)} placeholder="supplier@company.com" type="email"
-                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 outline-none focus:border-amber-500 transition-all" />
+                      className="w-full px-4 py-3 rounded-lg bg-white border border-stone-200 text-[#1f2933] text-sm placeholder:text-stone-400 outline-none focus:border-amber-500 transition-all" />
                   </div>
                 </div>
                 <button onClick={createInvite} disabled={creatingInvite}
-                  className="self-start bg-gradient-to-r from-amber-500 to-amber-700 text-white font-bold text-sm px-6 py-3 rounded-xl border-0 cursor-pointer shadow-lg shadow-amber-500/25 disabled:opacity-60">
+                  className="self-start bg-gradient-to-r from-[#a75635] to-[#7b3525] text-white font-bold text-sm px-6 py-3 rounded-lg border-0 cursor-pointer shadow-sm disabled:opacity-60">
                   {creatingInvite ? "Creating..." : "Create invite code →"}
                 </button>
               </div>
 
               {invites.length === 0 ? (
-                <div className="border border-dashed border-white/10 rounded-2xl p-10 text-center text-slate-600 text-sm">No invite codes yet.</div>
+                <div className="border border-dashed border-stone-300 rounded-xl p-10 text-center text-stone-400 text-sm">No invite codes yet.</div>
               ) : (
                 <div className="flex flex-col gap-3">
                   {invites.map((invite) => (
-                    <div key={invite.id} className="bg-white/3 border border-white/7 rounded-2xl p-4 flex justify-between gap-3 flex-wrap items-center">
+                    <div key={invite.id} className="bg-white border border-stone-200 rounded-xl p-4 flex justify-between gap-3 flex-wrap items-center">
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-white font-black text-base font-mono">{invite.code}</span>
-                          <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${invite.used ? "bg-slate-800 text-slate-400 border border-slate-600/30" : "bg-emerald-900/60 text-emerald-300 border border-emerald-500/30"}`}>
+                          <span className="text-[#1f2933] font-black text-base font-mono">{invite.code}</span>
+                          <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${invite.used ? "bg-stone-100 text-stone-500 border border-stone-200" : "bg-emerald-100 text-[#2f7d57] border border-emerald-200"}`}>
                             {invite.used ? "Used" : "Available"}
                           </span>
                         </div>
-                        <div className="text-slate-500 text-xs">
+                        <div className="text-stone-400 text-xs">
                           {invite.email || "No email assigned"} · Created {new Date(invite.created_at).toLocaleDateString()}
                           {invite.used_at && ` · Used ${new Date(invite.used_at).toLocaleDateString()}`}
                         </div>
@@ -873,12 +858,12 @@ export default function AdminPage() {
                       <div className="flex gap-2">
                         {!invite.used && (
                           <button onClick={() => navigator.clipboard.writeText(invite.code).then(() => alert("Code copied!"))}
-                            className="bg-white/6 border border-white/10 text-slate-400 font-semibold text-xs px-4 py-2 rounded-xl cursor-pointer hover:bg-white/10 transition-all">
+                            className="bg-stone-50 border border-stone-200 text-stone-600 font-semibold text-xs px-4 py-2 rounded-lg cursor-pointer hover:bg-stone-100 transition-all">
                             Copy code
                           </button>
                         )}
                         <button onClick={() => deleteInvite(invite.id)}
-                          className="bg-red-500/8 border border-red-500/15 text-red-400 font-semibold text-xs px-4 py-2 rounded-xl cursor-pointer hover:bg-red-500/15 transition-all">
+                          className="bg-red-50 border border-red-200 text-red-600 font-semibold text-xs px-4 py-2 rounded-lg cursor-pointer hover:bg-red-100 transition-all">
                           Delete
                         </button>
                       </div>
@@ -893,36 +878,36 @@ export default function AdminPage() {
           {activeTab === "reviews" && (
             <div className="flex flex-col gap-4">
               <div>
-                <h2 className="text-xl font-black text-white tracking-tight mb-1">All reviews</h2>
-                <p className="text-slate-500 text-sm m-0">All buyer reviews across all suppliers. Delete any that violate guidelines.</p>
+                <h2 className="text-xl font-black text-[#1f2933] tracking-tight mb-1">All reviews</h2>
+                <p className="text-stone-500 text-sm m-0">All buyer reviews across all suppliers. Delete any that violate guidelines.</p>
               </div>
 
               {reviews.length === 0 ? (
-                <div className="border border-dashed border-white/10 rounded-2xl p-10 text-center text-slate-600 text-sm">No reviews yet.</div>
+                <div className="border border-dashed border-stone-300 rounded-xl p-10 text-center text-stone-400 text-sm">No reviews yet.</div>
               ) : (
                 <div className="flex flex-col gap-3">
                   {reviews.map((review) => {
                     const supplier = suppliers.find((s) => s.id === review.supplier_id);
                     return (
-                      <div key={review.id} className="bg-white/3 border border-white/7 rounded-2xl p-4 flex flex-col gap-3">
+                      <div key={review.id} className="bg-white border border-stone-200 rounded-xl p-4 flex flex-col gap-3">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div>
                             <div className="mb-1 flex items-center gap-2 flex-wrap">
-                              <span className="text-white font-bold text-sm">{supplier?.company_name || "Unknown supplier"}</span>
-                              {supplier?.is_verified && <span className="text-xs font-bold text-emerald-400">✓ Verified</span>}
+                              <span className="text-[#1f2933] font-bold text-sm">{supplier?.company_name || "Unknown supplier"}</span>
+                              {supplier?.is_verified && <span className="text-xs font-bold text-[#2f7d57]">✓ Verified</span>}
                               <StarDisplay rating={review.rating} />
                             </div>
-                            <div className="text-slate-500 text-xs">
+                            <div className="text-stone-400 text-xs">
                               by {review.buyer_name || "Verified buyer"} ({review.buyer_email || "—"}) · {new Date(review.created_at).toLocaleDateString()}
                             </div>
-                            <div className="text-slate-600 text-xs font-mono mt-0.5">Request: {review.request_id.slice(0, 12)}...</div>
+                            <div className="text-stone-300 text-xs font-mono mt-0.5">Request: {review.request_id.slice(0, 12)}...</div>
                           </div>
                           <button onClick={() => deleteReview(review.id)}
-                            className="bg-red-500/8 border border-red-500/15 text-red-400 font-semibold text-xs px-4 py-2 rounded-xl cursor-pointer hover:bg-red-500/15 transition-all">
+                            className="bg-red-50 border border-red-200 text-red-600 font-semibold text-xs px-4 py-2 rounded-lg cursor-pointer hover:bg-red-100 transition-all">
                             Delete
                           </button>
                         </div>
-                        {review.comment && <p className="m-0 text-sm leading-relaxed text-slate-400">{review.comment}</p>}
+                        {review.comment && <p className="m-0 text-sm leading-relaxed text-stone-600">{review.comment}</p>}
                       </div>
                     );
                   })}
@@ -935,8 +920,8 @@ export default function AdminPage() {
           {activeTab === "stock" && (
             <div className="flex flex-col gap-4">
               <div>
-                <h2 className="text-xl font-black text-white tracking-tight mb-1">Ready stock listings</h2>
-                <p className="text-slate-500 text-sm m-0">
+                <h2 className="text-xl font-black text-[#1f2933] tracking-tight mb-1">Ready stock listings</h2>
+                <p className="text-stone-500 text-sm m-0">
                   {readyStock.filter((s) => s.is_active && !s.is_sold_out).length} items available ·
                   {" "}{readyStock.filter((s) => s.is_active && s.is_sold_out).length} sold out ·
                   {" "}{readyStock.filter((s) => !s.is_active).length} hidden
@@ -944,14 +929,14 @@ export default function AdminPage() {
               </div>
 
               {readyStock.length === 0 ? (
-                <div className="border border-dashed border-white/10 rounded-2xl p-10 text-center text-slate-600 text-sm">No ready stock listings yet.</div>
+                <div className="border border-dashed border-stone-300 rounded-xl p-10 text-center text-stone-400 text-sm">No ready stock listings yet.</div>
               ) : (
                 <div className="flex flex-col gap-3">
                   {readyStock.map((item) => {
                     const supplier = suppliers.find((s) => s.id === item.supplier_id);
                     const color = getCategoryColor(item.category);
                     return (
-                      <div key={item.id} className={`bg-white/3 border border-white/7 rounded-2xl p-4 flex flex-col gap-3 ${!item.is_active ? "opacity-50" : ""}`}>
+                      <div key={item.id} className={`bg-white border border-stone-200 rounded-xl p-4 flex flex-col gap-3 ${!item.is_active ? "opacity-50" : ""}`}>
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div>
                             <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -960,27 +945,27 @@ export default function AdminPage() {
                                 {getCategoryLabel(item.category)}{item.subcategory ? ` · ${item.subcategory}` : ""}
                               </span>
                               {item.is_sold_out ? (
-                                <span className="rounded-full border border-red-500/25 bg-red-500/15 px-2.5 py-1 text-xs font-bold text-red-400">Sold out</span>
+                                <span className="rounded-full border border-red-200 bg-red-100 px-2.5 py-1 text-xs font-bold text-red-600">Sold out</span>
                               ) : item.is_active ? (
-                                <span className="rounded-full border border-emerald-500/25 bg-emerald-500/15 px-2.5 py-1 text-xs font-bold text-emerald-400">In stock</span>
+                                <span className="rounded-full border border-emerald-200 bg-emerald-100 px-2.5 py-1 text-xs font-bold text-[#2f7d57]">In stock</span>
                               ) : (
-                                <span className="rounded-full border border-slate-600/30 bg-slate-800 px-2.5 py-1 text-xs font-bold text-slate-400">Hidden</span>
+                                <span className="rounded-full border border-stone-200 bg-stone-100 px-2.5 py-1 text-xs font-bold text-stone-500">Hidden</span>
                               )}
                             </div>
-                            <div className="text-slate-500 text-xs">
+                            <div className="text-stone-400 text-xs">
                               {supplier?.company_name || "Unknown supplier"}
-                              {supplier?.is_verified && <span className="ml-1 text-emerald-400">✓</span>}
+                              {supplier?.is_verified && <span className="ml-1 text-[#2f7d57]">✓</span>}
                               {supplier?.region && ` · ${supplier.region}`}
                             </div>
                           </div>
                           <div className="flex gap-2">
                             <button onClick={() => toggleStockActive(item.id, item.is_active)}
-                              className={`text-xs font-bold px-3 py-1.5 rounded-xl border-0 cursor-pointer transition-all ${item.is_active ? "bg-slate-800 text-slate-400 hover:bg-slate-700" : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/15"}`}>
+                              className={`text-xs font-bold px-3 py-1.5 rounded-lg border cursor-pointer transition-all ${item.is_active ? "bg-stone-50 text-stone-600 border-stone-200 hover:bg-stone-100" : "bg-emerald-100 text-[#2f7d57] border-emerald-200 hover:bg-emerald-200"}`}>
                               {item.is_active ? "Hide" : "Show"}
                             </button>
                           </div>
                         </div>
-                        {item.description && <p className="m-0 text-xs leading-relaxed text-slate-400">{item.description}</p>}
+                        {item.description && <p className="m-0 text-xs leading-relaxed text-stone-500">{item.description}</p>}
                         <div className="grid grid-cols-3 gap-2 md:grid-cols-4">
                           {[
                             { label: "Price", value: `${item.price_per_unit}/${item.unit}` },
@@ -988,9 +973,9 @@ export default function AdminPage() {
                             { label: "Available", value: item.available_quantity || "—" },
                             { label: "Added", value: new Date(item.created_at).toLocaleDateString() },
                           ].map((s) => (
-                            <div key={s.label} className="bg-white/4 border border-white/7 rounded-xl p-2.5">
-                              <div className="text-slate-600 text-xs font-bold uppercase tracking-wider mb-0.5">{s.label}</div>
-                              <div className="text-slate-300 text-xs font-semibold">{s.value}</div>
+                            <div key={s.label} className="bg-stone-50 border border-stone-200 rounded-lg p-2.5">
+                              <div className="text-stone-400 text-xs font-bold uppercase tracking-wider mb-0.5">{s.label}</div>
+                              <div className="text-[#1f2933] text-xs font-semibold">{s.value}</div>
                             </div>
                           ))}
                         </div>
@@ -1007,53 +992,53 @@ export default function AdminPage() {
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-black text-white">Supplier applications</h2>
-                  <p className="text-xs text-slate-500">{applications.filter((a) => a.status === "pending").length} pending · {applications.filter((a) => a.status === "approved").length} approved · {applications.filter((a) => a.status === "rejected").length} rejected</p>
+                  <h2 className="text-lg font-black text-[#1f2933]">Supplier applications</h2>
+                  <p className="text-xs text-stone-500">{applications.filter((a) => a.status === "pending").length} pending · {applications.filter((a) => a.status === "approved").length} approved · {applications.filter((a) => a.status === "rejected").length} rejected</p>
                 </div>
               </div>
               {applications.length === 0 ? (
-                <div className="rounded-2xl border border-white/7 bg-white/4 p-8 text-center text-sm text-slate-500">No applications yet.</div>
+                <div className="rounded-xl border border-dashed border-stone-300 bg-stone-50 p-8 text-center text-sm text-stone-400">No applications yet.</div>
               ) : (
                 <div className="flex flex-col gap-3">
                   {applications.map((app) => (
-                    <div key={app.id} className="rounded-2xl border border-white/7 bg-white/4 p-4">
+                    <div key={app.id} className="rounded-xl border border-stone-200 bg-white p-4">
                       <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
                         <div>
                           <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-sm font-bold text-white">{app.company_name}</span>
-                            <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                              app.status === "pending" ? "bg-amber-900/50 text-amber-300" :
-                              app.status === "approved" ? "bg-emerald-900/50 text-emerald-300" :
-                              "bg-red-900/50 text-red-300"
+                            <span className="text-sm font-bold text-[#1f2933]">{app.company_name}</span>
+                            <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold border ${
+                              app.status === "pending" ? "bg-amber-100 text-amber-700 border-amber-200" :
+                              app.status === "approved" ? "bg-emerald-100 text-[#2f7d57] border-emerald-200" :
+                              "bg-red-100 text-red-600 border-red-200"
                             }`}>{app.status}</span>
                           </div>
-                          <div className="text-xs text-slate-400">{app.contact_name} · {app.email} · {app.phone}</div>
-                          {app.wechat && <div className="text-xs text-slate-500">WeChat: {app.wechat}</div>}
+                          <div className="text-xs text-stone-400">{app.contact_name} · {app.email} · {app.phone}</div>
+                          {app.wechat && <div className="text-xs text-stone-400">WeChat: {app.wechat}</div>}
                         </div>
-                        <div className="text-xs text-slate-600">{new Date(app.created_at).toLocaleDateString()}</div>
+                        <div className="text-xs text-stone-400">{new Date(app.created_at).toLocaleDateString()}</div>
                       </div>
                       <div className="grid grid-cols-2 gap-2 mb-3 md:grid-cols-3">
-                        <div className="rounded-xl bg-white/4 border border-white/7 p-2.5">
-                          <div className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-0.5">Region</div>
-                          <div className="text-xs text-slate-300">{app.region}</div>
+                        <div className="rounded-lg bg-stone-50 border border-stone-200 p-2.5">
+                          <div className="text-xs font-bold uppercase tracking-wider text-stone-400 mb-0.5">Region</div>
+                          <div className="text-xs text-[#1f2933]">{app.region}</div>
                         </div>
                         {app.years_in_business && (
-                          <div className="rounded-xl bg-white/4 border border-white/7 p-2.5">
-                            <div className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-0.5">Experience</div>
-                            <div className="text-xs text-slate-300">{app.years_in_business}</div>
+                          <div className="rounded-lg bg-stone-50 border border-stone-200 p-2.5">
+                            <div className="text-xs font-bold uppercase tracking-wider text-stone-400 mb-0.5">Experience</div>
+                            <div className="text-xs text-[#1f2933]">{app.years_in_business}</div>
                           </div>
                         )}
                         {app.website && (
-                          <div className="rounded-xl bg-white/4 border border-white/7 p-2.5">
-                            <div className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-0.5">Website</div>
-                            <a href={app.website} target="_blank" rel="noreferrer" className="text-xs text-indigo-400 no-underline hover:text-indigo-300 break-all">{app.website}</a>
+                          <div className="rounded-lg bg-stone-50 border border-stone-200 p-2.5">
+                            <div className="text-xs font-bold uppercase tracking-wider text-stone-400 mb-0.5">Website</div>
+                            <a href={app.website} target="_blank" rel="noreferrer" className="text-xs text-[#24483f] no-underline hover:underline break-all">{app.website}</a>
                           </div>
                         )}
                       </div>
                       {app.categories && app.categories.length > 0 && (
                         <div className="mb-3 flex flex-wrap gap-1.5">
                           {app.categories.map((cat) => (
-                            <span key={cat} className="rounded-full bg-indigo-900/30 border border-indigo-500/20 px-2.5 py-0.5 text-xs font-semibold text-indigo-300">{cat}</span>
+                            <span key={cat} className="rounded-full bg-[#24483f]/10 border border-[#24483f]/20 px-2.5 py-0.5 text-xs font-semibold text-[#24483f]">{cat}</span>
                           ))}
                         </div>
                       )}
@@ -1073,7 +1058,7 @@ export default function AdminPage() {
                               alert(`Approved! Invite code ${data.code} sent to ${app.email}`);
                               fetchAll();
                             } catch (e: any) { alert(e.message); }
-                          }} className="rounded-xl bg-emerald-600 hover:bg-emerald-500 border-0 px-4 py-2 text-xs font-bold text-white cursor-pointer transition-all">
+                          }} className="rounded-lg bg-emerald-100 hover:bg-emerald-200 border border-emerald-200 px-4 py-2 text-xs font-bold text-[#2f7d57] cursor-pointer transition-all">
                             ✓ Approve &amp; send invite
                           </button>
                           <button onClick={async () => {
@@ -1087,7 +1072,7 @@ export default function AdminPage() {
                               });
                               fetchAll();
                             } catch (e: any) { alert(e.message); }
-                          }} className="rounded-xl bg-white/6 hover:bg-white/10 border border-white/10 px-4 py-2 text-xs font-bold text-slate-400 cursor-pointer transition-all">
+                          }} className="rounded-lg bg-stone-50 hover:bg-stone-100 border border-stone-200 px-4 py-2 text-xs font-bold text-stone-500 cursor-pointer transition-all">
                             Reject
                           </button>
                         </div>
