@@ -1,0 +1,14 @@
+<svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Forest green rounded square -->
+  <rect width="56" height="56" rx="13" fill="#24483f"/>
+
+  <!-- W mark: woven thread strokes -->
+  <path d="M10 14 L18 41 L28 22" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M28 22 L38 41 L46 14" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- Terracotta crossing-thread accent -->
+  <circle cx="28" cy="22" r="4" fill="#c9935b"/>
+  <circle cx="27" cy="21" r="1.5" fill="white" opacity="0.35"/>
+
+</svg>

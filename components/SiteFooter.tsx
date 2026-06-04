@@ -11,9 +11,8 @@ export default function SiteFooter() {
 
         {/* Brand */}
         <div className="max-w-xs">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="w-8 h-8 rounded-full bg-gradient-to-br from-[#c9935b] to-[#a75635] flex items-center justify-center text-white font-black text-xs">W</span>
-            <span className="text-white font-black text-lg">Weinly</span>
+          <div className="mb-3">
+            <img src="/weinly-logo-light.svg" alt="Weinly" height="40" className="h-10 w-auto" />
           </div>
           <p className="text-[#e8dcc8] text-sm leading-relaxed">
             Global fabric sourcing platform connecting buyers worldwide to verified Chinese manufacturers.

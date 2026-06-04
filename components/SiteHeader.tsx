@@ -23,11 +23,8 @@ export default function SiteHeader({ showSubmitButton = true }: SiteHeaderProps)
       <nav className="flex items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
 
         {/* Logo */}
-        <a href="/" className="flex shrink-0 items-center gap-2 no-underline">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-sm font-black text-white shadow-lg shadow-amber-500/30">
-            W
-          </span>
-          <span className="text-xl font-black tracking-tight text-gray-900">Weinly</span>
+        <a href="/" className="flex shrink-0 items-center no-underline">
+          <img src="/weinly-logo.svg" alt="Weinly" height="40" className="h-10 w-auto" />
         </a>
 
         {/* Desktop nav links */}
@@ -68,7 +65,7 @@ export default function SiteHeader({ showSubmitButton = true }: SiteHeaderProps)
           {showSubmitButton && (
             <a
               href="/#main-tabs"
-              className="rounded-xl bg-gradient-to-r from-amber-500 to-amber-700 px-4 py-2.5 text-sm font-bold text-white no-underline transition-all hover:shadow-lg hover:shadow-amber-500/30"
+              className="rounded-xl bg-gradient-to-r from-[#a75635] to-[#7b3525] px-4 py-2.5 text-sm font-bold text-white no-underline transition-all hover:shadow-md"
             >
               Submit Request
             </a>
@@ -131,7 +128,7 @@ export default function SiteHeader({ showSubmitButton = true }: SiteHeaderProps)
             <a
               href="/#main-tabs"
               onClick={() => setMobileMenuOpen(false)}
-              className="mt-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-700 px-4 py-3 text-center text-sm font-bold text-white no-underline shadow-lg shadow-amber-500/20"
+              className="mt-2 rounded-xl bg-gradient-to-r from-[#a75635] to-[#7b3525] px-4 py-3 text-center text-sm font-bold text-white no-underline shadow-sm"
             >
               Submit Request →
             </a>
