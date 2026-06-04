@@ -413,8 +413,8 @@ export default function HomePage() {
               <p className="max-w-lg text-base leading-relaxed text-[#e8dcc8] md:text-lg">Describe what you need. Get verified supplier quotes. Unlock direct contact and negotiate the best deals — no middlemen.</p>
               <div className="flex flex-wrap gap-6">
                 {[
-                  { v: "9", l: "Fabric categories" },
-                  { v: "70+", l: "Fabric types" },
+                  { v: String(FABRIC_CATEGORIES.length), l: "Fabric categories" },
+                  { v: "500+", l: "Fabric types" },
                   { v: prices.unlock, l: "Contact unlock" },
                   ...(avgRating ? [{ v: `${avgRating}★`, l: "Avg supplier rating" }] : []),
                 ].map((s) => (
@@ -454,7 +454,7 @@ export default function HomePage() {
                 onClick={() => { setActiveTab("submit"); document.getElementById("main-tabs")?.scrollIntoView({ behavior: "smooth" }); }}
                 className="mt-1 w-full cursor-pointer rounded-xl border border-white/15 bg-white/8 py-2.5 text-center text-xs font-semibold text-[#e8dcc8] transition-all hover:bg-white/15"
               >
-                + 3 more categories — Kids, Industrial, Eco →
+                + {FABRIC_CATEGORIES.length - 6} more categories →
               </button>
             </div>
           </div>
