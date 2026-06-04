@@ -68,8 +68,8 @@ export default function SiteFooter() {
             <div className="text-[#c9935b] text-xs font-bold uppercase tracking-widest mb-3">Platform</div>
             <div className="flex flex-col gap-2">
               <span className="text-[#e8dcc8] text-sm">China · Worldwide</span>
-              <span className="text-[#e8dcc8] text-sm">9 fabric categories</span>
-              <span className="text-[#e8dcc8] text-sm">70+ fabric types</span>
+              <span className="text-[#e8dcc8] text-sm">18 fabric categories</span>
+              <span className="text-[#e8dcc8] text-sm">500+ fabric types</span>
               <span className="text-[#e8dcc8] text-sm">B2B marketplace</span>
             </div>
           </div>
