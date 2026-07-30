@@ -393,7 +393,7 @@ export default function HomePage() {
         </div>
       )}
 
-      <div className="mx-auto flex max-w-5xl flex-col gap-3">
+      <div className="mx-auto flex max-w-7xl flex-col gap-3">
         <SiteHeader />
 
         {/* ── HERO ── */}

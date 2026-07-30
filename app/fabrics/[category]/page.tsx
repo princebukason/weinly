@@ -207,7 +207,7 @@ export default function CategorySEOPage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
       <main className="min-h-screen bg-[#f5ecdc] px-3 py-3 font-sans md:px-4 md:py-4">
-        <div className="mx-auto flex max-w-5xl flex-col gap-4">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4">
           <SiteHeader />
 
           {/* Breadcrumb */}

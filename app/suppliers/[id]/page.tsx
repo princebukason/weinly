@@ -104,7 +104,7 @@ export default function SupplierProfilePage() {
   if (notFound || !supplier) {
     return (
       <main className="min-h-screen bg-[#f5ecdc] px-3 py-3 font-sans">
-        <div className="mx-auto max-w-5xl">
+        <div className="mx-auto max-w-7xl">
           <SiteHeader />
           <div className="mt-4 rounded-2xl border border-stone-200 bg-white p-12 text-center">
             <div className="mb-3 text-5xl">◎</div>
@@ -126,7 +126,7 @@ export default function SupplierProfilePage() {
 
   return (
     <main className="min-h-screen bg-[#f5ecdc] px-3 py-3 font-sans md:px-4 md:py-4">
-      <div className="mx-auto flex max-w-5xl flex-col gap-3">
+      <div className="mx-auto flex max-w-7xl flex-col gap-3">
         <SiteHeader />
 
         {/* Back */}

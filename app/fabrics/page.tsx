@@ -27,7 +27,7 @@ export default function FabricsIndexPage() {
       <div className="flex w-full flex-col gap-0">
         <SiteHeader />
 
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-4">
 
           {/* Breadcrumb */}
           <nav className="flex items-center gap-2 text-xs text-stone-500">

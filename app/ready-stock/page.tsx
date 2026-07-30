@@ -73,7 +73,7 @@ export default function ReadyStockPage() {
       <div className="flex w-full flex-col gap-0">
         <SiteHeader />
 
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-4">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-4">
 
           {/* Hero — fabric image mosaic */}
           <section className="relative overflow-hidden rounded-lg">

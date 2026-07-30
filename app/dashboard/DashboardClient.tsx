@@ -120,7 +120,7 @@ export default function DashboardClient({ user, requests, quotesMap, isPro, subs
       <div className="flex w-full flex-col gap-0">
         <SiteHeader />
 
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-4">
 
           {/* Hero */}
           <section className="rounded-lg border border-[#24483f]/15 bg-[#fffaf2] p-6 md:p-8">

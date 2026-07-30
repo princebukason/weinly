@@ -393,7 +393,7 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
 
   return (
     <main className="min-h-screen bg-[#f5ecdc] px-3 py-3 font-sans md:px-4 md:py-4">
-      <div className="mx-auto flex max-w-5xl flex-col gap-3">
+      <div className="mx-auto flex max-w-7xl flex-col gap-3">
 
         <nav className="flex items-center justify-between gap-4 rounded-2xl border border-stone-200 bg-white px-4 py-3">
           <a href="/" className="flex shrink-0 items-center gap-2 no-underline">
