@@ -4,6 +4,11 @@ import { createClient } from "@supabase/supabase-js";
 import { requestSubmittedEmail } from "@/lib/emails/templates";
 
 export async function POST(req: NextRequest) {
+  const secret = process.env.INTERNAL_API_SECRET;
+  if (!secret || req.headers.get("x-internal-secret") !== secret) {
+    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
   if (!process.env.RESEND_API_KEY) {
     return NextResponse.json({ error: "Missing RESEND_API_KEY." }, { status: 500 });
   }

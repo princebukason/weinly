@@ -149,9 +149,8 @@ export async function POST(req: NextRequest) {
 
     // Fire push notification — non-fatal if it fails
     try {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : "http://localhost:3000";
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL
+        || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
       await fetch(`${appUrl}/api/push/notify-buyer`, {
         method: "POST",
         headers: {

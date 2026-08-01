@@ -58,7 +58,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // Not logged in — protect supplier dashboard only
-  if (!user && path === "/supplier/dashboard") {
+  if (!user && path.startsWith("/supplier/dashboard")) {
     return NextResponse.redirect(new URL("/supplier/auth", request.url));
   }
 

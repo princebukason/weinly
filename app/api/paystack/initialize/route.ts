@@ -34,12 +34,16 @@ export async function POST(req: NextRequest) {
 
     const { data: request, error: fetchError } = await supabase
       .from("fabric_requests")
-      .select("contact_access_fee, payment_status")
+      .select("contact_access_fee, payment_status, client_email")
       .eq("id", requestId)
       .single();
 
     if (fetchError || !request) {
       return NextResponse.json({ error: "Request not found." }, { status: 404 });
+    }
+
+    if (request.client_email?.toLowerCase() !== email.toLowerCase()) {
+      return NextResponse.json({ error: "Email does not match this request." }, { status: 403 });
     }
 
     if (request.payment_status === "paid") {

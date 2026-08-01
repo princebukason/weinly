@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
@@ -7,16 +7,36 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-export async function POST(req: Request) {
+const WINDOW_MS = 10 * 60 * 1000;
+const MAX_CALLS = 10;
+const rateMap = new Map<string, { count: number; resetAt: number }>();
+
+function getIp(req: NextRequest): string {
+  return req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
+}
+
+export async function POST(req: NextRequest) {
+  const ip = getIp(req);
+  const now = Date.now();
+  const entry = rateMap.get(ip);
+  if (entry && now < entry.resetAt) {
+    if (entry.count >= MAX_CALLS) {
+      return NextResponse.json({ error: "Too many requests. Try again later." }, { status: 429 });
+    }
+    entry.count += 1;
+  } else {
+    rateMap.set(ip, { count: 1, resetAt: now + WINDOW_MS });
+  }
+
   try {
     const body = await req.json();
     const input = body?.input;
 
     if (!input || typeof input !== "string") {
-      return NextResponse.json(
-        { error: "Missing input" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing input" }, { status: 400 });
+    }
+    if (input.length > 2000) {
+      return NextResponse.json({ error: "Input too long. Please keep it under 2000 characters." }, { status: 400 });
     }
 
     const prompt = `

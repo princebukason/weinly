@@ -106,8 +106,13 @@ export default function SupplierAuthPage() {
 
         if (error) throw error;
 
-        const role = data.user?.user_metadata?.role;
-        if (role !== "supplier") {
+        const { data: profile } = await supabase
+          .from("supplier_profiles")
+          .select("id")
+          .eq("user_id", data.user.id)
+          .maybeSingle();
+
+        if (!profile) {
           await supabase.auth.signOut();
           setMessage({ type: "error", text: "This login is for suppliers only. Buyers should use the main login page." });
           setLoading(false);

@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createHmac, timingSafeEqual } from "crypto";
 
 function isAuthorized(req: NextRequest): boolean {
-  const adminPassword = process.env.ADMIN_PASSWORD;
   const internalSecret = process.env.INTERNAL_API_SECRET;
-  const adminToken = req.headers.get("X-Admin-Password");
-  const secretToken = req.headers.get("x-internal-secret");
-  return (!!adminPassword && adminToken === adminPassword) ||
-         (!!internalSecret && secretToken === internalSecret);
+  if (internalSecret && req.headers.get("x-internal-secret") === internalSecret) return true;
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (!adminPassword) return false;
+  const sessionToken = req.cookies.get("weinly_admin_session")?.value;
+  if (!sessionToken) return false;
+  const expected = createHmac("sha256", adminPassword).update("weinly-admin-v1").digest("hex");
+  const a = Buffer.from(sessionToken);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
 }
 
 export async function POST(req: NextRequest) {

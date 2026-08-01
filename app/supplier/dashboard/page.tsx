@@ -8,16 +8,13 @@ export default async function SupplierDashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/supplier/auth");
 
-  const role = user.user_metadata?.role;
-  if (role !== "supplier") redirect("/auth");
-
   const { data: profile, error: profileError } = await supabase
     .from("supplier_profiles")
     .select("*")
     .eq("user_id", user.id)
     .single();
 
-  if (profileError || !profile) redirect("/supplier/auth");
+  if (profileError || !profile) redirect("/dashboard");
 
   if (profile.is_active === false) redirect("/supplier/pending");
 
