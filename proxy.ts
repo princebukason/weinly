@@ -1,7 +1,36 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+async function verifyAdminSession(token: string, adminPassword: string): Promise<boolean> {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw", encoder.encode(adminPassword), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, encoder.encode("weinly-admin-v1"));
+  const expected = Array.from(new Uint8Array(sig))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  if (token.length !== expected.length) return false;
+  let diff = 0;
+  for (let i = 0; i < token.length; i++) diff |= token.charCodeAt(i) ^ expected.charCodeAt(i);
+  return diff === 0;
+}
+
 export async function proxy(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+
+  // Admin route — gate with HTTP-only signed session cookie
+  if (path.startsWith("/admin")) {
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    const sessionToken = request.cookies.get("weinly_admin_session")?.value;
+    if (!adminPassword || !sessionToken || !(await verifyAdminSession(sessionToken, adminPassword))) {
+      const res = NextResponse.redirect(new URL("/", request.url));
+      res.cookies.set("weinly_admin_session", "", { maxAge: 0, path: "/" });
+      return res;
+    }
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -22,7 +51,6 @@ export async function proxy(request: NextRequest) {
   );
 
   const { data: { user } } = await supabase.auth.getUser();
-  const path = request.nextUrl.pathname;
 
   // Not logged in — protect buyer dashboard
   if (!user && path.startsWith("/dashboard")) {
@@ -60,6 +88,8 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/admin/:path*",
+    "/admin",
     "/dashboard/:path*",
     "/supplier/dashboard/:path*",
     "/auth",
