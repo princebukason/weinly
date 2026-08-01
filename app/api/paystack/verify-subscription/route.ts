@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createServerClient } from "@supabase/ssr";
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || "";
 
@@ -11,14 +12,37 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing Supabase config." }, { status: 500 });
   }
 
+  // Validate the caller's session — userId must come from the server, never the client
+  const cookieStore = req.cookies;
+  const authClient = createServerClient(
+    supabaseUrl,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { getAll: () => cookieStore.getAll() } }
+  );
+  const { data: { user }, error: sessionError } = await authClient.auth.getUser();
+  if (sessionError || !user) {
+    return NextResponse.json({ error: "Unauthorised. Please log in and try again." }, { status: 401 });
+  }
+  const userId = user.id;
+
   const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
   try {
     const body = await req.json();
-    const { reference, email, userId } = body;
+    const { reference, email } = body;
 
-    if (!reference || !email || !userId) {
-      return NextResponse.json({ error: "Missing reference, email or userId." }, { status: 400 });
+    if (!reference || !email) {
+      return NextResponse.json({ error: "Missing reference or email." }, { status: 400 });
+    }
+
+    // Replay protection — reject if this reference has already been used
+    const { data: existingSub } = await supabase
+      .from("subscriptions")
+      .select("id")
+      .eq("payment_reference", reference)
+      .maybeSingle();
+    if (existingSub) {
+      return NextResponse.json({ error: "This payment reference has already been used." }, { status: 409 });
     }
 
     // Verify with Paystack

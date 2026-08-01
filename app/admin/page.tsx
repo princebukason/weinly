@@ -185,7 +185,8 @@ export default function AdminPage() {
     } catch { setLoginError("Failed to verify. Please try again."); }
   }
 
-  function handleLogout() {
+  async function handleLogout() {
+    await fetch("/api/admin/logout", { method: "POST" });
     localStorage.removeItem("weinly_admin_auth");
     sessionStorage.removeItem("weinly_admin_token");
     setAuthenticated(false);
