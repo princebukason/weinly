@@ -65,15 +65,16 @@ export default function PricingPage() {
   const currentPlan: ProPlan = billingCycle === "monthly" ? "pro_monthly" : "pro_yearly";
   const currentPrice = billingCycle === "monthly" ? prices.proMonthly : prices.proYearly;
   const currentPeriod = billingCycle === "monthly" ? "month" : "year";
-  const yearlySaving = prices.currency === "NGN" ? "₦100,000" : "$120";
-  const yearlySavingShort = prices.currency === "NGN" ? "₦100k" : "$120";
+  const yearlyTotal = prices.currency === "NGN" ? "₦300,000" : "$240";
+  const yearlySaving = prices.currency === "NGN" ? "₦100,000" : "$110";
+  const yearlySavingShort = prices.currency === "NGN" ? "₦100k" : "$110";
 
   const faqs = [
     { q: "Who is Weinly Pro for?", a: "Weinly Pro is for serious buyers, fabric sellers, fashion brands and sourcing professionals who want faster access, better supplier matching and less risk when buying from China." },
     { q: "What does the 3 unlocks/month mean?", a: "Each month, Pro includes 3 supplier contact unlocks at no extra charge. That means you can access supplier contact details for up to 3 suitable quote matches every month." },
     { q: "What happens if I need more than 3 unlocks?", a: "You can still unlock more supplier contacts separately, or upgrade to a custom Enterprise arrangement if you buy in larger volumes." },
     { q: "Can I pay by bank transfer?", a: "Yes. If you prefer bank transfer, click the bank transfer option and we will send payment details on WhatsApp." },
-    { q: "Is yearly cheaper?", a: `Yes. Yearly costs ${prices.proYearly}, which saves you ${yearlySaving} compared to paying ${prices.proMonthly} monthly for 12 months.` },
+    { q: "Is yearly cheaper?", a: `Yes. The yearly plan costs ${prices.proYearly} upfront. If you paid monthly it would cost ${yearlyTotal} over 12 months (${prices.proMonthly} × 12), so you save ${yearlySaving} by going yearly.` },
     { q: "Can I cancel later?", a: "Yes. If you want to stop renewal or make changes, contact Weinly support on WhatsApp." },
   ];
 
@@ -127,7 +128,7 @@ export default function PricingPage() {
           <section className="flex justify-center">
             <div className="inline-flex items-center gap-2 rounded-lg border border-stone-200 bg-white p-1.5">
               <button onClick={() => setBillingCycle("monthly")}
-                className={`rounded-md border-0 cursor-pointer px-5 py-2 text-sm font-bold transition-all ${billingCycle === "monthly" ? "bg-[#f59e0b] text-[#1a2e1a] text-white shadow-lg shadow-stone-900/10" : "bg-transparent text-stone-500"}`}>
+                className={`rounded-md border-0 cursor-pointer px-5 py-2 text-sm font-bold transition-all ${billingCycle === "monthly" ? "bg-[#f59e0b] text-[#1a2e1a] shadow-lg shadow-stone-900/10" : "bg-transparent text-stone-500"}`}>
                 Monthly
               </button>
               <button onClick={() => setBillingCycle("yearly")}
