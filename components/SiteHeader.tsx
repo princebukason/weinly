@@ -35,8 +35,9 @@ export default function SiteHeader({ showSubmitButton = true }: SiteHeaderProps)
           <a href="/suppliers" className="text-sm font-semibold text-gray-500 no-underline transition-colors hover:text-gray-900">
             Suppliers
           </a>
-          <a href="/ready-stock" className="text-sm font-semibold text-gray-500 no-underline transition-colors hover:text-gray-900">
+          <a href="/ready-stock" className="flex items-center gap-1.5 text-sm font-semibold text-gray-500 no-underline transition-colors hover:text-gray-900">
             Ready Stock
+            <span className="rounded-full bg-[#f59e0b] px-1.5 py-0.5 text-[10px] font-bold text-[#1a2e1a]">NEW</span>
           </a>
           <a href="/pricing" className="text-sm font-semibold text-gray-500 no-underline transition-colors hover:text-gray-900">
             Pricing
@@ -96,7 +97,7 @@ export default function SiteHeader({ showSubmitButton = true }: SiteHeaderProps)
           {[
             { href: "/", label: "Home" },
             { href: "/suppliers", label: "Suppliers" },
-            { href: "/ready-stock", label: "Ready Stock" },
+            { href: "/ready-stock", label: "⚡ Ready Stock" },
             { href: "/pricing", label: "Pricing" },
             { href: "/about", label: "About" },
             { href: "/dashboard", label: "My Requests" },

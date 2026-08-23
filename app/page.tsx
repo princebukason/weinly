@@ -535,10 +535,33 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ── READY STOCK FAST-TRACK ── */}
+        <section className="rounded-2xl border border-[#f59e0b]/40 bg-gradient-to-r from-[#fffbeb] to-[#fef3c7] p-6 md:p-8">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#f59e0b] text-2xl shadow-md shadow-amber-500/20">⚡</div>
+              <div>
+                <div className="mb-1 inline-flex items-center gap-2 rounded-full bg-[#f59e0b]/20 px-3 py-0.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#f59e0b]" />
+                  <span className="text-xs font-bold text-[#92400e]">No waiting — available now</span>
+                </div>
+                <h2 className="mb-1 text-xl font-black tracking-tight text-[#1f2933] md:text-2xl">Ready Stock — browse fabrics in stock today</h2>
+                <p className="text-sm leading-relaxed text-stone-600">Suppliers have listed fabrics they have available right now. Browse, find what you need, unlock contact and buy — no quote request needed.</p>
+              </div>
+            </div>
+            <a href="/ready-stock" className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-[#f59e0b] px-6 py-3.5 text-sm font-bold text-[#1a2e1a] no-underline shadow-md shadow-amber-500/20 transition-all hover:bg-[#f0950a]">
+              Browse Ready Stock →
+            </a>
+          </div>
+        </section>
+
         {/* ── HOW IT WORKS ── */}
         <section id="how-it-works" className="rounded-2xl border border-stone-200 bg-white p-6 md:p-10">
           <span className="mb-3 inline-block rounded-full bg-[#24483f]/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#24483f]">How it works</span>
-          <h2 className="mb-8 text-2xl font-black tracking-tight text-[#1f2933] md:text-3xl">Three steps to your supplier</h2>
+          <div className="mb-6 flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
+            <h2 className="m-0 text-2xl font-black tracking-tight text-[#1f2933] md:text-3xl">Three steps to your supplier</h2>
+            <a href="/ready-stock" className="text-sm font-semibold text-[#f59e0b] no-underline hover:underline">⚡ Need it now? Browse Ready Stock →</a>
+          </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {[
               { n: "01", title: "Submit your request", text: "Choose a fabric category, describe what you need. AI formats it into a professional sourcing spec.", color: "from-[#a75635] to-[#c9935b]", textColor: "text-[#a75635]" },
