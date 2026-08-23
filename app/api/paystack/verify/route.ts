@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
         payment_status: "paid",
         payment_reference: reference,
         paid_at: nowIso,
-        contact_request_status: "pending",
+        contact_request_status: "approved",
       })
       .eq("id", requestId);
 
@@ -116,8 +116,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // FIX 1 & 2 — email is now INSIDE try block, AFTER successful update
-    // requestId is in scope here and only runs on success
+    // Release supplier contacts immediately on payment
+    await supabase
+      .from("quotes")
+      .update({ is_contact_released: true })
+      .eq("request_id", requestId);
+
     try {
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://weinlyhq.com";
       await fetch(`${siteUrl}/api/email/notify-contact-approved`, {
@@ -126,13 +130,12 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({ requestId }),
       });
     } catch (e) {
-      // Email failure should not block payment success response
       console.error("Payment confirmation email failed:", e);
     }
 
     return NextResponse.json({
       success: true,
-      message: "Payment verified. Supplier contact release is pending admin approval.",
+      message: "Payment verified. Supplier contacts are now unlocked.",
     });
   } catch (error) {
     console.error("Verify route error:", error);

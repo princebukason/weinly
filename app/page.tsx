@@ -364,7 +364,9 @@ export default function HomePage() {
             const verifyData = await verifyRes.json();
             if (!verifyRes.ok) { showToast(verifyData?.error || "Verification failed.", "error"); return; }
             await syncState(request.id);
-            showToast("Payment confirmed! Supplier contact will be released after approval.", "success");
+            showToast("Payment confirmed! Supplier contacts are now unlocked.", "success");
+            await new Promise((r) => setTimeout(r, 1500));
+            if (activeRequest?.id) await fetchRequest(activeRequest.id);
           } catch { showToast("Payment verification failed. Please contact support.", "error"); }
           finally { setPaymentLoading(false); }
         },
@@ -811,63 +813,66 @@ export default function HomePage() {
                         </div>
                       )}
                       {!isReleased && contactStatus === "none" && (
-                        <div className="rounded-xl border border-stone-200 bg-stone-50 p-5">
-                          <div className="mb-4">
-                            <h4 className="mb-1 text-base font-bold text-[#1f2933]">Unlock supplier contact</h4>
-                            <p className="m-0 text-sm leading-relaxed text-stone-500">Choose a one-time unlock or upgrade to Pro for better value.</p>
-                          </div>
-                          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                            <div className="rounded-lg border border-stone-200 bg-white p-4">
-                              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-stone-400">One-time unlock</div>
-                              <div className="mb-2 text-2xl font-black text-[#1f2933]">{prices.unlock}</div>
-                              <div className="mb-4 text-sm leading-relaxed text-stone-500">Unlock this supplier's phone, WeChat and email for this request.</div>
-                              <button onClick={() => requestContact(activeRequest.id)}
-                                className="w-full cursor-pointer rounded-lg border-0 bg-[#f59e0b] px-5 py-3 text-sm font-bold text-[#1a2e1a] shadow-sm">
-                                Proceed to unlock
-                              </button>
+                        <div className="rounded-xl border border-[#24483f]/20 bg-[#24483f]/5 p-5">
+                          <div className="mb-5">
+                            <div className="mb-1 flex items-center gap-2">
+                              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#24483f] text-xs font-black text-white">🔓</span>
+                              <h4 className="m-0 text-base font-bold text-[#1f2933]">Unlock supplier contact</h4>
                             </div>
-                            <div className="relative overflow-hidden rounded-lg border border-violet-200 bg-violet-50 p-4">
-                              <span className="absolute right-3 top-3 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white">Best value</span>
-                              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-violet-600">Weinly Pro</div>
-                              <div className="mb-1 text-2xl font-black text-[#1f2933]">{prices.proMonthly}<span className="ml-1 text-sm font-semibold text-stone-400">/month</span></div>
-                              <div className="mb-3 text-sm leading-relaxed text-stone-600">Includes 3 contact unlocks every month plus priority matching and support.</div>
-                              <div className="mb-4 flex flex-col gap-2">
-                                {["3 unlocks included monthly", "Priority supplier matching", "Dedicated support", "Better value for active buyers"].map((item) => (
-                                  <div key={item} className="flex items-start gap-2 text-sm text-stone-600"><span className="text-[#2f7d57]">✓</span><span>{item}</span></div>
-                                ))}
+                            <p className="m-0 mt-1 text-sm leading-relaxed text-stone-500">Pay once to get the supplier's direct phone, WeChat ID and email — instantly released after payment.</p>
+                          </div>
+                          <div className="mb-4 flex flex-col gap-2 rounded-lg border border-[#24483f]/15 bg-white p-4">
+                            {[
+                              { label: "Access fee", value: prices.unlock },
+                              { label: "What you get", value: "Phone · WeChat · Email · Contact name" },
+                              { label: "Secured by", value: "Paystack" },
+                            ].map((row) => (
+                              <div key={row.label} className="flex flex-wrap justify-between gap-2 text-sm">
+                                <span className="text-stone-400">{row.label}</span>
+                                <strong className="text-[#1f2933]">{row.value}</strong>
                               </div>
-                              <a href="/pricing" className="inline-flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-violet-500 to-indigo-600 px-5 py-3 text-sm font-bold text-white no-underline shadow-sm">Upgrade to Pro</a>
-                            </div>
+                            ))}
                           </div>
-                          <div className="mt-4">
-                            <a href={supportLink} target="_blank" rel="noreferrer" className="inline-flex items-center rounded-lg border border-stone-200 bg-stone-100 px-5 py-2.5 text-sm font-semibold text-stone-600 no-underline transition-all hover:bg-stone-200">Ask support</a>
+                          <button onClick={() => requestContact(activeRequest.id)}
+                            className="w-full cursor-pointer rounded-lg border-0 bg-[#f59e0b] py-3.5 text-sm font-bold text-[#1a2e1a] shadow-md shadow-amber-500/20 transition-all hover:bg-[#f0950a]">
+                            Pay {prices.unlock} — Unlock contacts instantly
+                          </button>
+                          <div className="mt-3 flex items-center justify-between">
+                            <p className="m-0 text-xs text-stone-400">Contacts revealed immediately after payment</p>
+                            <a href={supportLink} target="_blank" rel="noreferrer" className="text-xs font-semibold text-[#24483f] no-underline hover:underline">Need help?</a>
+                          </div>
+                          <div className="mt-3 border-t border-stone-200 pt-3">
+                            <p className="m-0 text-xs text-stone-400">Buying more than once? <a href="/pricing" className="font-semibold text-[#24483f] no-underline hover:underline">Weinly Pro — {prices.proMonthly}/mo</a> includes 3 unlocks/month.</p>
                           </div>
                         </div>
                       )}
                       {!isReleased && contactStatus === "pending" && paymentStatus === "unpaid" && (
                         <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
-                          <h4 className="m-0 mb-4 text-base font-bold text-[#1f2933]">Unlock supplier contact</h4>
+                          <div className="mb-4 flex items-center gap-3">
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500 text-sm font-black text-white">₦</span>
+                            <div>
+                              <h4 className="m-0 text-base font-bold text-[#1f2933]">Complete your payment</h4>
+                              <p className="m-0 text-xs text-stone-500">Contacts released instantly after payment</p>
+                            </div>
+                          </div>
                           <div className="mb-4 flex flex-col gap-2 rounded-lg border border-amber-200 bg-white p-4">
-                            {[{ label: "Access fee", value: prices.unlock }, { label: "Payment method", value: "Paystack" }, { label: "Request ID", value: activeRequest.id }].map((row) => (
-                              <div key={row.label} className="flex flex-wrap justify-between gap-3">
-                                <span className="text-sm text-stone-500">{row.label}</span>
-                                <strong className="text-sm text-[#1f2933]">{row.value}</strong>
+                            {[{ label: "Amount", value: prices.unlock }, { label: "What you unlock", value: "Phone · WeChat · Email" }, { label: "Secured by", value: "Paystack" }].map((row) => (
+                              <div key={row.label} className="flex flex-wrap justify-between gap-2 text-sm">
+                                <span className="text-stone-400">{row.label}</span>
+                                <strong className="text-[#1f2933]">{row.value}</strong>
                               </div>
                             ))}
                           </div>
-                          <p className="m-0 mb-4 text-sm leading-relaxed text-stone-500">Get direct access to supplier phone, WeChat and contact person.</p>
-                          <div className="flex flex-wrap gap-3">
-                            <button onClick={() => startPayment(activeRequest)} disabled={paymentLoading}
-                              className="cursor-pointer rounded-lg border-0 bg-[#f59e0b] px-5 py-2.5 text-sm font-bold text-[#1a2e1a] shadow-sm disabled:cursor-not-allowed disabled:opacity-60">
-                              {paymentLoading ? "Processing..." : `Pay ${prices.unlock} & unlock`}
-                            </button>
-                            <a href={supportLink} target="_blank" rel="noreferrer" className="flex items-center rounded-lg border border-emerald-200 bg-emerald-100 px-5 py-2.5 text-sm font-semibold text-[#2f7d57] no-underline transition-all hover:bg-emerald-200">Need help?</a>
-                          </div>
+                          <button onClick={() => startPayment(activeRequest)} disabled={paymentLoading}
+                            className="w-full cursor-pointer rounded-lg border-0 bg-[#f59e0b] py-3.5 text-sm font-bold text-[#1a2e1a] shadow-md shadow-amber-500/20 disabled:cursor-not-allowed disabled:opacity-60">
+                            {paymentLoading ? "Opening payment..." : `Pay ${prices.unlock} & unlock contacts`}
+                          </button>
+                          <p className="m-0 mt-2 text-center text-xs text-stone-400">Safe & secure — powered by Paystack</p>
                         </div>
                       )}
-                      {!isReleased && contactStatus === "pending" && paymentStatus === "paid" && (
-                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-700">
-                          <strong>Payment confirmed.</strong> Awaiting admin approval — supplier contact will be released shortly.
+                      {!isReleased && contactStatus === "approved" && paymentStatus === "paid" && (
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm leading-relaxed text-[#2f7d57]">
+                          <strong>Payment confirmed!</strong> Your supplier contacts are now unlocked — scroll down to view them.
                         </div>
                       )}
                       {!isReleased && contactStatus === "rejected" && (
