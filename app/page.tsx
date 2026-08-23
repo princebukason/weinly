@@ -1075,120 +1075,23 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* ── PRO TEASER ── */}
-        <section className="rounded-2xl border border-[#24483f]/20 bg-[#24483f] p-6 md:p-10">
-          <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-2">
-            <div>
-              <span className="mb-3 inline-block rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#f8efe2]">Weinly Pro</span>
-              <h2 className="mb-3 text-2xl font-black tracking-tight text-white md:text-3xl">Upgrade when you're ready to move faster</h2>
-              <p className="mb-5 text-sm leading-relaxed text-[#e8dcc8] md:text-base">Serious buyers use Weinly Pro to unlock suppliers faster, get priority matching, and scale their sourcing business with less risk.</p>
-              <div className="mb-6 flex flex-wrap gap-3">
-                <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-[#f8efe2]">3 unlocks / month</span>
-                <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-[#f8efe2]">Priority suppliers</span>
-                <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-[#f8efe2]">Dedicated support</span>
-              </div>
-              <a href="/pricing" className="inline-flex items-center rounded-lg bg-[#f59e0b] px-6 py-3 text-sm font-bold text-[#1a2e1a] no-underline shadow-md">View Pro pricing →</a>
-            </div>
-            <div className="flex flex-col gap-2">
-              {["Access suppliers faster when ready to buy", "Reduce delays and middlemen issues", "Make better sourcing decisions", "Scale your fabric business faster"].map((item) => (
-                <div key={item} className="flex items-center gap-3 rounded-lg border border-white/15 bg-white/10 p-3">
-                  <span className="text-[#c9935b]">✓</span>
-                  <span className="text-sm text-[#e8dcc8]">{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ── PRICING ── */}
-        <section id="pricing" className="rounded-2xl border border-stone-200 bg-white p-6 md:p-10">
-          <span className="mb-3 inline-block rounded-full bg-[#24483f]/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#24483f]">Pricing</span>
-          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h2 className="mb-2 text-2xl font-black tracking-tight text-[#1f2933] md:text-3xl">Simple, transparent pricing</h2>
-              <p className="m-0 text-sm leading-relaxed text-stone-500">Start for free. Only pay when you want direct access to a supplier.</p>
-            </div>
-            <a href="/pricing" className="shrink-0 text-sm font-semibold text-[#a75635] no-underline hover:text-[#7b3525] transition-colors">See full pricing →</a>
-          </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            {/* Free */}
-            <div className="flex flex-col rounded-xl border border-stone-200 bg-stone-50 p-6">
-              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-stone-400">Free</div>
-              <div className="mb-2 text-4xl font-black tracking-tight text-[#1f2933]">{prices.symbol}0</div>
-              <p className="mb-5 text-sm leading-relaxed text-stone-500">Submit requests, get AI specs and review supplier quotes — no payment needed.</p>
-              <div className="mb-5 flex flex-col gap-2">
-                {["Submit sourcing requests", "AI sourcing spec", "Quote preview", "Track request progress"].map((item) => (
-                  <div key={item} className="flex items-center gap-2 text-sm text-stone-600"><span className="font-bold text-[#2f7d57]">✓</span>{item}</div>
-                ))}
-              </div>
-              <a href="/#main-tabs" className="mt-auto block rounded-lg border border-stone-200 bg-white py-3 text-center text-sm font-bold text-stone-600 no-underline transition-all hover:bg-stone-100">Start free</a>
-            </div>
-            {/* Contact Unlock */}
-            <div className="flex flex-col rounded-xl border border-stone-200 bg-stone-50 p-6">
-              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-stone-400">Contact Unlock</div>
-              <div className="mb-1 text-4xl font-black tracking-tight text-[#1f2933]">{prices.unlock}</div>
-              <div className="mb-2 text-xs text-stone-400">one-time per request</div>
-              <p className="mb-5 text-sm leading-relaxed text-stone-500">Pay once to unlock a supplier's direct phone, WeChat and email for that request.</p>
-              <div className="mb-5 flex flex-col gap-2">
-                {["Direct phone number", "WeChat ID", "Email address", "Contact person name"].map((item) => (
-                  <div key={item} className="flex items-center gap-2 text-sm text-stone-600"><span className="font-bold text-[#2f7d57]">✓</span>{item}</div>
-                ))}
-              </div>
-              <button onClick={() => { setActiveTab("submit"); document.getElementById("main-tabs")?.scrollIntoView({ behavior: "smooth" }); }}
-                className="mt-auto block w-full cursor-pointer rounded-lg border border-[#24483f]/30 bg-[#24483f]/10 py-3 text-center text-sm font-bold text-[#24483f] transition-all hover:bg-[#24483f]/15">
-                Submit a request
-              </button>
-            </div>
-            {/* Pro */}
-            <div className="relative flex flex-col rounded-xl border border-[#24483f]/20 bg-[#24483f] p-6 shadow-lg">
-              <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#f59e0b] px-4 py-1.5 text-xs font-bold text-white">Most popular</span>
-              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-[#c9935b]">Weinly Pro</div>
-              <div className="mb-1 flex items-end gap-2">
-                <div className="text-4xl font-black tracking-tight text-white">{prices.proMonthly}</div>
-                <div className="mb-1 text-sm text-[#e8dcc8]">/month</div>
-              </div>
-              <div className="mb-2 text-xs text-[#c9935b] font-semibold">Save {prices.currency === "NGN" ? "₦100k" : "$120"} on yearly plan</div>
-              <p className="mb-5 text-sm leading-relaxed text-[#e8dcc8]">3 contact unlocks per month, priority matching and dedicated support.</p>
-              <div className="mb-5 flex flex-col gap-2">
-                {["3 unlocks included monthly", "Priority supplier matching", "Dedicated WhatsApp support", "Reorder from past requests"].map((item) => (
-                  <div key={item} className="flex items-center gap-2 text-sm text-[#f8efe2]"><span className="font-bold text-[#c9935b]">✓</span>{item}</div>
-                ))}
-              </div>
-              <div className="mt-auto">
-                <a href="/pricing" className="block w-full rounded-lg bg-[#f59e0b] py-3.5 text-center text-sm font-bold text-[#1a2e1a] no-underline shadow-md">Get Pro →</a>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* ── TRUST ── */}
-        <section className="rounded-2xl border border-stone-200 bg-white p-6 md:p-10">
-          <span className="mb-3 inline-block rounded-full bg-[#24483f]/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#24483f]">Why Weinly</span>
-          <h2 className="mb-8 text-2xl font-black tracking-tight text-[#1f2933] md:text-3xl">Built for serious fabric buyers</h2>
-          <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <section className="rounded-2xl border border-stone-200 bg-white p-6 md:p-8">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="m-0 text-xl font-black tracking-tight text-[#1f2933] md:text-2xl">Why buyers trust Weinly</h2>
+            <a href="/pricing" className="text-sm font-semibold text-[#24483f] no-underline hover:underline">See pricing →</a>
+          </div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
             {[
-              { title: "See quotes before paying", text: "Review price, MOQ and lead time before spending anything.", accent: "from-[#a75635] to-[#c9935b]" },
-              { title: "Protected supplier details", text: "Supplier contact stays protected until approval is complete.", accent: "from-[#24483f] to-[#2f7d57]" },
-              { title: "China sourcing expertise", text: "Designed for buyers sourcing fabrics from China for Africa.", accent: "from-[#a75635] to-[#c9935b]" },
-              { title: "WhatsApp support", text: "Real human support throughout your entire sourcing journey.", accent: "from-[#c9935b] to-[#a75635]" },
+              { icon: "👁", title: "See quotes before paying", text: "Review price, MOQ and lead time before spending anything." },
+              { icon: "🔒", title: "Protected supplier details", text: "Contacts are only released after payment — keeping the process serious." },
+              { icon: "🇨🇳", title: "China sourcing expertise", text: "Built for buyers sourcing fabrics from China for the African market." },
+              { icon: "💬", title: "WhatsApp support", text: "Real human support throughout your entire sourcing journey." },
             ].map((t) => (
               <div key={t.title} className="rounded-xl border border-stone-200 bg-stone-50 p-5">
-                <div className={`mb-4 h-1 w-full rounded-full bg-gradient-to-r ${t.accent}`} />
-                <h3 className="m-0 mb-2 text-sm font-bold text-[#1f2933]">{t.title}</h3>
+                <div className="mb-3 text-2xl">{t.icon}</div>
+                <h3 className="m-0 mb-1 text-sm font-bold text-[#1f2933]">{t.title}</h3>
                 <p className="m-0 text-xs leading-relaxed text-stone-500">{t.text}</p>
-              </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            {[
-              { q: "Do I pay before seeing quotes?", a: "No. You submit your request first, then see quote previews. Payment is only required to unlock direct supplier contact." },
-              { q: "What does the unlock fee cover?", a: "Direct supplier phone number, WeChat ID, email address and contact person name when available." },
-              { q: "Why are contacts protected?", a: "It keeps the process serious and controlled, ensuring quality interactions between buyers and suppliers." },
-              { q: "Can I get help before paying?", a: "Yes, always. Chat with us on WhatsApp at any point during your sourcing journey." },
-            ].map((faq) => (
-              <div key={faq.q} className="rounded-xl border border-stone-200 bg-stone-50 p-5">
-                <h3 className="m-0 mb-2 text-sm font-bold text-[#1f2933]">{faq.q}</h3>
-                <p className="m-0 text-xs leading-relaxed text-stone-500">{faq.a}</p>
               </div>
             ))}
           </div>
