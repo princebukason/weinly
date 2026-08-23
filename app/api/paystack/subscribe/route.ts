@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
         amount,
         currency: "NGN",
         reference: `weinly_pro_${Date.now()}`,
+        callback_url: "https://weinlyhq.com/pricing?payment=success",
         metadata: {
           buyer_name: name || "",
           buyer_phone: phone || "",
