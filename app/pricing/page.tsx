@@ -206,8 +206,17 @@ export default function PricingPage() {
               )}
               <div className="mb-5 rounded-lg border border-[#24483f]/15 bg-[#24483f]/5 p-4">
                 <div className="mb-1 text-xs font-bold uppercase tracking-widest text-[#24483f]">What you get</div>
-                <div className="text-sm font-semibold text-[#1f2933]">3 supplier contact unlocks included every month</div>
-                <div className="mt-1 text-xs leading-relaxed text-stone-500">Plus priority matching, better support and a smoother reorder flow.</div>
+                {billingCycle === "monthly" ? (
+                  <>
+                    <div className="text-sm font-semibold text-[#1f2933]">3 supplier contact unlocks every month</div>
+                    <div className="mt-1 text-xs leading-relaxed text-stone-500">Priority matching, dedicated support and smoother reordering — billed monthly, cancel anytime.</div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-sm font-semibold text-[#1f2933]">36 supplier contact unlocks over the year (3/month)</div>
+                    <div className="mt-1 text-xs leading-relaxed text-stone-500">Everything in monthly — paid once upfront. You save {yearlySaving} compared to paying monthly for 12 months.</div>
+                  </>
+                )}
               </div>
               <div className="mb-5 h-px bg-stone-200" />
               <div className="flex flex-1 flex-col gap-3">
