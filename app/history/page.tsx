@@ -1,15 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import { buildWhatsappLink } from "@/lib/config";
 import { useCurrency } from "@/hooks/useCurrency";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+let _supabase: SupabaseClient | null = null;
+function getSupabase() {
+  if (!_supabase) _supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "");
+  return _supabase;
+}
 
 type FabricRequest = {
   id: string;
@@ -92,7 +94,7 @@ export default function HistoryPage() {
     setQuotesMap({});
     setSearched(false);
     try {
-      let query = supabase.from("fabric_requests").select("*").order("created_at", { ascending: false });
+      let query = getSupabase().from("fabric_requests").select("*").order("created_at", { ascending: false });
       if (email.trim() && phone.trim()) {
         query = query.or(`client_email.eq.${email.trim()},client_phone.eq.${phone.trim()}`);
       } else if (email.trim()) {
@@ -107,11 +109,11 @@ export default function HistoryPage() {
       setSearched(true);
       const ids = requestList.map((r) => r.id);
       if (ids.length > 0) {
-        const { data: quoteData, error: quoteError } = await supabase
+        const { data: quoteData, error: quoteError } = await getSupabase()
           .from("quotes").select("*").in("request_id", ids).order("id", { ascending: false });
         if (quoteError) throw quoteError;
         const grouped: Record<string, Quote[]> = {};
-        (quoteData || []).forEach((q) => {
+        (quoteData || []).forEach((q: any) => {
           const quote = q as Quote;
           if (!grouped[quote.request_id]) grouped[quote.request_id] = [];
           grouped[quote.request_id].push(quote);

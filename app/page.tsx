@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import { buildWhatsappLink } from "@/lib/config";
@@ -11,9 +11,11 @@ import FabricImage from "@/components/FabricImage";
 
 let PaystackPop: any = null;
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+let _supabase: SupabaseClient | null = null;
+function getSupabase() {
+  if (!_supabase) _supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "");
+  return _supabase;
+}
 const PAYSTACK_PUBLIC_KEY = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "";
 
 type FabricRequest = {
@@ -110,7 +112,7 @@ function ReviewForm({ request, quote, onSubmitted }: { request: FabricRequest; q
     if (rating === 0) { setError("Please select a star rating."); return; }
     setSubmitting(true); setError("");
     try {
-      const { error: insertError } = await supabase.from("supplier_reviews").insert([{
+      const { error: insertError } = await getSupabase().from("supplier_reviews").insert([{
         request_id: request.id, supplier_id: quote.supplier_id || quote.id,
         quote_id: quote.id, buyer_email: request.client_email, buyer_name: request.client_name,
         rating, comment: comment.trim() || null,
@@ -200,10 +202,10 @@ export default function HomePage() {
 
   useEffect(() => {
     async function loadPublicReviews() {
-      const { data } = await supabase.from("supplier_reviews").select("id, rating, comment, buyer_name, created_at, supplier_id").order("created_at", { ascending: false }).limit(20);
+      const { data } = await getSupabase().from("supplier_reviews").select("id, rating, comment, buyer_name, created_at, supplier_id").order("created_at", { ascending: false }).limit(20);
       if (!data) return;
       const supplierIds = [...new Set(data.map((r: any) => r.supplier_id))];
-      const { data: profiles } = await supabase.from("supplier_profiles").select("id, company_name").in("id", supplierIds);
+      const { data: profiles } = await getSupabase().from("supplier_profiles").select("id, company_name").in("id", supplierIds);
       const nameMap: Record<string, string> = {};
       (profiles || []).forEach((p: any) => { nameMap[p.id] = p.company_name; });
       setPublicReviews(data.map((r: any) => ({ id: r.id, supplier_name: nameMap[r.supplier_id] || "Verified Supplier", rating: r.rating, comment: r.comment, buyer_name: r.buyer_name, created_at: r.created_at })));
@@ -222,19 +224,19 @@ export default function HomePage() {
   }
 
   async function fetchQuotes(id: string) {
-    const { data, error } = await supabase.from("quotes").select("*").eq("request_id", id).order("id", { ascending: false });
+    const { data, error } = await getSupabase().from("quotes").select("*").eq("request_id", id).order("id", { ascending: false });
     if (error) return [];
     return (data || []) as Quote[];
   }
 
   async function fetchRequest(id: string) {
-    const { data, error } = await supabase.from("fabric_requests").select("*").eq("id", id).single();
+    const { data, error } = await getSupabase().from("fabric_requests").select("*").eq("id", id).single();
     if (error) return null;
     return data as FabricRequest;
   }
 
   async function fetchReviewsForRequest(id: string) {
-    const { data } = await supabase.from("supplier_reviews").select("*").eq("request_id", id);
+    const { data } = await getSupabase().from("supplier_reviews").select("*").eq("request_id", id);
     if (data) {
       setExistingReviews(data as Review[]);
       setSubmittedReviews(new Set(data.map((r: Review) => r.quote_id)));
@@ -257,11 +259,11 @@ export default function HomePage() {
     const activeId = lookupId || requestId;
     if (!activeId) return;
     setIsLive(false);
-    const channel = supabase.channel(`tracker-${activeId}`)
+    const channel = getSupabase().channel(`tracker-${activeId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "fabric_requests", filter: `id=eq.${activeId}` }, async () => { await syncState(activeId, true); })
       .on("postgres_changes", { event: "*", schema: "public", table: "quotes", filter: `request_id=eq.${activeId}` }, async () => { await syncState(activeId, true); })
       .subscribe((status) => { setIsLive(status === "SUBSCRIBED"); });
-    return () => { supabase.removeChannel(channel); setIsLive(false); };
+    return () => { getSupabase().removeChannel(channel); setIsLive(false); };
   }, [lookupId, requestId, syncState]);
 
   useEffect(() => {
@@ -290,7 +292,7 @@ export default function HomePage() {
     setLoading(true);
     try {
       const aiOutput = await generateAISpec(description.trim());
-      const { data, error } = await supabase.from("fabric_requests").insert([{
+      const { data, error } = await getSupabase().from("fabric_requests").insert([{
         client_name: clientName || null, client_email: clientEmail || null,
         client_phone: clientPhone || null, user_input: description.trim(),
         ai_output: aiOutput, status: "submitted", buyer_requested_contact: false,
@@ -339,7 +341,7 @@ export default function HomePage() {
 
   async function requestContact(reqId: string) {
     try {
-      const { error } = await supabase.from("fabric_requests").update({ buyer_requested_contact: true, contact_request_status: "pending", payment_status: "unpaid", contact_access_fee: 10000 }).eq("id", reqId);
+      const { error } = await getSupabase().from("fabric_requests").update({ buyer_requested_contact: true, contact_request_status: "pending", payment_status: "unpaid", contact_access_fee: 10000 }).eq("id", reqId);
       if (error) throw error;
       await syncState(reqId);
     } catch { showToast("Failed to request supplier contact. Please try again.", "error"); }
