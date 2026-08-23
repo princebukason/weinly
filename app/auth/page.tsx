@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 export default function AuthPage() {
   const [mode, setMode] = useState<"login" | "signup">("login");
@@ -15,7 +15,6 @@ export default function AuthPage() {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const router = useRouter();
-  const searchParams = useSearchParams();
   const supabase = createClient();
 
   async function handleAuth(e: React.FormEvent) {
@@ -52,7 +51,7 @@ export default function AuthPage() {
 
         if (error) throw error;
 
-        const next = searchParams.get("next") || "/dashboard";
+        const next = new URLSearchParams(window.location.search).get("next") || "/dashboard";
         router.push(next);
         router.refresh();
       }
