@@ -3,16 +3,19 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useMemo, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { getCategoryColor, getCategoryLabel } from "@/lib/categories";
 
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+let _supabase: SupabaseClient | null = null;
+function getSupabase(): SupabaseClient {
+  if (!_supabase) {
+    _supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ""
+    );
+  }
+  return _supabase;
 }
-const supabase = typeof window !== "undefined" ? getSupabase() : null as any;
 
 type FabricRequest = {
   id: string; created_at: string; client_name: string | null; client_email: string | null;
@@ -146,13 +149,13 @@ export default function AdminPage() {
     setLoading(true);
     try {
       const [reqRes, quotesRes, suppliersRes, invitesRes, reviewsRes, stockRes, appsRes] = await Promise.all([
-        supabase.from("fabric_requests").select("*").order("created_at", { ascending: false }),
-        supabase.from("quotes").select("*").order("id", { ascending: false }),
-        supabase.from("supplier_profiles").select("*").order("created_at", { ascending: false }),
-        supabase.from("supplier_invites").select("*").order("created_at", { ascending: false }),
-        supabase.from("supplier_reviews").select("*").order("created_at", { ascending: false }),
-        supabase.from("ready_stock").select("*").order("created_at", { ascending: false }),
-        supabase.from("supplier_applications").select("*").order("created_at", { ascending: false }),
+        getSupabase().from("fabric_requests").select("*").order("created_at", { ascending: false }),
+        getSupabase().from("quotes").select("*").order("id", { ascending: false }),
+        getSupabase().from("supplier_profiles").select("*").order("created_at", { ascending: false }),
+        getSupabase().from("supplier_invites").select("*").order("created_at", { ascending: false }),
+        getSupabase().from("supplier_reviews").select("*").order("created_at", { ascending: false }),
+        getSupabase().from("ready_stock").select("*").order("created_at", { ascending: false }),
+        getSupabase().from("supplier_applications").select("*").order("created_at", { ascending: false }),
       ]);
       setRequests((reqRes.data || []) as FabricRequest[]);
       const grouped: Record<string, Quote[]> = {};
@@ -206,7 +209,7 @@ export default function AdminPage() {
     const form = newQuotes[requestId];
     if (!form?.supplier_name?.trim()) { alert("Supplier name is required."); return; }
     try {
-      const { error } = await supabase.from("quotes").insert([{
+      const { error } = await getSupabase().from("quotes").insert([{
         request_id: requestId, supplier_name: form.supplier_name.trim(),
         price: form.price || null, moq: form.moq || null, note: form.note || null,
         contact_name: form.contact_name || null, contact_phone: form.contact_phone || null,
@@ -215,7 +218,7 @@ export default function AdminPage() {
         is_contact_released: false,
       }]);
       if (error) throw error;
-      await supabase.from("fabric_requests").update({ status: "quoted" }).eq("id", requestId);
+      await getSupabase().from("fabric_requests").update({ status: "quoted" }).eq("id", requestId);
       try {
         const request = requests.find((r) => r.id === requestId);
         if (request?.client_email) {
@@ -233,13 +236,13 @@ export default function AdminPage() {
   }
 
   async function updateRequestStatus(requestId: string, status: string) {
-    try { await supabase.from("fabric_requests").update({ status }).eq("id", requestId); await fetchAll(); }
+    try { await getSupabase().from("fabric_requests").update({ status }).eq("id", requestId); await fetchAll(); }
     catch { alert("Failed to update status."); }
   }
 
   async function updatePaymentStatus(requestId: string, paymentStatus: "paid" | "unpaid") {
     try {
-      await supabase.from("fabric_requests").update(
+      await getSupabase().from("fabric_requests").update(
         paymentStatus === "paid"
           ? { payment_status: "paid", paid_at: new Date().toISOString() }
           : { payment_status: "unpaid", paid_at: null }
@@ -250,15 +253,15 @@ export default function AdminPage() {
   }
 
   async function saveInternalNote(requestId: string, note: string) {
-    try { await supabase.from("fabric_requests").update({ internal_note: note }).eq("id", requestId); }
+    try { await getSupabase().from("fabric_requests").update({ internal_note: note }).eq("id", requestId); }
     catch { alert("Failed to save note."); }
   }
 
   async function approveContactRelease(requestId: string, paymentStatus?: string | null) {
     if (paymentStatus !== "paid") { alert("Payment must be confirmed before releasing supplier contact."); return; }
     try {
-      await supabase.from("fabric_requests").update({ contact_request_status: "approved" }).eq("id", requestId);
-      await supabase.from("quotes").update({ is_contact_released: true }).eq("request_id", requestId);
+      await getSupabase().from("fabric_requests").update({ contact_request_status: "approved" }).eq("id", requestId);
+      await getSupabase().from("quotes").update({ is_contact_released: true }).eq("request_id", requestId);
       try {
         const request = requests.find((r) => r.id === requestId);
         if (request?.client_email) {
@@ -276,8 +279,8 @@ export default function AdminPage() {
 
   async function rejectContactRelease(requestId: string) {
     try {
-      await supabase.from("fabric_requests").update({ contact_request_status: "rejected" }).eq("id", requestId);
-      await supabase.from("quotes").update({ is_contact_released: false }).eq("request_id", requestId);
+      await getSupabase().from("fabric_requests").update({ contact_request_status: "rejected" }).eq("id", requestId);
+      await getSupabase().from("quotes").update({ is_contact_released: false }).eq("request_id", requestId);
       await fetchAll();
       alert("Contact request rejected.");
     } catch { alert("Failed to reject."); }
@@ -285,8 +288,8 @@ export default function AdminPage() {
 
   async function revokeContactAccess(requestId: string) {
     try {
-      await supabase.from("fabric_requests").update({ contact_request_status: "rejected" }).eq("id", requestId);
-      await supabase.from("quotes").update({ is_contact_released: false }).eq("request_id", requestId);
+      await getSupabase().from("fabric_requests").update({ contact_request_status: "rejected" }).eq("id", requestId);
+      await getSupabase().from("quotes").update({ is_contact_released: false }).eq("request_id", requestId);
       await fetchAll();
       alert("Contact access revoked.");
     } catch { alert("Failed to revoke."); }
@@ -295,20 +298,20 @@ export default function AdminPage() {
   async function deleteRequest(requestId: string) {
     if (!window.confirm("Delete this request and all related quotes?")) return;
     try {
-      await supabase.from("quotes").delete().eq("request_id", requestId);
-      await supabase.from("fabric_requests").delete().eq("id", requestId);
+      await getSupabase().from("quotes").delete().eq("request_id", requestId);
+      await getSupabase().from("fabric_requests").delete().eq("id", requestId);
       await fetchAll();
     } catch { alert("Failed to delete request."); }
   }
 
   async function toggleSupplierActive(supplierId: string, current: boolean) {
-    try { await supabase.from("supplier_profiles").update({ is_active: !current }).eq("id", supplierId); await fetchAll(); }
+    try { await getSupabase().from("supplier_profiles").update({ is_active: !current }).eq("id", supplierId); await fetchAll(); }
     catch { alert("Failed to update supplier."); }
   }
 
   async function toggleSupplierVerified(supplierId: string, current: boolean) {
     try {
-      await supabase.from("supplier_profiles").update({
+      await getSupabase().from("supplier_profiles").update({
         is_verified: !current,
         verified_at: !current ? new Date().toISOString() : null,
       }).eq("id", supplierId);
@@ -319,12 +322,12 @@ export default function AdminPage() {
 
   async function deleteReview(reviewId: string) {
     if (!window.confirm("Delete this review?")) return;
-    try { await supabase.from("supplier_reviews").delete().eq("id", reviewId); await fetchAll(); alert("Review deleted."); }
+    try { await getSupabase().from("supplier_reviews").delete().eq("id", reviewId); await fetchAll(); alert("Review deleted."); }
     catch { alert("Failed to delete review."); }
   }
 
   async function toggleStockActive(itemId: string, current: boolean | null) {
-    try { await supabase.from("ready_stock").update({ is_active: !current }).eq("id", itemId); await fetchAll(); }
+    try { await getSupabase().from("ready_stock").update({ is_active: !current }).eq("id", itemId); await fetchAll(); }
     catch { alert("Failed to update stock item."); }
   }
 
@@ -332,7 +335,7 @@ export default function AdminPage() {
     if (!newInviteCode.trim()) { alert("Enter an invite code."); return; }
     setCreatingInvite(true);
     try {
-      const { error } = await supabase.from("supplier_invites").insert([{
+      const { error } = await getSupabase().from("supplier_invites").insert([{
         code: newInviteCode.trim().toUpperCase(),
         email: newInviteEmail.trim() || null,
       }]);
@@ -346,7 +349,7 @@ export default function AdminPage() {
 
   async function deleteInvite(inviteId: string) {
     if (!window.confirm("Delete this invite code?")) return;
-    try { await supabase.from("supplier_invites").delete().eq("id", inviteId); await fetchAll(); }
+    try { await getSupabase().from("supplier_invites").delete().eq("id", inviteId); await fetchAll(); }
     catch { alert("Failed to delete invite."); }
   }
 
