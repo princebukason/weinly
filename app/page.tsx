@@ -185,6 +185,10 @@ export default function HomePage() {
   const [formError, setFormError] = useState("");
   const [lookupError, setLookupError] = useState("");
   const [copiedId, setCopiedId] = useState(false);
+  const [findByEmail, setFindByEmail] = useState("");
+  const [findByEmailLoading, setFindByEmailLoading] = useState(false);
+  const [findByEmailResults, setFindByEmailResults] = useState<any[] | null>(null);
+  const [findByEmailError, setFindByEmailError] = useState("");
   const [showProUnlock, setShowProUnlock] = useState(false);
   const [proUnlockEmail, setProUnlockEmail] = useState("");
   const [proUnlockName, setProUnlockName] = useState("");
@@ -193,6 +197,24 @@ export default function HomePage() {
   function showToast(msg: string, type: "error" | "success" | "info" = "info") {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 4000);
+  }
+
+  async function handleFindByEmail() {
+    setFindByEmailError("");
+    setFindByEmailResults(null);
+    if (!findByEmail.trim()) { setFindByEmailError("Please enter your email address."); return; }
+    setFindByEmailLoading(true);
+    try {
+      const res = await fetch("/api/buyer/requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: findByEmail.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setFindByEmailError(data.error || "Failed to find requests."); return; }
+      setFindByEmailResults(data.requests || []);
+    } catch { setFindByEmailError("Something went wrong. Please try again."); }
+    finally { setFindByEmailLoading(false); }
   }
 
   function copyRequestId(id: string) {
@@ -318,6 +340,12 @@ export default function HomePage() {
           body: JSON.stringify({ buyerEmail: clientEmail, buyerName: clientName || "", requestId: data.id, fabricDescription: description.trim() }),
         }).catch(() => {});
       }
+      // Notify matching suppliers about the new request
+      fetch("/api/email/notify-suppliers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId: data.id }),
+      }).catch(() => {});
     } catch { showToast("Something went wrong. Please try again.", "error"); }
     finally { setLoading(false); }
   }
@@ -709,6 +737,40 @@ export default function HomePage() {
                   <span>✕</span><span>{lookupError}</span>
                 </div>
               )}
+
+              {/* Find by email */}
+              <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
+                <p className="mb-3 text-sm font-semibold text-stone-600">Don't have your request ID? Find all your requests by email.</p>
+                <div className="flex flex-wrap gap-3">
+                  <input type="email" value={findByEmail} onChange={(e) => { setFindByEmail(e.target.value); setFindByEmailError(""); setFindByEmailResults(null); }}
+                    placeholder="Enter the email you used when submitting"
+                    className="min-w-0 flex-1 rounded-lg border border-stone-200 bg-white px-4 py-3 text-sm text-[#1f2933] outline-none transition-all placeholder:text-stone-400 focus:border-amber-500" />
+                  <button onClick={handleFindByEmail} disabled={findByEmailLoading}
+                    className="shrink-0 cursor-pointer rounded-lg border-0 bg-[#24483f] px-5 py-3 text-sm font-bold text-white disabled:opacity-60">
+                    {findByEmailLoading ? "Searching..." : "Find requests"}
+                  </button>
+                </div>
+                {findByEmailError && <p className="mt-2 text-sm text-red-500">{findByEmailError}</p>}
+                {findByEmailResults !== null && (
+                  findByEmailResults.length === 0 ? (
+                    <p className="mt-3 text-sm text-stone-400">No requests found for this email.</p>
+                  ) : (
+                    <div className="mt-3 flex flex-col gap-2">
+                      {findByEmailResults.map((r: any) => (
+                        <button key={r.id} onClick={() => { handleLookup(r.id); setFindByEmailResults(null); setFindByEmail(""); }}
+                          className="flex cursor-pointer items-center justify-between rounded-lg border border-stone-200 bg-white px-4 py-3 text-left transition-all hover:border-amber-400 hover:bg-amber-50">
+                          <div>
+                            <div className="text-xs font-semibold text-stone-500">{new Date(r.created_at).toLocaleDateString()}</div>
+                            <div className="text-sm font-bold text-[#1f2933] line-clamp-1">{r.user_input?.slice(0, 60) || r.category}</div>
+                          </div>
+                          <span className="ml-3 shrink-0 text-xs font-bold text-[#24483f]">View →</span>
+                        </button>
+                      ))}
+                    </div>
+                  )
+                )}
+              </div>
+
               <div className="flex flex-wrap gap-5">
                 <a href="/history" className="text-sm font-semibold text-[#a75635] no-underline transition-colors hover:text-[#7b3525]">View all history →</a>
                 <a href={genericSupportLink} target="_blank" rel="noreferrer" className="text-sm font-semibold text-[#2f7d57] no-underline transition-colors hover:text-[#24483f]">Chat support →</a>

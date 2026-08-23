@@ -159,14 +159,32 @@ export default function ReadyStockPage() {
                 ))}
               </div>
             ) : filtered.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-stone-300 p-12 text-center">
-                <div className="mb-3 text-4xl">◎</div>
-                <div className="mb-2 font-bold text-stone-500">No items found</div>
-                <p className="m-0 mb-5 text-sm text-stone-400">Try adjusting your filters or submit a custom sourcing request instead.</p>
-                <a href="/#main-tabs" className="inline-flex items-center rounded-md bg-gradient-to-r from-[#a75635] to-[#7b3525] px-6 py-3 text-sm font-bold text-white no-underline">
-                  Submit a custom request →
-                </a>
-              </div>
+              items.length === 0 ? (
+                /* No stock at all — suppliers haven't listed yet */
+                <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50 p-12 text-center">
+                  <div className="mb-3 text-5xl">📦</div>
+                  <div className="mb-2 text-lg font-black text-[#1f2933]">Suppliers are adding stock soon</div>
+                  <p className="m-0 mb-2 text-sm leading-relaxed text-stone-500 max-w-md mx-auto">
+                    Our verified suppliers are currently uploading their available fabric inventory. Check back shortly — new listings are added regularly.
+                  </p>
+                  <p className="m-0 mb-6 text-sm text-stone-400">
+                    In the meantime, submit a custom sourcing request and we'll match you to the right supplier directly.
+                  </p>
+                  <a href="/#main-tabs" className="inline-flex items-center rounded-lg bg-[#f59e0b] px-6 py-3 text-sm font-bold text-[#1a2e1a] no-underline shadow-md">
+                    Submit a sourcing request →
+                  </a>
+                </div>
+              ) : (
+                /* Stock exists but filters returned nothing */
+                <div className="rounded-lg border border-dashed border-stone-300 p-12 text-center">
+                  <div className="mb-3 text-4xl">◎</div>
+                  <div className="mb-2 font-bold text-stone-500">No items match your filters</div>
+                  <p className="m-0 mb-5 text-sm text-stone-400">Try clearing your search or changing the category filter.</p>
+                  <a href="/#main-tabs" className="inline-flex items-center rounded-lg bg-[#f59e0b] px-6 py-3 text-sm font-bold text-[#1a2e1a] no-underline">
+                    Submit a custom request →
+                  </a>
+                </div>
+              )
             ) : (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {filtered.map((item, idx) => {
