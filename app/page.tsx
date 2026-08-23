@@ -1047,9 +1047,8 @@ export default function HomePage() {
                   <div key={item} className="flex items-center gap-2 text-sm text-[#f8efe2]"><span className="font-bold text-[#c9935b]">✓</span>{item}</div>
                 ))}
               </div>
-              <div className="mt-auto flex flex-col gap-2">
+              <div className="mt-auto">
                 <a href="/pricing" className="block w-full rounded-lg bg-[#f59e0b] py-3.5 text-center text-sm font-bold text-[#1a2e1a] no-underline shadow-md">Get Pro →</a>
-                <a href={proSupportLink} target="_blank" rel="noreferrer" className="block w-full rounded-lg border border-white/20 bg-white/10 py-3 text-center text-sm font-bold text-[#f8efe2] no-underline transition-all hover:bg-white/15">Pay via bank transfer</a>
               </div>
             </div>
           </div>
