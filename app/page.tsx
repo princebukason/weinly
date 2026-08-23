@@ -339,7 +339,7 @@ export default function HomePage() {
 
   async function requestContact(reqId: string) {
     try {
-      const { error } = await supabase.from("fabric_requests").update({ buyer_requested_contact: true, contact_request_status: "pending", payment_status: "unpaid", contact_access_fee: prices.unlockRaw / 100 }).eq("id", reqId);
+      const { error } = await supabase.from("fabric_requests").update({ buyer_requested_contact: true, contact_request_status: "pending", payment_status: "unpaid", contact_access_fee: 10000 }).eq("id", reqId);
       if (error) throw error;
       await syncState(reqId);
     } catch { showToast("Failed to request supplier contact. Please try again.", "error"); }
