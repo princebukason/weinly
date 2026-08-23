@@ -1,22 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import { buildWhatsappLink } from "@/lib/config";
 import { useCurrency } from "@/hooks/useCurrency";
 
-let _sb: SupabaseClient | null = null;
-function getSupabase() {
-  if (!_sb) _sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "");
-  return _sb;
-}
-
-
 let PaystackPop: any = null;
-
 
 type BillingCycle = "monthly" | "yearly";
 type ProPlan = "pro_monthly" | "pro_yearly";
@@ -25,25 +16,24 @@ export default function PricingPage() {
   const prices = useCurrency();
   const [loading, setLoading] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
+  const [proEmail, setProEmail] = useState("");
+  const [proName, setProName] = useState("");
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [proSuccess, setProSuccess] = useState(false);
 
   const supportLink = buildWhatsappLink("Hello Weinly, I want to upgrade to Weinly Pro.");
 
   async function handleProPayment(plan: ProPlan) {
+    if (!proEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(proEmail)) {
+      alert("Please enter a valid email address.");
+      return;
+    }
     setLoading(plan);
     try {
-      const { data: { session } } = await getSupabase().auth.getSession();
-      if (!session?.user) { window.location.href = "/auth?next=/pricing"; return; }
-
       const initRes = await fetch("/api/paystack/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: session.user.email,
-          name: session.user.user_metadata?.full_name || "",
-          phone: session.user.user_metadata?.phone || "",
-          plan,
-          currency: prices.currency,
-        }),
+        body: JSON.stringify({ email: proEmail, name: proName, plan, currency: prices.currency }),
       });
 
       const initData = await initRes.json();
@@ -58,23 +48,18 @@ export default function PricingPage() {
             const verifyRes = await fetch("/api/paystack/verify-subscription", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ reference: transaction.reference, email: session.user.email, userId: session.user.id }),
+              body: JSON.stringify({ reference: transaction.reference, email: proEmail }),
             });
             const verifyData = await verifyRes.json();
             if (!verifyRes.ok) { alert(verifyData?.error || "Subscription verification failed."); return; }
-            window.location.href = "/dashboard?upgraded=true";
+            setProSuccess(true);
+            setShowEmailForm(false);
           } catch { alert("Subscription verification failed."); }
           finally { setLoading(null); }
         },
         onCancel: () => setLoading(null),
       });
     } catch { alert("Failed to launch payment."); setLoading(null); }
-  }
-
-  function handleBankTransfer(plan: ProPlan) {
-    const amount = plan === "pro_yearly" ? prices.proYearly : prices.proMonthly;
-    const cycleLabel = plan === "pro_yearly" ? "Yearly" : "Monthly";
-    window.open(buildWhatsappLink(`Hello Weinly, I want to subscribe to Weinly Pro ${cycleLabel} (${amount}). Please send me your bank details.`), "_blank");
   }
 
   const currentPlan: ProPlan = billingCycle === "monthly" ? "pro_monthly" : "pro_yearly";
@@ -203,7 +188,7 @@ export default function PricingPage() {
             </div>
 
             {/* Pro — highlighted */}
-            <div className="relative flex h-full flex-col rounded-lg border border-[#24483f]/25 bg-white p-6 shadow-md shadow-stone-900/5">
+            <div id="pro-card" className="relative flex h-full flex-col rounded-lg border border-[#24483f]/25 bg-white p-6 shadow-md shadow-stone-900/5">
               <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                 <span className="rounded-full bg-gradient-to-r from-[#c9935b] to-[#a75635] px-4 py-1.5 text-xs font-bold text-white whitespace-nowrap">Most popular</span>
               </div>
@@ -232,16 +217,39 @@ export default function PricingPage() {
                   </div>
                 ))}
               </div>
-              <div className="mt-6 flex flex-col gap-2">
-                <button onClick={() => handleProPayment(currentPlan)} disabled={loading !== null}
-                  className="w-full cursor-pointer rounded-md border-0 bg-gradient-to-r from-[#24483f] to-[#18362f] py-3.5 text-sm font-bold text-white shadow-lg shadow-stone-900/10 disabled:opacity-60">
-                  {loading === currentPlan ? "Processing..." : "Pay with Paystack"}
+              {proSuccess ? (
+                <div className="mt-6 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 text-center">
+                  <div className="mb-1 text-lg font-black text-[#2f7d57]">You are now on Weinly Pro!</div>
+                  <p className="text-xs text-stone-600">We've sent your Pro confirmation to <strong>{proEmail}</strong>. Your 3 contact unlocks per month are active. Contact us on WhatsApp if you need help.</p>
+                  <a href={supportLink} target="_blank" rel="noreferrer" className="mt-3 inline-block rounded-md bg-[#24483f] px-4 py-2 text-xs font-bold text-white no-underline">Message us on WhatsApp</a>
+                </div>
+              ) : !showEmailForm ? (
+                <button onClick={() => setShowEmailForm(true)} className="mt-6 w-full cursor-pointer rounded-md border-0 bg-[#24483f] py-3.5 text-sm font-bold text-white shadow-lg shadow-stone-900/10">
+                  Get Weinly Pro
                 </button>
-                <button onClick={() => handleBankTransfer(currentPlan)} disabled={loading !== null}
-                  className="w-full cursor-pointer rounded-md border border-emerald-500/20 bg-emerald-500/10 py-3 text-sm font-bold text-[#2f7d57] disabled:opacity-60">
-                  Pay via bank transfer
-                </button>
-              </div>
+              ) : (
+                <div className="mt-6 flex flex-col gap-2">
+                  <input
+                    type="text"
+                    placeholder="Your name"
+                    value={proName}
+                    onChange={(e) => setProName(e.target.value)}
+                    className="w-full rounded-md border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 outline-none focus:border-[#24483f]"
+                  />
+                  <input
+                    type="email"
+                    placeholder="Your email address"
+                    value={proEmail}
+                    onChange={(e) => setProEmail(e.target.value)}
+                    className="w-full rounded-md border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 outline-none focus:border-[#24483f]"
+                  />
+                  <button onClick={() => handleProPayment(currentPlan)} disabled={loading !== null}
+                    className="w-full cursor-pointer rounded-md border-0 bg-[#24483f] py-3.5 text-sm font-bold text-white shadow-lg shadow-stone-900/10 disabled:opacity-60">
+                    {loading === currentPlan ? "Processing..." : `Pay ${currentPrice} — Activate Pro`}
+                  </button>
+                  <button onClick={() => setShowEmailForm(false)} className="text-xs text-stone-400 underline cursor-pointer border-0 bg-transparent">Cancel</button>
+                </div>
+              )}
             </div>
 
             {/* Enterprise */}
@@ -300,9 +308,9 @@ export default function PricingPage() {
               Upgrade when you are ready to unlock suppliers faster, get better support, and source more confidently from China.
             </p>
             <div className="flex flex-wrap justify-center gap-3">
-              <button onClick={() => handleProPayment(currentPlan)} disabled={loading !== null}
-                className="cursor-pointer rounded-md border-0 bg-gradient-to-r from-[#c9935b] to-[#a75635] px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-black/20 disabled:opacity-60">
-                {loading === currentPlan ? "Processing..." : "Choose Pro"}
+              <button onClick={() => { const el = document.getElementById("pro-card"); if (el) el.scrollIntoView({ behavior: "smooth" }); setShowEmailForm(true); }}
+                className="cursor-pointer rounded-md border-0 bg-gradient-to-r from-[#c9935b] to-[#a75635] px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-black/20">
+                Choose Pro
               </button>
               <a href={supportLink} target="_blank" rel="noreferrer"
                 className="inline-flex items-center rounded-md border border-white/20 bg-white/10 px-8 py-3.5 text-sm font-semibold text-[#fffaf2] no-underline hover:bg-white/15 transition-all">

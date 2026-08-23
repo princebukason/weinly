@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { createServerClient } from "@supabase/ssr";
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || "";
 
@@ -11,19 +10,6 @@ export async function POST(req: NextRequest) {
   if (!supabaseUrl || !supabaseServiceRoleKey) {
     return NextResponse.json({ error: "Missing Supabase config." }, { status: 500 });
   }
-
-  // Validate the caller's session — userId must come from the server, never the client
-  const cookieStore = req.cookies;
-  const authClient = createServerClient(
-    supabaseUrl,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll() } }
-  );
-  const { data: { user }, error: sessionError } = await authClient.auth.getUser();
-  if (sessionError || !user) {
-    return NextResponse.json({ error: "Unauthorised. Please log in and try again." }, { status: 401 });
-  }
-  const userId = user.id;
 
   const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
@@ -80,11 +66,10 @@ export async function POST(req: NextRequest) {
       expiresAt.setMonth(expiresAt.getMonth() + 1);
     }
 
-    // Save subscription
+    // Save subscription — keyed by email (no login required)
     const { error: subError } = await supabase
       .from("subscriptions")
       .upsert([{
-        user_id: userId,
         email,
         plan,
         status: "active",
@@ -93,7 +78,7 @@ export async function POST(req: NextRequest) {
         amount: payment.amount,
         started_at: now.toISOString(),
         expires_at: expiresAt.toISOString(),
-      }], { onConflict: "user_id" });
+      }], { onConflict: "email" });
 
     if (subError) {
       console.error("Subscription save error:", subError);

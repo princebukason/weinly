@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
         email,
         amount: amountKobo,
         currency: "NGN",
+        channels: ["card"],
         reference: `weinly_${requestId}_${Date.now()}`,
         metadata: {
           request_id: requestId,
