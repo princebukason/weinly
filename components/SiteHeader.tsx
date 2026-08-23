@@ -60,14 +60,14 @@ export default function SiteHeader({ showSubmitButton = true }: SiteHeaderProps)
             href="/dashboard"
             className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm font-semibold text-gray-600 no-underline transition-all hover:bg-gray-100"
           >
-            Dashboard
+            My Requests
           </a>
           {showSubmitButton && (
             <a
               href="/#main-tabs"
               className="rounded-xl bg-gradient-to-r from-[#a75635] to-[#7b3525] px-4 py-2.5 text-sm font-bold text-white no-underline transition-all hover:shadow-md"
             >
-              Submit Request
+              Get Quotes
             </a>
           )}
         </div>
@@ -99,7 +99,7 @@ export default function SiteHeader({ showSubmitButton = true }: SiteHeaderProps)
             { href: "/ready-stock", label: "Ready Stock" },
             { href: "/pricing", label: "Pricing" },
             { href: "/about", label: "About" },
-            { href: "/dashboard", label: "My Dashboard" },
+            { href: "/dashboard", label: "My Requests" },
             { href: "/history", label: "Request History" },
           ].map((link) => (
             <a
@@ -130,7 +130,7 @@ export default function SiteHeader({ showSubmitButton = true }: SiteHeaderProps)
               onClick={() => setMobileMenuOpen(false)}
               className="mt-2 rounded-xl bg-gradient-to-r from-[#a75635] to-[#7b3525] px-4 py-3 text-center text-sm font-bold text-white no-underline shadow-sm"
             >
-              Submit Request →
+              Get Quotes →
             </a>
           )}
         </div>

@@ -107,8 +107,8 @@ export default function SuppliersPage() {
               <div className="flex flex-wrap gap-6">
                 {[
                   { v: String(suppliers.length), l: "Active suppliers" },
-                  { v: String(suppliers.filter((s) => s.is_verified).length), l: "Verified" },
-                  { v: String(new Set(suppliers.flatMap((s) => s.categories || [])).size), l: "Categories covered" },
+                  { v: "18", l: "Fabric categories" },
+                  { v: "Growing", l: "New suppliers monthly" },
                 ].map((s) => (
                   <div key={s.l} className="flex flex-col gap-0.5">
                     <span className="text-2xl font-black text-white">{s.v}</span>
@@ -116,6 +116,9 @@ export default function SuppliersPage() {
                   </div>
                 ))}
               </div>
+              <p className="mt-3 text-xs text-[#e8dcc8] max-w-md leading-relaxed opacity-80">
+                Network expanding. Requests not yet matched by a listed supplier are fulfilled directly by our sourcing team.
+              </p>
             </div>
           </section>
 
