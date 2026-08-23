@@ -298,8 +298,12 @@ export default function AdminClient() {
   async function deleteRequest(requestId: string) {
     if (!window.confirm("Delete this request and all related quotes?")) return;
     try {
-      await getSupabase().from("quotes").delete().eq("request_id", requestId);
-      await getSupabase().from("fabric_requests").delete().eq("id", requestId);
+      const res = await fetch("/api/admin/delete-request", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId }),
+      });
+      if (!res.ok) { const d = await res.json(); alert(d.error || "Failed to delete."); return; }
       await fetchAll();
     } catch { alert("Failed to delete request."); }
   }
