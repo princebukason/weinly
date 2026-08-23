@@ -33,7 +33,7 @@ export default async function SupplierDashboardPage() {
 
   if (requestsError || quotesError) {
     return (
-      <main className="min-h-screen bg-[#f5ecdc] p-6 text-[#1f2933]">
+      <main className="min-h-screen bg-[#f0f2f0] p-6 text-[#1f2933]">
         Failed to load supplier dashboard.
       </main>
     );

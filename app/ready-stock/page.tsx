@@ -73,7 +73,7 @@ export default function ReadyStockPage() {
   const availableCount = items.filter((i) => !i.is_sold_out).length;
 
   return (
-    <main className="min-h-screen bg-[#f5ecdc] font-sans">
+    <main className="min-h-screen bg-[#f0f2f0] font-sans">
       <div className="flex w-full flex-col gap-0">
         <SiteHeader />
 
@@ -90,7 +90,7 @@ export default function ReadyStockPage() {
             <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-10"
               style={{ background: "linear-gradient(to top, rgba(36,72,63,0.95) 0%, rgba(36,72,63,0.6) 50%, rgba(36,72,63,0.1) 100%)" }}>
               <div className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-[#c9935b]" />
+                <span className="h-2 w-2 animate-pulse rounded-full bg-[#f59e0b]" />
                 <span className="text-xs font-semibold text-[#f8efe2]">In stock · Ships fast</span>
               </div>
               <h1 className="mb-2 text-3xl font-black tracking-tight text-white md:text-5xl">
@@ -289,14 +289,14 @@ export default function ReadyStockPage() {
               <div>
                 <h2 className="mb-2 text-2xl font-black text-white">Can't find what you need?</h2>
                 <p className="mb-5 text-sm leading-relaxed text-[#e8dcc8]">Submit a custom sourcing request and we'll match you to verified suppliers who can produce exactly what you need.</p>
-                <a href="/#main-tabs" className="inline-flex items-center rounded-md bg-gradient-to-r from-[#c9935b] to-[#a75635] px-6 py-3 text-sm font-bold text-white no-underline shadow-lg shadow-black/20">
+                <a href="/#main-tabs" className="inline-flex items-center rounded-md bg-[#f59e0b] text-[#1a2e1a] px-6 py-3 text-sm font-bold text-white no-underline shadow-lg shadow-black/20">
                   Submit sourcing request →
                 </a>
               </div>
               <div className="flex flex-col gap-2">
                 {["Custom fabric specifications", "Any quantity — even small MOQ", "Quote within 24 hours", "Verified supplier matching"].map((item) => (
                   <div key={item} className="flex items-center gap-3 rounded-lg border border-white/15 bg-white/10 p-3">
-                    <span className="text-[#c9935b]">✓</span>
+                    <span className="text-[#f59e0b]">✓</span>
                     <span className="text-sm text-[#e8dcc8]">{item}</span>
                   </div>
                 ))}

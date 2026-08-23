@@ -75,7 +75,7 @@ function getStagePill(request: FabricRequest, quoteCount: number) {
     return { cls: "bg-violet-500/10 text-violet-700 border border-violet-500/25", label: "Paid — awaiting approval" };
   if (quoteCount > 0)
     return { cls: "bg-blue-500/10 text-blue-700 border border-blue-500/25", label: "Quotes ready" };
-  return { cls: "bg-amber-500/10 text-[#7b3525] border border-amber-500/25", label: "In progress" };
+  return { cls: "bg-amber-500/10 text-[#24483f] border border-amber-500/25", label: "In progress" };
 }
 
 export default function DashboardClient({ user, requests, quotesMap, isPro, subscription }: Props) {
@@ -106,7 +106,7 @@ export default function DashboardClient({ user, requests, quotesMap, isPro, subs
     { label: "Total requests", value: String(requests.length), color: "text-[#24483f]", bg: "bg-[#24483f]/8 border-[#24483f]/20" },
     { label: "Supplier quotes", value: String(totalQuotes), color: "text-[#2f7d57]", bg: "bg-emerald-500/8 border-emerald-500/20" },
     { label: "Contacts unlocked", value: String(unlockedCount), color: "text-[#2f7d57]", bg: "bg-emerald-500/8 border-emerald-500/20" },
-    { label: "Ready to unlock", value: String(pendingCount), color: "text-[#a75635]", bg: "bg-[#a75635]/8 border-[#a75635]/20" },
+    { label: "Ready to unlock", value: String(pendingCount), color: "text-[#f59e0b]", bg: "bg-[#f59e0b]/8 border-[#f59e0b]/20" },
     {
       label: isPro ? "Pro unlocks/month" : "Upgrade to Pro",
       value: isPro ? "3/month" : "Free",
@@ -116,7 +116,7 @@ export default function DashboardClient({ user, requests, quotesMap, isPro, subs
   ];
 
   return (
-    <main className="min-h-screen bg-[#f5ecdc] font-sans">
+    <main className="min-h-screen bg-[#f0f2f0] font-sans">
       <div className="flex w-full flex-col gap-0">
         <SiteHeader />
 
@@ -149,7 +149,7 @@ export default function DashboardClient({ user, requests, quotesMap, isPro, subs
               </div>
               <div className="flex gap-3 flex-wrap">
                 <a href="/#main-tabs"
-                  className="bg-gradient-to-r from-[#a75635] to-[#7b3525] text-white font-bold text-sm px-5 py-2.5 rounded-md no-underline shadow-lg shadow-stone-900/10 flex items-center">
+                  className="bg-[#f59e0b] text-[#1a2e1a] text-white font-bold text-sm px-5 py-2.5 rounded-md no-underline shadow-lg shadow-stone-900/10 flex items-center">
                   New request
                 </a>
                 <button onClick={handleLogout} disabled={loggingOut}
@@ -199,7 +199,7 @@ export default function DashboardClient({ user, requests, quotesMap, isPro, subs
                 </p>
               </div>
               <a href="/#main-tabs"
-                className="bg-[#a75635]/10 text-[#a75635] text-xs font-bold px-4 py-2 rounded-full no-underline border border-[#a75635]/20">
+                className="bg-[#f59e0b]/10 text-[#f59e0b] text-xs font-bold px-4 py-2 rounded-full no-underline border border-[#f59e0b]/20">
                 + New request
               </a>
             </div>
@@ -209,7 +209,7 @@ export default function DashboardClient({ user, requests, quotesMap, isPro, subs
                 <div className="mb-3 text-4xl">◎</div>
                 <div className="mb-2 font-bold text-stone-500">No requests yet</div>
                 <p className="m-0 mb-5 text-sm text-stone-400">Submit your first fabric sourcing request and quotes will appear here.</p>
-                <a href="/#main-tabs" className="inline-flex items-center rounded-md bg-gradient-to-r from-[#a75635] to-[#7b3525] px-6 py-3 text-sm font-bold text-white no-underline shadow-lg shadow-stone-900/10">
+                <a href="/#main-tabs" className="inline-flex items-center rounded-md bg-[#f59e0b] text-[#1a2e1a] px-6 py-3 text-sm font-bold text-white no-underline shadow-lg shadow-stone-900/10">
                   Start sourcing →
                 </a>
               </div>
@@ -341,7 +341,7 @@ export default function DashboardClient({ user, requests, quotesMap, isPro, subs
                           {/* CTAs */}
                           <div className="flex flex-wrap gap-3">
                             <a href={`/?requestId=${request.id}#main-tabs`}
-                              className="inline-flex items-center rounded-md bg-gradient-to-r from-[#a75635] to-[#7b3525] px-5 py-2.5 text-sm font-bold text-white no-underline shadow-lg shadow-stone-900/10">
+                              className="inline-flex items-center rounded-md bg-[#f59e0b] text-[#1a2e1a] px-5 py-2.5 text-sm font-bold text-white no-underline shadow-lg shadow-stone-900/10">
                               {quotes.length > 0 && request.contact_request_status !== "approved" ? "Unlock supplier →" : "View tracker →"}
                             </a>
                             <a href={buildWhatsappLink(`Hello Weinly, I need help with request ID: ${request.id}`)}

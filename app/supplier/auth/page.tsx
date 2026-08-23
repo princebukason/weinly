@@ -133,7 +133,7 @@ export default function SupplierAuthPage() {
   const labelClass = "text-stone-600 text-xs font-bold uppercase tracking-wider";
 
   return (
-    <main className="min-h-screen bg-[#f5ecdc] flex items-center justify-center px-4 py-12 font-sans">
+    <main className="min-h-screen bg-[#f0f2f0] flex items-center justify-center px-4 py-12 font-sans">
       <div className="w-full max-w-md flex flex-col gap-4">
 
         {/* Brand */}
@@ -186,17 +186,17 @@ export default function SupplierAuthPage() {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className={labelClass}>Invite code <span className="text-[#a75635]">*</span></label>
+                  <label className={labelClass}>Invite code <span className="text-[#f59e0b]">*</span></label>
                   <input value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} placeholder="e.g. WEINLY-SUP-2026" required className={inputClass} />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5">
-                    <label className={labelClass}>Company name <span className="text-[#a75635]">*</span></label>
+                    <label className={labelClass}>Company name <span className="text-[#f59e0b]">*</span></label>
                     <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="e.g. Guangzhou Fabrics Co." required className={inputClass} />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className={labelClass}>Contact name <span className="text-[#a75635]">*</span></label>
+                    <label className={labelClass}>Contact name <span className="text-[#f59e0b]">*</span></label>
                     <input value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="e.g. Li Wei" required className={inputClass} />
                   </div>
                 </div>
@@ -220,12 +220,12 @@ export default function SupplierAuthPage() {
             )}
 
             <div className="flex flex-col gap-1.5">
-              <label className={labelClass}>Email address <span className="text-[#a75635]">*</span></label>
+              <label className={labelClass}>Email address <span className="text-[#f59e0b]">*</span></label>
               <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" type="email" required className={inputClass} />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className={labelClass}>Password <span className="text-[#a75635]">*</span></label>
+              <label className={labelClass}>Password <span className="text-[#f59e0b]">*</span></label>
               <div className="relative">
                 <input
                   value={password}
@@ -255,7 +255,7 @@ export default function SupplierAuthPage() {
 
         <p className="text-center text-stone-500 text-xs">
           Are you a buyer?{" "}
-          <a href="/auth" className="text-[#a75635] no-underline hover:text-[#7b3525]">Log in here instead</a>
+          <a href="/auth" className="text-[#f59e0b] no-underline hover:text-[#24483f]">Log in here instead</a>
         </p>
       </div>
     </main>

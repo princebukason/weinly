@@ -387,12 +387,12 @@ export default function SupplierDashboardClient({ user, profile, requests, myQuo
     { value: String(filteredRequests.length), label: "Matching requests", color: "text-[#24483f]" },
     { value: String(myQuotes.length), label: "Quotes sent", color: "text-[#24483f]" },
     { value: String(closedDeals), label: "Deals closed", color: "text-[#24483f]" },
-    { value: `${winRate}%`, label: "Win rate", color: "text-[#a75635]" },
+    { value: `${winRate}%`, label: "Win rate", color: "text-[#f59e0b]" },
     ...(avgRating ? [{ value: `${avgRating}★`, label: "Avg rating", color: "text-amber-500" }] : []),
   ];
 
   return (
-    <main className="min-h-screen bg-[#f5ecdc] px-3 py-3 font-sans md:px-4 md:py-4">
+    <main className="min-h-screen bg-[#f0f2f0] px-3 py-3 font-sans md:px-4 md:py-4">
       <div className="mx-auto flex max-w-7xl flex-col gap-3">
 
         <nav className="flex items-center justify-between gap-4 rounded-2xl border border-stone-200 bg-white px-4 py-3">

@@ -63,7 +63,7 @@ export default function AuthPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f5ecdc] flex items-center justify-center px-4 py-12 font-sans">
+    <main className="min-h-screen bg-[#f0f2f0] flex items-center justify-center px-4 py-12 font-sans">
       <div className="w-full max-w-md flex flex-col gap-4">
 
         {/* Brand */}
@@ -91,7 +91,7 @@ export default function AuthPage() {
                 key={tab}
                 type="button"
                 onClick={() => { setMode(tab); setMessage(null); }}
-                className={`flex-1 py-2.5 px-4 rounded-md text-sm font-bold border-0 cursor-pointer transition-all ${mode === tab ? "bg-gradient-to-r from-[#a75635] to-[#7b3525] text-white shadow-lg shadow-stone-900/10" : "text-stone-500 bg-transparent hover:text-stone-700"}`}>
+                className={`flex-1 py-2.5 px-4 rounded-md text-sm font-bold border-0 cursor-pointer transition-all ${mode === tab ? "bg-[#f59e0b] text-[#1a2e1a] text-white shadow-lg shadow-stone-900/10" : "text-stone-500 bg-transparent hover:text-stone-700"}`}>
                 {tab === "login" ? "Log in" : "Sign up"}
               </button>
             ))}
@@ -154,7 +154,7 @@ export default function AuthPage() {
                       setLoading(false);
                       setMessage(error ? { type: "error", text: error.message } : { type: "success", text: "Password reset email sent. Check your inbox." });
                     }}
-                    className="text-[#a75635] text-xs font-semibold bg-transparent border-0 cursor-pointer hover:text-[#7b3525] transition-colors p-0">
+                    className="text-[#f59e0b] text-xs font-semibold bg-transparent border-0 cursor-pointer hover:text-[#24483f] transition-colors p-0">
                     Forgot password?
                   </button>
                 )}
@@ -188,7 +188,7 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-[#a75635] to-[#7b3525] text-white font-bold text-sm py-3.5 rounded-md shadow-lg shadow-stone-900/10 border-0 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed mt-1">
+              className="w-full bg-[#f59e0b] text-[#1a2e1a] text-white font-bold text-sm py-3.5 rounded-md shadow-lg shadow-stone-900/10 border-0 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed mt-1">
               {loading ? "Please wait..." : mode === "login" ? "Log in to Weinly" : "Create account"}
             </button>
           </form>
@@ -196,7 +196,7 @@ export default function AuthPage() {
 
         <p className="text-center text-stone-500 text-xs">
           By continuing you agree to Weinly's terms of service.{" "}
-          <a href="/" className="text-[#a75635] no-underline hover:text-[#7b3525]">Back to home</a>
+          <a href="/" className="text-[#f59e0b] no-underline hover:text-[#24483f]">Back to home</a>
         </p>
       </div>
     </main>

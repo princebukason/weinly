@@ -78,7 +78,7 @@ export default function PricingPage() {
   ];
 
   return (
-    <main className="min-h-screen bg-[#f5ecdc] font-sans">
+    <main className="min-h-screen bg-[#f0f2f0] font-sans">
       <div className="flex w-full flex-col gap-0">
         <SiteHeader />
 
@@ -101,11 +101,11 @@ export default function PricingPage() {
                 <div className="mt-6 flex flex-wrap gap-3">
                   <div className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-[#2f7d57]">Faster sourcing</div>
                   <div className="rounded-full border border-[#24483f]/20 bg-[#24483f]/10 px-4 py-2 text-xs font-semibold text-[#24483f]">Better supplier matching</div>
-                  <div className="rounded-full border border-[#c9935b]/25 bg-[#c9935b]/10 px-4 py-2 text-xs font-semibold text-[#7b3525]">Safer buying flow</div>
+                  <div className="rounded-full border border-[#f59e0b]/25 bg-[#f59e0b]/10 px-4 py-2 text-xs font-semibold text-[#24483f]">Safer buying flow</div>
                 </div>
               </div>
               <div className="rounded-lg border border-stone-200 bg-stone-50 p-5 md:p-6">
-                <div className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-[#a75635]">Why buyers upgrade</div>
+                <div className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-[#f59e0b]">Why buyers upgrade</div>
                 <div className="flex flex-col gap-3">
                   {[
                     "Get 3 contact unlocks included every month",
@@ -127,11 +127,11 @@ export default function PricingPage() {
           <section className="flex justify-center">
             <div className="inline-flex items-center gap-2 rounded-lg border border-stone-200 bg-white p-1.5">
               <button onClick={() => setBillingCycle("monthly")}
-                className={`rounded-md border-0 cursor-pointer px-5 py-2 text-sm font-bold transition-all ${billingCycle === "monthly" ? "bg-gradient-to-r from-[#a75635] to-[#7b3525] text-white shadow-lg shadow-stone-900/10" : "bg-transparent text-stone-500"}`}>
+                className={`rounded-md border-0 cursor-pointer px-5 py-2 text-sm font-bold transition-all ${billingCycle === "monthly" ? "bg-[#f59e0b] text-[#1a2e1a] text-white shadow-lg shadow-stone-900/10" : "bg-transparent text-stone-500"}`}>
                 Monthly
               </button>
               <button onClick={() => setBillingCycle("yearly")}
-                className={`rounded-md border-0 cursor-pointer px-5 py-2 text-sm font-bold transition-all ${billingCycle === "yearly" ? "bg-gradient-to-r from-[#a75635] to-[#7b3525] text-white shadow-lg shadow-stone-900/10" : "bg-transparent text-stone-500"}`}>
+                className={`rounded-md border-0 cursor-pointer px-5 py-2 text-sm font-bold transition-all ${billingCycle === "yearly" ? "bg-[#f59e0b] text-[#1a2e1a] text-white shadow-lg shadow-stone-900/10" : "bg-transparent text-stone-500"}`}>
                 Yearly
                 <span className="ml-2 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs text-[#2f7d57]">Save {yearlySavingShort}</span>
               </button>
@@ -182,7 +182,7 @@ export default function PricingPage() {
                   </div>
                 ))}
               </div>
-              <a href="/#main-tabs" className="mt-6 block rounded-md border border-[#a75635]/30 bg-[#a75635]/8 py-3 text-center text-sm font-bold text-[#7b3525] no-underline transition-all hover:bg-[#a75635]/12">
+              <a href="/#main-tabs" className="mt-6 block rounded-md border border-[#f59e0b]/30 bg-[#f59e0b]/8 py-3 text-center text-sm font-bold text-[#24483f] no-underline transition-all hover:bg-[#f59e0b]/12">
                 Submit a request
               </a>
             </div>
@@ -190,7 +190,7 @@ export default function PricingPage() {
             {/* Pro — highlighted */}
             <div id="pro-card" className="relative flex h-full flex-col rounded-lg border border-[#24483f]/25 bg-white p-6 shadow-md shadow-stone-900/5">
               <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <span className="rounded-full bg-gradient-to-r from-[#c9935b] to-[#a75635] px-4 py-1.5 text-xs font-bold text-white whitespace-nowrap">Most popular</span>
+                <span className="rounded-full bg-[#f59e0b] text-[#1a2e1a] px-4 py-1.5 text-xs font-bold text-white whitespace-nowrap">Most popular</span>
               </div>
               <div className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-[#24483f]">Weinly Pro</div>
               <div className="mb-2 flex items-end gap-2">
@@ -261,7 +261,7 @@ export default function PricingPage() {
               <div className="flex flex-1 flex-col gap-3">
                 {["Everything in Pro", "Unlimited contact unlocks", "Dedicated account manager", "Factory inspection support", "Bulk order handling", "Custom sourcing workflow", "Custom pricing"].map((item) => (
                   <div key={item} className="flex items-start gap-3">
-                    <span className="mt-0.5 text-[#a75635] font-bold">✓</span>
+                    <span className="mt-0.5 text-[#f59e0b] font-bold">✓</span>
                     <span className="text-sm text-stone-600">{item}</span>
                   </div>
                 ))}
@@ -289,7 +289,7 @@ export default function PricingPage() {
 
           {/* FAQ */}
           <section className="rounded-lg border border-stone-200 bg-white p-6 md:p-10">
-            <div className="mb-3 inline-block rounded-full bg-[#a75635]/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-[#a75635]">FAQ</div>
+            <div className="mb-3 inline-block rounded-full bg-[#f59e0b]/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-[#f59e0b]">FAQ</div>
             <h2 className="mb-8 text-2xl font-black tracking-tight text-[#1f2933] md:text-3xl">Frequently asked questions</h2>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {faqs.map((faq) => (
@@ -309,7 +309,7 @@ export default function PricingPage() {
             </p>
             <div className="flex flex-wrap justify-center gap-3">
               <button onClick={() => { const el = document.getElementById("pro-card"); if (el) el.scrollIntoView({ behavior: "smooth" }); setShowEmailForm(true); }}
-                className="cursor-pointer rounded-md border-0 bg-gradient-to-r from-[#c9935b] to-[#a75635] px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-black/20">
+                className="cursor-pointer rounded-md border-0 bg-[#f59e0b] text-[#1a2e1a] px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-black/20">
                 Choose Pro
               </button>
               <a href={supportLink} target="_blank" rel="noreferrer"

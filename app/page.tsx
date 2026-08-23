@@ -481,7 +481,7 @@ export default function HomePage() {
         {/* ── HERO ── */}
         <section className="relative overflow-hidden rounded-2xl bg-[#24483f] p-6 md:p-12">
           <div className="pointer-events-none absolute right-0 top-0 h-80 w-80 translate-x-1/3 -translate-y-1/3 rounded-full bg-white/5 blur-3xl" />
-          <div className="pointer-events-none absolute bottom-0 left-0 h-64 w-64 -translate-x-1/3 translate-y-1/3 rounded-full bg-[#c9935b]/10 blur-3xl" />
+          <div className="pointer-events-none absolute bottom-0 left-0 h-64 w-64 -translate-x-1/3 translate-y-1/3 rounded-full bg-[#f59e0b]/10 blur-3xl" />
           <div className="relative z-10 grid grid-cols-1 items-center gap-8 lg:grid-cols-2 lg:gap-12">
             <div className="flex flex-col gap-5">
               <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5">
@@ -515,7 +515,7 @@ export default function HomePage() {
               </div>
             </div>
             <div className="flex flex-col gap-2">
-              <p className="text-xs font-bold uppercase tracking-widest text-[#c9935b] mb-1">Browse by category — click to source</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-[#f59e0b] mb-1">Browse by category — click to source</p>
               <div className="grid grid-cols-3 gap-2">
                 {FABRIC_CATEGORIES.slice(0, 6).map((cat) => (
                   <button
@@ -592,9 +592,9 @@ export default function HomePage() {
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {[
-              { n: "01", title: "Submit your request", text: "Choose a fabric category, describe what you need. AI formats it into a professional sourcing spec.", color: "from-[#a75635] to-[#c9935b]", textColor: "text-[#a75635]" },
+              { n: "01", title: "Submit your request", text: "Choose a fabric category, describe what you need. AI formats it into a professional sourcing spec.", color: "from-[#a75635] to-[#c9935b]", textColor: "text-[#f59e0b]" },
               { n: "02", title: "Review supplier quotes", text: "We match you to verified Chinese suppliers in your category. See price, MOQ and lead time first.", color: "from-[#24483f] to-[#2f7d57]", textColor: "text-[#24483f]" },
-              { n: "03", title: "Unlock & connect", text: `Pay ${prices.unlock} to unlock direct supplier contact — phone, WeChat, email.`, color: "from-[#a75635] to-[#c9935b]", textColor: "text-[#a75635]" },
+              { n: "03", title: "Unlock & connect", text: `Pay ${prices.unlock} to unlock direct supplier contact — phone, WeChat, email.`, color: "from-[#a75635] to-[#c9935b]", textColor: "text-[#f59e0b]" },
             ].map((step) => (
               <div key={step.n} className="rounded-xl border border-stone-200 bg-stone-50 p-6">
                 <div className={`mb-3 text-xs font-black uppercase tracking-widest ${step.textColor}`}>{step.n}</div>
@@ -772,7 +772,7 @@ export default function HomePage() {
               </div>
 
               <div className="flex flex-wrap gap-5">
-                <a href="/history" className="text-sm font-semibold text-[#a75635] no-underline transition-colors hover:text-[#7b3525]">View all history →</a>
+                <a href="/history" className="text-sm font-semibold text-[#f59e0b] no-underline transition-colors hover:text-[#24483f]">View all history →</a>
                 <a href={genericSupportLink} target="_blank" rel="noreferrer" className="text-sm font-semibold text-[#2f7d57] no-underline transition-colors hover:text-[#24483f]">Chat support →</a>
               </div>
               {submittedRequest && (
@@ -808,7 +808,7 @@ export default function HomePage() {
                   )}
                   <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
                     <p className="m-0 text-sm leading-relaxed text-stone-600">
-                      <strong className="text-[#a75635]">⚠ Save your Request ID.</strong> You will need it to track your quotes. Copy it above or bookmark this page — we cannot recover it for you if lost.
+                      <strong className="text-[#f59e0b]">⚠ Save your Request ID.</strong> You will need it to track your quotes. Copy it above or bookmark this page — we cannot recover it for you if lost.
                     </p>
                   </div>
                   <div className="rounded-lg border border-stone-200 bg-white p-4">
@@ -1071,7 +1071,7 @@ export default function HomePage() {
                           {alreadyReviewed && existingReview ? (
                             <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
                               <div className="mb-3 flex items-center gap-2">
-                                <span className="text-sm font-bold text-[#a75635]">Your review</span>
+                                <span className="text-sm font-bold text-[#f59e0b]">Your review</span>
                                 <StarRating value={existingReview.rating} size="sm" />
                               </div>
                               {existingReview.comment && <p className="m-0 text-sm leading-relaxed text-stone-600">{existingReview.comment}</p>}

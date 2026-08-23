@@ -99,7 +99,7 @@ export default function SupplierProfilePage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#f5ecdc] flex items-center justify-center font-sans">
+      <main className="min-h-screen bg-[#f0f2f0] flex items-center justify-center font-sans">
         <div className="text-stone-400 text-sm">Loading supplier profile...</div>
       </main>
     );
@@ -107,14 +107,14 @@ export default function SupplierProfilePage() {
 
   if (notFound || !supplier) {
     return (
-      <main className="min-h-screen bg-[#f5ecdc] px-3 py-3 font-sans">
+      <main className="min-h-screen bg-[#f0f2f0] px-3 py-3 font-sans">
         <div className="mx-auto max-w-7xl">
           <SiteHeader />
           <div className="mt-4 rounded-2xl border border-stone-200 bg-white p-12 text-center">
             <div className="mb-3 text-5xl">◎</div>
             <div className="mb-2 text-xl font-black text-[#1f2933]">Supplier not found</div>
             <p className="mb-6 text-sm text-stone-500">This supplier may have been removed or the link is incorrect.</p>
-            <a href="/suppliers" className="inline-flex items-center rounded-lg bg-gradient-to-r from-[#a75635] to-[#7b3525] px-6 py-3 text-sm font-bold text-white no-underline">Browse suppliers →</a>
+            <a href="/suppliers" className="inline-flex items-center rounded-lg bg-[#f59e0b] text-[#1a2e1a] px-6 py-3 text-sm font-bold text-white no-underline">Browse suppliers →</a>
           </div>
         </div>
       </main>
@@ -129,7 +129,7 @@ export default function SupplierProfilePage() {
   const supportLink = buildWhatsappLink(`Hello Weinly, I want to get a quote from ${supplier.company_name}.`);
 
   return (
-    <main className="min-h-screen bg-[#f5ecdc] px-3 py-3 font-sans md:px-4 md:py-4">
+    <main className="min-h-screen bg-[#f0f2f0] px-3 py-3 font-sans md:px-4 md:py-4">
       <div className="mx-auto flex max-w-7xl flex-col gap-3">
         <SiteHeader />
 
@@ -156,7 +156,7 @@ export default function SupplierProfilePage() {
 
               {supplier.is_verified && (
                 <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-sm font-bold text-[#f8efe2]">
-                  <span className="text-[#c9935b]">✓</span> Verified Supplier
+                  <span className="text-[#f59e0b]">✓</span> Verified Supplier
                 </span>
               )}
 
@@ -168,7 +168,7 @@ export default function SupplierProfilePage() {
               <div className="flex flex-wrap gap-5">
                 {avgRating && (
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-2xl font-black text-[#c9935b]">{avgRating}★</span>
+                    <span className="text-2xl font-black text-[#f59e0b]">{avgRating}★</span>
                     <span className="text-xs text-[#e8dcc8]">{reviews.length} review{reviews.length !== 1 ? "s" : ""}</span>
                   </div>
                 )}
@@ -194,7 +194,7 @@ export default function SupplierProfilePage() {
             {/* CTA */}
             <div className="flex shrink-0 flex-col gap-2 md:items-end">
               <a href="/#main-tabs"
-                className="inline-flex items-center rounded-lg bg-gradient-to-r from-[#a75635] to-[#7b3525] px-6 py-3 text-sm font-bold text-white no-underline shadow-md">
+                className="inline-flex items-center rounded-lg bg-[#f59e0b] text-[#1a2e1a] px-6 py-3 text-sm font-bold text-white no-underline shadow-md">
                 Request a quote →
               </a>
               <a href={supportLink} target="_blank" rel="noreferrer"
@@ -329,7 +329,7 @@ export default function SupplierProfilePage() {
           <h2 className="mb-2 text-2xl font-black text-white">Ready to source from {supplier.company_name}?</h2>
           <p className="mb-6 text-sm text-[#e8dcc8]">Submit a fabric request and get a quote from this supplier within 24 hours.</p>
           <div className="flex flex-wrap justify-center gap-3">
-            <a href="/#main-tabs" className="inline-flex items-center rounded-lg bg-gradient-to-r from-[#a75635] to-[#7b3525] px-8 py-3.5 text-sm font-bold text-white no-underline shadow-md">
+            <a href="/#main-tabs" className="inline-flex items-center rounded-lg bg-[#f59e0b] text-[#1a2e1a] px-8 py-3.5 text-sm font-bold text-white no-underline shadow-md">
               Submit a request →
             </a>
             <a href={supportLink} target="_blank" rel="noreferrer"

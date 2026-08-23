@@ -78,7 +78,7 @@ export default function SuppliersPage() {
   const supportLink = buildWhatsappLink("Hello Weinly, I want to become a verified supplier.");
 
   return (
-    <main className="min-h-screen bg-[#f5ecdc] font-sans">
+    <main className="min-h-screen bg-[#f0f2f0] font-sans">
       <div className="flex w-full flex-col gap-0">
         <SiteHeader />
 
@@ -95,7 +95,7 @@ export default function SuppliersPage() {
             <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-10"
               style={{ background: "linear-gradient(to top, rgba(36,72,63,0.95) 0%, rgba(36,72,63,0.5) 55%, rgba(36,72,63,0.1) 100%)" }}>
               <div className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5">
-                <span className="h-2 w-2 rounded-full bg-[#c9935b]" />
+                <span className="h-2 w-2 rounded-full bg-[#f59e0b]" />
                 <span className="text-xs font-semibold text-[#f8efe2]">Verified supplier network</span>
               </div>
               <h1 className="mb-2 text-3xl font-black tracking-tight text-white md:text-5xl">
@@ -248,7 +248,7 @@ export default function SuppliersPage() {
                           <span className="text-xs text-stone-400">
                             Since {new Date(supplier.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
                           </span>
-                          <span className="text-xs font-semibold text-[#a75635]">View profile →</span>
+                          <span className="text-xs font-semibold text-[#f59e0b]">View profile →</span>
                         </div>
                       </div>
                     </a>
@@ -266,7 +266,7 @@ export default function SuppliersPage() {
                 <h2 className="mb-3 text-2xl font-black tracking-tight text-white md:text-3xl">Join Weinly as a verified supplier</h2>
                 <p className="mb-5 text-sm leading-relaxed text-[#e8dcc8]">Get your products in front of serious buyers from Africa, the Middle East and beyond.</p>
                 <div className="flex flex-wrap gap-3">
-                  <a href="/supplier/apply" className="inline-flex items-center rounded-md bg-gradient-to-r from-[#c9935b] to-[#a75635] px-6 py-3 text-sm font-bold text-white no-underline shadow-lg shadow-black/20">
+                  <a href="/supplier/apply" className="inline-flex items-center rounded-md bg-[#f59e0b] text-[#1a2e1a] px-6 py-3 text-sm font-bold text-white no-underline shadow-lg shadow-black/20">
                     Apply as supplier →
                   </a>
                   <a href={supportLink} target="_blank" rel="noreferrer" className="inline-flex items-center rounded-md border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold text-[#fffaf2] no-underline hover:bg-white/15 transition-all">
@@ -282,7 +282,7 @@ export default function SuppliersPage() {
                   "Post ready stock for instant sales",
                 ].map((item) => (
                   <div key={item} className="flex items-start gap-3 rounded-lg border border-white/15 bg-white/10 p-3">
-                    <span className="font-bold text-[#c9935b]">✓</span>
+                    <span className="font-bold text-[#f59e0b]">✓</span>
                     <span className="text-sm text-[#e8dcc8]">{item}</span>
                   </div>
                 ))}

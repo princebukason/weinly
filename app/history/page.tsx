@@ -72,7 +72,7 @@ function getStagePill(request: FabricRequest, quoteCount: number) {
     return { cls: "bg-violet-500/10 text-violet-700 border border-violet-500/25", label: "Paid — awaiting approval" };
   if (quoteCount > 0)
     return { cls: "bg-blue-500/10 text-blue-700 border border-blue-500/25", label: "Quotes ready" };
-  return { cls: "bg-amber-500/10 text-[#7b3525] border border-amber-500/25", label: "In progress" };
+  return { cls: "bg-amber-500/10 text-[#24483f] border border-amber-500/25", label: "In progress" };
 }
 
 export default function HistoryPage() {
@@ -127,7 +127,7 @@ export default function HistoryPage() {
   const genericSupportLink = buildWhatsappLink("Hello Weinly, I need help with my request history.");
 
   return (
-    <main className="min-h-screen bg-[#f5ecdc] font-sans">
+    <main className="min-h-screen bg-[#f0f2f0] font-sans">
       <div className="flex w-full flex-col gap-0">
         <SiteHeader />
 
@@ -172,7 +172,7 @@ export default function HistoryPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="bg-gradient-to-r from-[#a75635] to-[#7b3525] text-white font-bold text-sm px-6 py-3 rounded-md shadow-lg shadow-stone-900/10 border-0 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
+                  className="bg-[#f59e0b] text-[#1a2e1a] text-white font-bold text-sm px-6 py-3 rounded-md shadow-lg shadow-stone-900/10 border-0 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
                   {loading ? "Searching..." : "Search history →"}
                 </button>
                 <a href="/" className="border border-stone-200 bg-white text-stone-600 font-semibold text-sm px-6 py-3 rounded-md no-underline hover:bg-stone-50 transition-all flex items-center">
@@ -199,7 +199,7 @@ export default function HistoryPage() {
                   <p className="text-stone-500 text-sm m-0">{requests.length === 0 ? "No requests found" : `${requests.length} request${requests.length === 1 ? "" : "s"} found`}</p>
                 </div>
                 {requests.length > 0 && (
-                  <span className="bg-[#a75635]/10 text-[#a75635] text-xs font-bold px-4 py-2 rounded-full border border-[#a75635]/20">{requests.length} {requests.length === 1 ? "result" : "results"}</span>
+                  <span className="bg-[#f59e0b]/10 text-[#f59e0b] text-xs font-bold px-4 py-2 rounded-full border border-[#f59e0b]/20">{requests.length} {requests.length === 1 ? "result" : "results"}</span>
                 )}
               </div>
 
@@ -210,7 +210,7 @@ export default function HistoryPage() {
                   <p className="text-stone-400 text-sm leading-relaxed max-w-sm mx-auto mb-6">
                     We couldn't find any requests matching that email or phone. Make sure you use the same details you submitted with.
                   </p>
-                  <a href="/" className="bg-gradient-to-r from-[#a75635] to-[#7b3525] text-white font-bold text-sm px-6 py-3 rounded-md no-underline inline-flex items-center shadow-lg shadow-stone-900/10">
+                  <a href="/" className="bg-[#f59e0b] text-[#1a2e1a] text-white font-bold text-sm px-6 py-3 rounded-md no-underline inline-flex items-center shadow-lg shadow-stone-900/10">
                     Submit a new request →
                   </a>
                 </div>
@@ -235,7 +235,7 @@ export default function HistoryPage() {
                             <span className="bg-blue-500/10 text-blue-700 border border-blue-500/20 text-xs font-bold px-3 py-1.5 rounded-full">
                               {request.status || "submitted"}
                             </span>
-                            <span className="bg-amber-500/10 text-[#7b3525] border border-amber-500/20 text-xs font-bold px-3 py-1.5 rounded-full">
+                            <span className="bg-amber-500/10 text-[#24483f] border border-amber-500/20 text-xs font-bold px-3 py-1.5 rounded-full">
                               {request.payment_status || "unpaid"}
                             </span>
                             <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${pill.cls}`}>{pill.label}</span>
@@ -293,7 +293,7 @@ export default function HistoryPage() {
                         <div className="flex flex-col gap-3">
                           <div className="flex justify-between items-center">
                             <h3 className="text-[#1f2933] font-bold text-base m-0">Supplier quotes</h3>
-                            <span className="bg-[#a75635]/10 text-[#a75635] border border-[#a75635]/20 text-xs font-bold px-3 py-1.5 rounded-full">{quotes.length} {quotes.length === 1 ? "quote" : "quotes"}</span>
+                            <span className="bg-[#f59e0b]/10 text-[#f59e0b] border border-[#f59e0b]/20 text-xs font-bold px-3 py-1.5 rounded-full">{quotes.length} {quotes.length === 1 ? "quote" : "quotes"}</span>
                           </div>
 
                           {quotes.length === 0 ? (
@@ -383,7 +383,7 @@ export default function HistoryPage() {
                               </div>
                             </div>
                             <div className="flex gap-3 flex-wrap">
-                              <a href={`/?requestId=${request.id}`} className="bg-gradient-to-r from-[#a75635] to-[#7b3525] text-white font-bold text-sm px-5 py-2.5 rounded-md no-underline shadow-lg shadow-stone-900/10 flex items-center">
+                              <a href={`/?requestId=${request.id}`} className="bg-[#f59e0b] text-[#1a2e1a] text-white font-bold text-sm px-5 py-2.5 rounded-md no-underline shadow-lg shadow-stone-900/10 flex items-center">
                                 Open request & unlock →
                               </a>
                               <a href={supportLink} target="_blank" rel="noreferrer" className="border border-emerald-500/20 bg-emerald-500/10 text-[#2f7d57] font-semibold text-sm px-5 py-2.5 rounded-md no-underline flex items-center hover:bg-emerald-500/15 transition-all">
@@ -396,7 +396,7 @@ export default function HistoryPage() {
                         {/* Footer row */}
                         <div className="flex justify-between items-center gap-3 flex-wrap pt-2 border-t border-stone-200">
                           <p className="text-stone-400 text-xs m-0">Need help? Contact Weinly support on WhatsApp.</p>
-                          <a href={`/?requestId=${request.id}`} className="text-[#a75635] text-sm font-bold no-underline hover:text-[#7b3525] transition-colors">
+                          <a href={`/?requestId=${request.id}`} className="text-[#f59e0b] text-sm font-bold no-underline hover:text-[#24483f] transition-colors">
                             Track this request →
                           </a>
                         </div>
@@ -410,7 +410,7 @@ export default function HistoryPage() {
 
           {/* Trust / FAQ */}
           <section className="rounded-lg border border-stone-200 bg-white p-6 md:p-10">
-            <span className="inline-block bg-[#a75635]/10 text-[#a75635] text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-3">Why Weinly</span>
+            <span className="inline-block bg-[#f59e0b]/10 text-[#f59e0b] text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-3">Why Weinly</span>
             <h2 className="text-2xl md:text-3xl font-black text-[#1f2933] tracking-tight mb-2">Why buyers trust Weinly</h2>
             <p className="text-stone-500 text-sm leading-relaxed mb-8 m-0">Clear answers for buyers who want confidence before requesting quotes or paying to unlock supplier contact.</p>
 

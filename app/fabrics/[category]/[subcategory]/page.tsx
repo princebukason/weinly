@@ -97,7 +97,7 @@ export default function SubcategorySEOPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
-      <main className="min-h-screen bg-[#f5ecdc] px-3 py-3 font-sans md:px-4 md:py-4">
+      <main className="min-h-screen bg-[#f0f2f0] px-3 py-3 font-sans md:px-4 md:py-4">
         <div className="mx-auto flex max-w-7xl flex-col gap-4">
           <SiteHeader />
 
@@ -205,7 +205,7 @@ export default function SubcategorySEOPage({ params }: Props) {
             </p>
             <div className="flex flex-wrap justify-center gap-3">
               <Link href="/#main-tabs"
-                className="inline-flex items-center rounded-xl bg-gradient-to-r from-[#a75635] to-[#7b3525] px-8 py-3.5 text-sm font-bold text-white no-underline shadow-lg transition-all hover:opacity-90">
+                className="inline-flex items-center rounded-xl bg-[#f59e0b] text-[#1a2e1a] px-8 py-3.5 text-sm font-bold text-white no-underline shadow-lg transition-all hover:opacity-90">
                 Submit free request →
               </Link>
               <a href={whatsappLink} target="_blank" rel="noreferrer"

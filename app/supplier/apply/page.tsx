@@ -64,7 +64,7 @@ export default function SupplierApplyPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f5ecdc] px-3 py-3 font-sans md:px-4 md:py-4">
+    <main className="min-h-screen bg-[#f0f2f0] px-3 py-3 font-sans md:px-4 md:py-4">
       <div className="mx-auto flex max-w-7xl flex-col gap-4">
         <SiteHeader showSubmitButton={false} />
 
@@ -103,7 +103,7 @@ export default function SupplierApplyPage() {
                     { value: "Direct", label: "No middlemen" },
                   ].map((s) => (
                     <div key={s.label} className="rounded-xl border border-white/15 bg-white/8 p-3 text-center">
-                      <div className="text-lg font-black text-[#c9935b]">{s.value}</div>
+                      <div className="text-lg font-black text-[#f59e0b]">{s.value}</div>
                       <div className="text-xs text-[#e8dcc8]">{s.label}</div>
                     </div>
                   ))}
@@ -202,7 +202,7 @@ export default function SupplierApplyPage() {
               )}
 
               <button type="submit" disabled={loading}
-                className="w-full rounded-2xl bg-gradient-to-r from-[#a75635] to-[#7b3525] px-6 py-4 text-sm font-bold text-white shadow-lg transition-all hover:opacity-90 disabled:opacity-50">
+                className="w-full rounded-2xl bg-[#f59e0b] text-[#1a2e1a] px-6 py-4 text-sm font-bold text-white shadow-lg transition-all hover:opacity-90 disabled:opacity-50">
                 {loading ? "Submitting application…" : "Submit application →"}
               </button>
 

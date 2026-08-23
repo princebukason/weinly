@@ -410,7 +410,7 @@ export default function AdminClient() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#f5ecdc] flex items-center justify-center font-sans">
+      <main className="min-h-screen bg-[#f0f2f0] flex items-center justify-center font-sans">
         <div className="text-stone-400 text-sm">Loading...</div>
       </main>
     );
@@ -418,7 +418,7 @@ export default function AdminClient() {
 
   if (!authenticated) {
     return (
-      <main className="min-h-screen bg-[#f5ecdc] flex items-center justify-center px-4 font-sans">
+      <main className="min-h-screen bg-[#f0f2f0] flex items-center justify-center px-4 font-sans">
         <div className="w-full max-w-sm bg-white border border-stone-200 rounded-2xl p-8 shadow-sm">
           <div className="flex items-center gap-3 mb-6">
             <img src="/weinly-logo.svg" alt="Weinly" height="36" className="h-9 w-auto" />
@@ -460,7 +460,7 @@ export default function AdminClient() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f5ecdc] px-3 py-3 md:px-4 md:py-4 font-sans">
+    <main className="min-h-screen bg-[#f0f2f0] px-3 py-3 md:px-4 md:py-4 font-sans">
       <div className="max-w-6xl mx-auto flex flex-col gap-3">
 
         {/* Header */}
@@ -804,7 +804,7 @@ export default function AdminClient() {
                       {supplierReviews.length > 0 && (
                         <div>
                           <button onClick={() => setExpandedSupplierId(isExpanded ? null : supplier.id)}
-                            className="text-xs font-semibold text-[#a75635] cursor-pointer bg-transparent border-0 p-0 hover:text-[#7b3525] transition-colors">
+                            className="text-xs font-semibold text-[#f59e0b] cursor-pointer bg-transparent border-0 p-0 hover:text-[#24483f] transition-colors">
                             {isExpanded ? "Hide reviews ↑" : `View ${supplierReviews.length} review${supplierReviews.length > 1 ? "s" : ""} ↓`}
                           </button>
                           {isExpanded && (
@@ -862,7 +862,7 @@ export default function AdminClient() {
                   </div>
                 </div>
                 <button onClick={createInvite} disabled={creatingInvite}
-                  className="self-start bg-gradient-to-r from-[#a75635] to-[#7b3525] text-white font-bold text-sm px-6 py-3 rounded-lg border-0 cursor-pointer shadow-sm disabled:opacity-60">
+                  className="self-start bg-[#f59e0b] text-[#1a2e1a] text-white font-bold text-sm px-6 py-3 rounded-lg border-0 cursor-pointer shadow-sm disabled:opacity-60">
                   {creatingInvite ? "Creating..." : "Create invite code →"}
                 </button>
               </div>

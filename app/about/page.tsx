@@ -70,7 +70,7 @@ export default function AboutPage() {
   const whatsappLink = buildWhatsappLink("Hello Weinly, I'd like to learn more about the platform.");
 
   return (
-    <main className="min-h-screen bg-[#f5ecdc] font-sans">
+    <main className="min-h-screen bg-[#f0f2f0] font-sans">
       <div className="flex w-full flex-col gap-0">
         <SiteHeader />
 
@@ -99,7 +99,7 @@ export default function AboutPage() {
             </p>
             <div className="flex flex-wrap gap-3">
               <Link href="/#main-tabs"
-                className="inline-flex items-center rounded-md bg-gradient-to-r from-[#a75635] to-[#7b3525] px-6 py-3 text-sm font-bold text-white no-underline shadow-lg shadow-stone-900/10">
+                className="inline-flex items-center rounded-md bg-[#f59e0b] text-[#1a2e1a] px-6 py-3 text-sm font-bold text-white no-underline shadow-lg shadow-stone-900/10">
                 Start sourcing →
               </Link>
               <a href={whatsappLink} target="_blank" rel="noreferrer"
@@ -121,7 +121,7 @@ export default function AboutPage() {
 
           {/* The story */}
           <section className="rounded-lg border border-stone-200 bg-white p-6 md:p-10">
-            <span className="mb-3 inline-block rounded-full bg-[#a75635]/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#a75635]">
+            <span className="mb-3 inline-block rounded-full bg-[#f59e0b]/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#f59e0b]">
               Our story
             </span>
             <h2 className="mb-8 text-2xl font-black tracking-tight text-[#1f2933] md:text-3xl">
@@ -139,7 +139,7 @@ export default function AboutPage() {
                     )}
                   </div>
                   <div className={`pb-8 ${i === timeline.length - 1 ? "pb-0" : ""}`}>
-                    <div className="mb-1 text-xs font-bold uppercase tracking-widest text-[#a75635]">{item.period}</div>
+                    <div className="mb-1 text-xs font-bold uppercase tracking-widest text-[#f59e0b]">{item.period}</div>
                     <h3 className="mb-2 text-base font-bold text-[#1f2933] md:text-lg">{item.title}</h3>
                     <p className="m-0 text-sm leading-relaxed text-stone-500">{item.desc}</p>
                   </div>
@@ -186,7 +186,7 @@ export default function AboutPage() {
 
           {/* Values */}
           <section className="rounded-lg border border-stone-200 bg-white p-6 md:p-10">
-            <span className="mb-3 inline-block rounded-full bg-[#a75635]/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#a75635]">
+            <span className="mb-3 inline-block rounded-full bg-[#f59e0b]/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#f59e0b]">
               What we stand for
             </span>
             <h2 className="mb-6 text-2xl font-black tracking-tight text-[#1f2933] md:text-3xl">
@@ -205,7 +205,7 @@ export default function AboutPage() {
 
           {/* Who we serve */}
           <section className="rounded-lg border border-stone-200 bg-white p-6 md:p-10">
-            <span className="mb-3 inline-block rounded-full bg-[#a75635]/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#a75635]">
+            <span className="mb-3 inline-block rounded-full bg-[#f59e0b]/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#f59e0b]">
               Who we serve
             </span>
             <h2 className="mb-4 text-2xl font-black tracking-tight text-[#1f2933] md:text-3xl">
@@ -230,7 +230,7 @@ export default function AboutPage() {
           </section>
 
           {/* Why China */}
-          <section className="rounded-lg border border-[#c9935b]/25 bg-gradient-to-br from-[#fbf6ed] to-[#efe3d0] p-6 md:p-10">
+          <section className="rounded-lg border border-[#f59e0b]/25 bg-gradient-to-br from-[#fbf6ed] to-[#efe3d0] p-6 md:p-10">
             <span className="mb-3 inline-block rounded-full bg-[#24483f]/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#24483f]">
               The advantage
             </span>
@@ -250,7 +250,7 @@ export default function AboutPage() {
                 { title: "Market intelligence", desc: "We know current fabric pricing, seasonal availability and which suppliers are actually reliable." },
               ].map((item) => (
                 <div key={item.title} className="rounded-lg border border-[#24483f]/15 bg-white p-4">
-                  <div className="mb-3 h-1 w-8 rounded-full bg-gradient-to-r from-[#c9935b] to-[#a75635]" />
+                  <div className="mb-3 h-1 w-8 rounded-full bg-[#f59e0b] text-[#1a2e1a]" />
                   <h3 className="mb-2 text-sm font-bold text-[#24483f]">{item.title}</h3>
                   <p className="m-0 text-xs leading-relaxed text-stone-500">{item.desc}</p>
                 </div>
@@ -269,7 +269,7 @@ export default function AboutPage() {
             </p>
             <div className="flex flex-wrap justify-center gap-3">
               <Link href="/#main-tabs"
-                className="inline-flex items-center rounded-md bg-gradient-to-r from-[#c9935b] to-[#a75635] px-8 py-3.5 text-sm font-bold text-white no-underline shadow-lg shadow-black/20">
+                className="inline-flex items-center rounded-md bg-[#f59e0b] text-[#1a2e1a] px-8 py-3.5 text-sm font-bold text-white no-underline shadow-lg shadow-black/20">
                 Submit your first request →
               </Link>
               <a href={whatsappLink} target="_blank" rel="noreferrer"

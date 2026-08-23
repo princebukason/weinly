@@ -18,8 +18,8 @@ export default function SiteFooter() {
             Global fabric sourcing platform connecting buyers worldwide to verified Chinese manufacturers.
           </p>
           <div className="flex items-center gap-2 mt-4">
-            <span className="w-2 h-2 rounded-full bg-[#c9935b]" />
-            <span className="text-[#c9935b] text-xs font-semibold">Platform active</span>
+            <span className="w-2 h-2 rounded-full bg-[#f59e0b]" />
+            <span className="text-[#f59e0b] text-xs font-semibold">Platform active</span>
           </div>
         </div>
 
@@ -27,7 +27,7 @@ export default function SiteFooter() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
 
           <div>
-            <div className="text-[#c9935b] text-xs font-bold uppercase tracking-widest mb-3">Discover</div>
+            <div className="text-[#f59e0b] text-xs font-bold uppercase tracking-widest mb-3">Discover</div>
             <div className="flex flex-col gap-2">
               <a href="/fabrics" className="text-[#e8dcc8] hover:text-white text-sm font-medium transition-colors no-underline">All Fabrics</a>
               <a href="/suppliers" className="text-[#e8dcc8] hover:text-white text-sm font-medium transition-colors no-underline">Suppliers</a>
@@ -37,7 +37,7 @@ export default function SiteFooter() {
           </div>
 
           <div>
-            <div className="text-[#c9935b] text-xs font-bold uppercase tracking-widest mb-3">Navigate</div>
+            <div className="text-[#f59e0b] text-xs font-bold uppercase tracking-widest mb-3">Navigate</div>
             <div className="flex flex-col gap-2">
               <a href="/#how-it-works" className="text-[#e8dcc8] hover:text-white text-sm font-medium transition-colors no-underline">How it works</a>
               <a href="/pricing" className="text-[#e8dcc8] hover:text-white text-sm font-medium transition-colors no-underline">Pricing</a>
@@ -47,7 +47,7 @@ export default function SiteFooter() {
           </div>
 
           <div>
-            <div className="text-[#c9935b] text-xs font-bold uppercase tracking-widest mb-3">Support</div>
+            <div className="text-[#f59e0b] text-xs font-bold uppercase tracking-widest mb-3">Support</div>
             <div className="flex flex-col gap-2">
               <a href={genericSupportLink} target="_blank" rel="noreferrer"
                 className="text-white hover:text-[#e8dcc8] text-sm font-medium transition-colors no-underline">
@@ -58,14 +58,14 @@ export default function SiteFooter() {
                 {SUPPORT_EMAIL}
               </a>
               <a href="/supplier/auth"
-                className="text-[#c9935b] hover:text-white text-sm font-medium transition-colors no-underline">
+                className="text-[#f59e0b] hover:text-white text-sm font-medium transition-colors no-underline">
                 Supplier login
               </a>
             </div>
           </div>
 
           <div>
-            <div className="text-[#c9935b] text-xs font-bold uppercase tracking-widest mb-3">Platform</div>
+            <div className="text-[#f59e0b] text-xs font-bold uppercase tracking-widest mb-3">Platform</div>
             <div className="flex flex-col gap-2">
               <span className="text-[#e8dcc8] text-sm">China · Worldwide</span>
               <span className="text-[#e8dcc8] text-sm">18 fabric categories</span>

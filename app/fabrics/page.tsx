@@ -23,7 +23,7 @@ export default function FabricsIndexPage() {
   const totalSubcategories = FABRIC_CATEGORIES.reduce((sum, c) => sum + c.subcategories.length, 0);
 
   return (
-    <main className="min-h-screen bg-[#f5ecdc] font-sans">
+    <main className="min-h-screen bg-[#f0f2f0] font-sans">
       <div className="flex w-full flex-col gap-0">
         <SiteHeader />
 
@@ -47,7 +47,7 @@ export default function FabricsIndexPage() {
             <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-10"
               style={{ background: "linear-gradient(to top, rgba(36,72,63,0.95) 0%, rgba(36,72,63,0.5) 55%, rgba(36,72,63,0.05) 100%)" }}>
               <div className="mb-3 inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5">
-                <span className="h-2 w-2 rounded-full bg-[#c9935b]" />
+                <span className="h-2 w-2 rounded-full bg-[#f59e0b]" />
                 <span className="text-xs font-semibold text-[#f8efe2]">Verified supplier network · Ships worldwide</span>
               </div>
               <h1 className="mb-2 text-3xl font-black tracking-tight text-white md:text-5xl">
@@ -103,7 +103,7 @@ export default function FabricsIndexPage() {
 
           {/* Why Weinly */}
           <section className="rounded-lg border border-stone-200 bg-white p-5 md:p-8">
-            <span className="mb-3 inline-block rounded-full bg-[#a75635]/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#a75635]">Why Weinly</span>
+            <span className="mb-3 inline-block rounded-full bg-[#f59e0b]/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#f59e0b]">Why Weinly</span>
             <h2 className="mb-5 text-xl font-black tracking-tight text-[#1f2933]">Why source fabric through Weinly</h2>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
               {[
