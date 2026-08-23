@@ -156,7 +156,7 @@ export default function AdminPage() {
       ]);
       setRequests((reqRes.data || []) as FabricRequest[]);
       const grouped: Record<string, Quote[]> = {};
-      (quotesRes.data || []).forEach((q) => {
+      (quotesRes.data || []).forEach((q: any) => {
         const quote = q as Quote;
         if (!grouped[quote.request_id]) grouped[quote.request_id] = [];
         grouped[quote.request_id].push(quote);
