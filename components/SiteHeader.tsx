@@ -20,7 +20,7 @@ export default function SiteHeader({ showSubmitButton = true }: SiteHeaderProps)
 
   return (
     <header className="mb-3">
-      <nav className="flex items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+      <nav className="flex items-center justify-between gap-4 rounded-2xl border border-gray-900/8 bg-white px-4 py-3 shadow-md shadow-gray-900/5">
 
         {/* Logo */}
         <a href="/" className="flex shrink-0 items-center no-underline">
@@ -65,7 +65,7 @@ export default function SiteHeader({ showSubmitButton = true }: SiteHeaderProps)
           {showSubmitButton && (
             <a
               href="/#main-tabs"
-              className="rounded-xl bg-gradient-to-r from-[#a75635] to-[#7b3525] px-4 py-2.5 text-sm font-bold text-white no-underline transition-all hover:shadow-md"
+              className="rounded-xl bg-[#f59e0b] px-4 py-2.5 text-sm font-bold text-[#1a2e1a] no-underline transition-all hover:bg-[#f0950a] hover:shadow-md"
             >
               Get Quotes
             </a>
@@ -128,7 +128,7 @@ export default function SiteHeader({ showSubmitButton = true }: SiteHeaderProps)
             <a
               href="/#main-tabs"
               onClick={() => setMobileMenuOpen(false)}
-              className="mt-2 rounded-xl bg-gradient-to-r from-[#a75635] to-[#7b3525] px-4 py-3 text-center text-sm font-bold text-white no-underline shadow-sm"
+              className="mt-2 rounded-xl bg-[#f59e0b] px-4 py-3 text-center text-sm font-bold text-[#1a2e1a] no-underline shadow-sm"
             >
               Get Quotes →
             </a>

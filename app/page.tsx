@@ -148,7 +148,7 @@ function ReviewForm({ request, quote, onSubmitted }: { request: FabricRequest; q
       </div>
       {error && <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-600">{error}</div>}
       <button type="submit" disabled={submitting || rating === 0}
-        className="self-start cursor-pointer rounded-lg border-0 bg-gradient-to-r from-[#a75635] to-[#7b3525] px-6 py-3 text-sm font-bold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60">
+        className="self-start cursor-pointer rounded-lg border-0 bg-[#f59e0b] px-6 py-3 text-sm font-bold text-[#1a2e1a] shadow-sm disabled:cursor-not-allowed disabled:opacity-60">
         {submitting ? "Submitting..." : "Submit review →"}
       </button>
     </form>
@@ -381,7 +381,7 @@ export default function HomePage() {
   const avgRating = publicReviews.length > 0 ? (publicReviews.reduce((sum, r) => sum + r.rating, 0) / publicReviews.length).toFixed(1) : null;
 
   return (
-    <main className="min-h-screen bg-[#f5ecdc] px-3 py-3 font-sans md:px-4 md:py-4">
+    <main className="min-h-screen bg-[#f0f2f0] px-3 py-3 font-sans md:px-4 md:py-4">
       {/* Toast */}
       {toast && (
         <div className={`fixed bottom-6 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3 rounded-xl border px-5 py-3.5 text-sm font-semibold shadow-xl transition-all ${
@@ -405,12 +405,12 @@ export default function HomePage() {
           <div className="relative z-10 grid grid-cols-1 items-center gap-8 lg:grid-cols-2 lg:gap-12">
             <div className="flex flex-col gap-5">
               <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5">
-                <span className="h-2 w-2 rounded-full bg-[#c9935b] shadow-sm" />
+                <span className="h-2 w-2 rounded-full bg-[#f59e0b] shadow-sm" />
                 <span className="text-xs font-semibold text-[#f8efe2]">Fabric sourcing platform</span>
               </div>
               <h1 className="text-4xl font-black leading-[1.05] tracking-tight text-white md:text-5xl lg:text-6xl">
                 Source premium fabrics{" "}
-                <span className="text-[#c9935b]">directly from China</span>
+                <span className="text-[#f59e0b]">directly from China</span>
               </h1>
               <p className="max-w-lg text-base leading-relaxed text-[#e8dcc8] md:text-lg">Describe what you need. Get verified supplier quotes. Unlock direct contact and negotiate the best deals — no middlemen.</p>
               <div className="flex flex-wrap gap-6">
@@ -428,7 +428,7 @@ export default function HomePage() {
               </div>
               <div className="flex flex-wrap gap-3">
                 <button onClick={() => { setActiveTab("submit"); document.getElementById("main-tabs")?.scrollIntoView({ behavior: "smooth" }); }}
-                  className="cursor-pointer rounded-lg border-0 bg-gradient-to-r from-[#a75635] to-[#7b3525] px-6 py-3 text-sm font-bold text-white shadow-lg transition-all hover:shadow-xl">
+                  className="cursor-pointer rounded-lg border-0 bg-[#f59e0b] px-6 py-3 text-sm font-bold text-[#1a2e1a] shadow-lg shadow-amber-500/25 transition-all hover:bg-[#f0950a] hover:shadow-xl">
                   Start sourcing →
                 </button>
                 <a href={genericSupportLink} target="_blank" rel="noreferrer" className="flex items-center rounded-lg border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold text-[#f8efe2] no-underline transition-all hover:bg-white/15">WhatsApp us</a>
@@ -508,7 +508,7 @@ export default function HomePage() {
           <div className="mb-6 flex gap-2 rounded-xl border border-stone-200 bg-stone-50 p-1.5">
             {(["submit", "track"] as const).map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
-                className={`flex-1 cursor-pointer rounded-lg border-0 px-4 py-3 text-sm font-bold transition-all ${activeTab === tab ? "bg-gradient-to-r from-[#a75635] to-[#7b3525] text-white shadow-sm" : "bg-transparent text-stone-500 hover:text-stone-700"}`}>
+                className={`flex-1 cursor-pointer rounded-lg border-0 px-4 py-3 text-sm font-bold transition-all ${activeTab === tab ? "bg-[#f59e0b] text-[#1a2e1a] shadow-sm" : "bg-transparent text-stone-500 hover:text-stone-700"}`}>
                 {tab === "submit" ? "Get quotes" : "Track order"}
               </button>
             ))}
@@ -605,7 +605,7 @@ export default function HomePage() {
                 )}
                 <div className="flex flex-wrap gap-3">
                   <button type="submit" disabled={loading || !selectedCategory}
-                    className="cursor-pointer rounded-lg border-0 bg-gradient-to-r from-[#a75635] to-[#7b3525] px-6 py-3 text-sm font-bold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60">
+                    className="cursor-pointer rounded-lg border-0 bg-[#f59e0b] px-6 py-3 text-sm font-bold text-[#1a2e1a] shadow-sm disabled:cursor-not-allowed disabled:opacity-60">
                     {loading ? "Processing..." : "Get supplier quotes →"}
                   </button>
                   <a href={genericSupportLink} target="_blank" rel="noreferrer"
@@ -625,7 +625,7 @@ export default function HomePage() {
                 <input value={lookupId} onChange={(e) => { setLookupId(e.target.value); setLookupError(""); }} placeholder="Paste your request ID here"
                   className="min-w-0 flex-1 rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-[#1f2933] outline-none transition-all placeholder:text-stone-400 focus:border-amber-500 focus:bg-white" />
                 <button onClick={() => handleLookup()} disabled={lookupLoading}
-                  className="shrink-0 cursor-pointer rounded-lg border-0 bg-gradient-to-r from-[#a75635] to-[#7b3525] px-6 py-3 text-sm font-bold text-white disabled:opacity-60">
+                  className="shrink-0 cursor-pointer rounded-lg border-0 bg-[#f59e0b] px-6 py-3 text-sm font-bold text-[#1a2e1a] disabled:opacity-60">
                   {lookupLoading ? "Loading..." : "Track →"}
                 </button>
               </div>
@@ -822,7 +822,7 @@ export default function HomePage() {
                               <div className="mb-2 text-2xl font-black text-[#1f2933]">{prices.unlock}</div>
                               <div className="mb-4 text-sm leading-relaxed text-stone-500">Unlock this supplier's phone, WeChat and email for this request.</div>
                               <button onClick={() => requestContact(activeRequest.id)}
-                                className="w-full cursor-pointer rounded-lg border-0 bg-gradient-to-r from-[#a75635] to-[#7b3525] px-5 py-3 text-sm font-bold text-white shadow-sm">
+                                className="w-full cursor-pointer rounded-lg border-0 bg-[#f59e0b] px-5 py-3 text-sm font-bold text-[#1a2e1a] shadow-sm">
                                 Proceed to unlock
                               </button>
                             </div>
@@ -858,7 +858,7 @@ export default function HomePage() {
                           <p className="m-0 mb-4 text-sm leading-relaxed text-stone-500">Get direct access to supplier phone, WeChat and contact person.</p>
                           <div className="flex flex-wrap gap-3">
                             <button onClick={() => startPayment(activeRequest)} disabled={paymentLoading}
-                              className="cursor-pointer rounded-lg border-0 bg-gradient-to-r from-[#a75635] to-[#7b3525] px-5 py-2.5 text-sm font-bold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60">
+                              className="cursor-pointer rounded-lg border-0 bg-[#f59e0b] px-5 py-2.5 text-sm font-bold text-[#1a2e1a] shadow-sm disabled:cursor-not-allowed disabled:opacity-60">
                               {paymentLoading ? "Processing..." : `Pay ${prices.unlock} & unlock`}
                             </button>
                             <a href={supportLink} target="_blank" rel="noreferrer" className="flex items-center rounded-lg border border-emerald-200 bg-emerald-100 px-5 py-2.5 text-sm font-semibold text-[#2f7d57] no-underline transition-all hover:bg-emerald-200">Need help?</a>
@@ -975,7 +975,7 @@ export default function HomePage() {
                 <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-[#f8efe2]">Priority suppliers</span>
                 <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-[#f8efe2]">Dedicated support</span>
               </div>
-              <a href="/pricing" className="inline-flex items-center rounded-lg bg-gradient-to-r from-[#a75635] to-[#7b3525] px-6 py-3 text-sm font-bold text-white no-underline shadow-md">View Pro pricing →</a>
+              <a href="/pricing" className="inline-flex items-center rounded-lg bg-[#f59e0b] px-6 py-3 text-sm font-bold text-[#1a2e1a] no-underline shadow-md">View Pro pricing →</a>
             </div>
             <div className="flex flex-col gap-2">
               {["Access suppliers faster when ready to buy", "Reduce delays and middlemen issues", "Make better sourcing decisions", "Scale your fabric business faster"].map((item) => (
@@ -1029,7 +1029,7 @@ export default function HomePage() {
             </div>
             {/* Pro */}
             <div className="relative flex flex-col rounded-xl border border-[#24483f]/20 bg-[#24483f] p-6 shadow-lg">
-              <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-to-r from-[#a75635] to-[#7b3525] px-4 py-1.5 text-xs font-bold text-white">Most popular</span>
+              <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#f59e0b] px-4 py-1.5 text-xs font-bold text-white">Most popular</span>
               <div className="mb-2 text-xs font-bold uppercase tracking-widest text-[#c9935b]">Weinly Pro</div>
               <div className="mb-1 flex items-end gap-2">
                 <div className="text-4xl font-black tracking-tight text-white">{prices.proMonthly}</div>
@@ -1043,7 +1043,7 @@ export default function HomePage() {
                 ))}
               </div>
               <div className="mt-auto flex flex-col gap-2">
-                <a href="/pricing" className="block w-full rounded-lg bg-gradient-to-r from-[#a75635] to-[#7b3525] py-3.5 text-center text-sm font-bold text-white no-underline shadow-md">Get Pro →</a>
+                <a href="/pricing" className="block w-full rounded-lg bg-[#f59e0b] py-3.5 text-center text-sm font-bold text-[#1a2e1a] no-underline shadow-md">Get Pro →</a>
                 <a href={proSupportLink} target="_blank" rel="noreferrer" className="block w-full rounded-lg border border-white/20 bg-white/10 py-3 text-center text-sm font-bold text-[#f8efe2] no-underline transition-all hover:bg-white/15">Pay via bank transfer</a>
               </div>
             </div>
