@@ -222,9 +222,9 @@ export default function AdminClient() {
       try {
         const request = requests.find((r) => r.id === requestId);
         if (request?.client_email) {
-          await fetch("/api/email/notify-quotes", {
+          await fetch("/api/admin/notify-quotes", {
             method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ buyerEmail: request.client_email, buyerName: request.client_name, requestId, quoteCount: (quotesMap[requestId]?.length || 0) + 1 }),
+            body: JSON.stringify({ requestId, quoteCount: (quotesMap[requestId]?.length || 0) + 1 }),
           });
           await sendPushNotification(requestId, "Your quotes are ready 🎉", "A verified supplier has responded to your fabric request. Tap to review.");
         }
