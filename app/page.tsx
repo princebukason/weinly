@@ -185,6 +185,10 @@ export default function HomePage() {
   const [formError, setFormError] = useState("");
   const [lookupError, setLookupError] = useState("");
   const [copiedId, setCopiedId] = useState(false);
+  const [showProUnlock, setShowProUnlock] = useState(false);
+  const [proUnlockEmail, setProUnlockEmail] = useState("");
+  const [proUnlockName, setProUnlockName] = useState("");
+  const [proUnlockLoading, setProUnlockLoading] = useState(false);
 
   function showToast(msg: string, type: "error" | "success" | "info" = "info") {
     setToast({ msg, type });
@@ -373,6 +377,52 @@ export default function HomePage() {
         onCancel: () => setPaymentLoading(false),
       });
     } catch { setPaymentLoading(false); showToast("Failed to launch payment. Please try again.", "error"); }
+  }
+
+  async function handleProUnlock(request: FabricRequest) {
+    const email = proUnlockEmail.trim() || request.client_email || "";
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showToast("Please enter a valid email address.", "error"); return;
+    }
+    setProUnlockLoading(true);
+    try {
+      const initRes = await fetch("/api/paystack/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, name: proUnlockName || request.client_name || "", plan: "pro_monthly", currency: prices.currency }),
+      });
+      const initData = await initRes.json();
+      if (!initRes.ok || !initData?.access_code) { showToast(initData?.error || "Failed to initialize Pro payment.", "error"); setProUnlockLoading(false); return; }
+      if (!PaystackPop) { const m = await import("@paystack/inline-js"); PaystackPop = m.default; }
+      const popup = new PaystackPop();
+      popup.resumeTransaction(initData.access_code, {
+        onSuccess: async (transaction: { reference: string }) => {
+          try {
+            // Save Pro subscription
+            await fetch("/api/paystack/verify-subscription", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ reference: transaction.reference, email }),
+            });
+            // Immediately release contacts for this request using Pro credit
+            const releaseRes = await fetch("/api/paystack/pro-release", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ requestId: request.id, email }),
+            });
+            if (!releaseRes.ok) {
+              showToast("Pro activated! Contact our team on WhatsApp to unlock this request.", "info");
+            } else {
+              showToast("Pro activated! Supplier contacts are now unlocked.", "success");
+            }
+            setShowProUnlock(false);
+            await syncState(request.id);
+          } catch { showToast("Payment received — contact support to activate your Pro unlock.", "error"); }
+          finally { setProUnlockLoading(false); }
+        },
+        onCancel: () => setProUnlockLoading(false),
+      });
+    } catch { showToast("Failed to launch Pro payment. Please try again.", "error"); setProUnlockLoading(false); }
   }
 
   const activeRequest = useMemo(() => lookupRequest || submittedRequest, [lookupRequest, submittedRequest]);
@@ -814,36 +864,76 @@ export default function HomePage() {
                       )}
                       {!isReleased && contactStatus === "none" && (
                         <div className="rounded-xl border border-[#24483f]/20 bg-[#24483f]/5 p-5">
-                          <div className="mb-5">
+                          <div className="mb-4">
                             <div className="mb-1 flex items-center gap-2">
                               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#24483f] text-xs font-black text-white">🔓</span>
                               <h4 className="m-0 text-base font-bold text-[#1f2933]">Unlock supplier contact</h4>
                             </div>
-                            <p className="m-0 mt-1 text-sm leading-relaxed text-stone-500">Pay once to get the supplier's direct phone, WeChat ID and email — instantly released after payment.</p>
+                            <p className="m-0 mt-1 text-sm leading-relaxed text-stone-500">Get the supplier's direct phone, WeChat ID and email. Choose a payment option below.</p>
                           </div>
-                          <div className="mb-4 flex flex-col gap-2 rounded-lg border border-[#24483f]/15 bg-white p-4">
-                            {[
-                              { label: "Access fee", value: prices.unlock },
-                              { label: "What you get", value: "Phone · WeChat · Email · Contact name" },
-                              { label: "Secured by", value: "Paystack" },
-                            ].map((row) => (
-                              <div key={row.label} className="flex flex-wrap justify-between gap-2 text-sm">
-                                <span className="text-stone-400">{row.label}</span>
-                                <strong className="text-[#1f2933]">{row.value}</strong>
+
+                          {/* Two options */}
+                          {!showProUnlock ? (
+                            <div className="flex flex-col gap-3">
+                              {/* Single unlock */}
+                              <div className="rounded-lg border-2 border-[#f59e0b] bg-white p-4">
+                                <div className="mb-1 flex items-center justify-between">
+                                  <span className="text-sm font-bold text-[#1f2933]">One-time unlock</span>
+                                  <span className="text-base font-black text-[#1f2933]">{prices.unlock}</span>
+                                </div>
+                                <p className="mb-3 text-xs text-stone-400">Unlock this request only. Phone · WeChat · Email · Contact name.</p>
+                                <button onClick={() => requestContact(activeRequest.id)}
+                                  className="w-full cursor-pointer rounded-lg border-0 bg-[#f59e0b] py-3 text-sm font-bold text-[#1a2e1a] shadow-md shadow-amber-500/20">
+                                  Pay {prices.unlock} — Unlock now
+                                </button>
                               </div>
-                            ))}
-                          </div>
-                          <button onClick={() => requestContact(activeRequest.id)}
-                            className="w-full cursor-pointer rounded-lg border-0 bg-[#f59e0b] py-3.5 text-sm font-bold text-[#1a2e1a] shadow-md shadow-amber-500/20 transition-all hover:bg-[#f0950a]">
-                            Pay {prices.unlock} — Unlock contacts instantly
-                          </button>
-                          <div className="mt-3 flex items-center justify-between">
-                            <p className="m-0 text-xs text-stone-400">Contacts revealed immediately after payment</p>
-                            <a href={supportLink} target="_blank" rel="noreferrer" className="text-xs font-semibold text-[#24483f] no-underline hover:underline">Need help?</a>
-                          </div>
-                          <div className="mt-3 border-t border-stone-200 pt-3">
-                            <p className="m-0 text-xs text-stone-400">Buying more than once? <a href="/pricing" className="font-semibold text-[#24483f] no-underline hover:underline">Weinly Pro — {prices.proMonthly}/mo</a> includes 3 unlocks/month.</p>
-                          </div>
+
+                              {/* Pro unlock */}
+                              <div className="rounded-lg border-2 border-[#24483f] bg-[#24483f] p-4">
+                                <div className="mb-1 flex items-center justify-between">
+                                  <span className="text-sm font-bold text-white">Weinly Pro</span>
+                                  <span className="text-base font-black text-[#f59e0b]">{prices.proMonthly}<span className="text-xs font-normal text-[#c9e0d0]">/mo</span></span>
+                                </div>
+                                <p className="mb-1 text-xs text-[#c9e0d0]">3 contact unlocks per month. Pay Pro now and this request unlocks immediately as your first credit.</p>
+                                <div className="mb-3 flex flex-wrap gap-1">
+                                  {["3 unlocks/month", "Priority matching", "WhatsApp support"].map((f) => (
+                                    <span key={f} className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-[#e8dcc8]">{f}</span>
+                                  ))}
+                                </div>
+                                <button onClick={() => { setProUnlockEmail(activeRequest.client_email || ""); setProUnlockName(activeRequest.client_name || ""); setShowProUnlock(true); }}
+                                  className="w-full cursor-pointer rounded-lg border-0 bg-[#f59e0b] py-3 text-sm font-bold text-[#1a2e1a]">
+                                  Get Pro — unlock this request free
+                                </button>
+                              </div>
+
+                              <div className="text-center">
+                                <a href={supportLink} target="_blank" rel="noreferrer" className="text-xs text-stone-400 no-underline hover:underline">Need help? Chat on WhatsApp</a>
+                              </div>
+                            </div>
+                          ) : (
+                            /* Pro payment form */
+                            <div className="rounded-lg border-2 border-[#24483f] bg-[#24483f] p-4">
+                              <div className="mb-3 flex items-center justify-between">
+                                <span className="text-sm font-bold text-white">Pay for Weinly Pro</span>
+                                <span className="text-base font-black text-[#f59e0b]">{prices.proMonthly}/mo</span>
+                              </div>
+                              <div className="flex flex-col gap-2">
+                                <input type="text" placeholder="Your name" value={proUnlockName}
+                                  onChange={(e) => setProUnlockName(e.target.value)}
+                                  className="w-full rounded-md border-0 bg-white/10 px-4 py-3 text-sm text-white placeholder-white/40 outline-none focus:bg-white/15" />
+                                <input type="email" placeholder="Your email address" value={proUnlockEmail}
+                                  onChange={(e) => setProUnlockEmail(e.target.value)}
+                                  className="w-full rounded-md border-0 bg-white/10 px-4 py-3 text-sm text-white placeholder-white/40 outline-none focus:bg-white/15" />
+                                <button onClick={() => handleProUnlock(activeRequest)} disabled={proUnlockLoading}
+                                  className="w-full cursor-pointer rounded-lg border-0 bg-[#f59e0b] py-3.5 text-sm font-bold text-[#1a2e1a] disabled:opacity-60">
+                                  {proUnlockLoading ? "Processing..." : `Pay ${prices.proMonthly} & unlock contacts`}
+                                </button>
+                                <button onClick={() => setShowProUnlock(false)} className="border-0 bg-transparent text-xs text-[#c9e0d0] underline cursor-pointer">
+                                  Back to options
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                       {!isReleased && contactStatus === "pending" && paymentStatus === "unpaid" && (
