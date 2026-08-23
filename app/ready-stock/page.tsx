@@ -1,17 +1,21 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
+
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import FabricImage from "@/components/FabricImage";
 import { FABRIC_CATEGORIES, getCategoryColor, getCategoryLabel } from "@/lib/categories";
 import { buildWhatsappLink } from "@/lib/config";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+let _sb: SupabaseClient | null = null;
+function getSupabase() {
+  if (!_sb) _sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "");
+  return _sb;
+}
+
+
 
 type ReadyStockItem = {
   id: string; created_at: string; supplier_id: string;
@@ -36,8 +40,8 @@ export default function ReadyStockPage() {
   useEffect(() => {
     async function load() {
       const [stockRes, suppliersRes] = await Promise.all([
-        supabase.from("ready_stock").select("*").eq("is_active", true).order("created_at", { ascending: false }),
-        supabase.from("supplier_profiles").select("id, company_name, is_verified, region").eq("is_active", true),
+        getSupabase().from("ready_stock").select("*").eq("is_active", true).order("created_at", { ascending: false }),
+        getSupabase().from("supplier_profiles").select("id, company_name, is_verified, region").eq("is_active", true),
       ]);
       setItems((stockRes.data || []) as ReadyStockItem[]);
       const map: SupplierMap = {};

@@ -2,16 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
+
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import { getCategoryColor, getCategoryLabel } from "@/lib/categories";
 import { buildWhatsappLink } from "@/lib/config";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+let _sb: SupabaseClient | null = null;
+function getSupabase() {
+  if (!_sb) _sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "");
+  return _sb;
+}
+
+
 
 type Supplier = {
   id: string;
@@ -80,9 +84,9 @@ export default function SupplierProfilePage() {
     if (!id) return;
     async function load() {
       const [supplierRes, reviewsRes, stockRes] = await Promise.all([
-        supabase.from("supplier_profiles").select("*").eq("id", id).eq("is_active", true).single(),
-        supabase.from("supplier_reviews").select("id, buyer_name, rating, comment, created_at").eq("supplier_id", id).order("created_at", { ascending: false }),
-        supabase.from("ready_stock").select("*").eq("supplier_id", id).eq("is_active", true).order("created_at", { ascending: false }),
+        getSupabase().from("supplier_profiles").select("*").eq("id", id).eq("is_active", true).single(),
+        getSupabase().from("supplier_reviews").select("id, buyer_name, rating, comment, created_at").eq("supplier_id", id).order("created_at", { ascending: false }),
+        getSupabase().from("ready_stock").select("*").eq("supplier_id", id).eq("is_active", true).order("created_at", { ascending: false }),
       ]);
       if (supplierRes.error || !supplierRes.data) { setNotFound(true); setLoading(false); return; }
       setSupplier(supplierRes.data as Supplier);

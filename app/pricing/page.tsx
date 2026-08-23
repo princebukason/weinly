@@ -1,18 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
+
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import { buildWhatsappLink } from "@/lib/config";
 import { useCurrency } from "@/hooks/useCurrency";
 
+let _sb: SupabaseClient | null = null;
+function getSupabase() {
+  if (!_sb) _sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "");
+  return _sb;
+}
+
+
 let PaystackPop: any = null;
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 type BillingCycle = "monthly" | "yearly";
 type ProPlan = "pro_monthly" | "pro_yearly";
@@ -27,7 +31,7 @@ export default function PricingPage() {
   async function handleProPayment(plan: ProPlan) {
     setLoading(plan);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await getSupabase().auth.getSession();
       if (!session?.user) { window.location.href = "/auth?next=/pricing"; return; }
 
       const initRes = await fetch("/api/paystack/subscribe", {

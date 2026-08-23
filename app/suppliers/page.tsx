@@ -1,17 +1,21 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
+
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import FabricImage from "@/components/FabricImage";
 import { FABRIC_CATEGORIES, getCategoryColor, getCategoryLabel } from "@/lib/categories";
 import { buildWhatsappLink } from "@/lib/config";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+let _sb: SupabaseClient | null = null;
+function getSupabase() {
+  if (!_sb) _sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "");
+  return _sb;
+}
+
+
 
 type Supplier = {
   id: string; company_name: string; contact_name: string | null;
@@ -33,10 +37,10 @@ export default function SuppliersPage() {
   useEffect(() => {
     async function load() {
       const [suppliersRes, reviewsRes] = await Promise.all([
-        supabase.from("supplier_profiles").select("*").eq("is_active", true)
+        getSupabase().from("supplier_profiles").select("*").eq("is_active", true)
           .order("is_verified", { ascending: false })
           .order("created_at", { ascending: false }),
-        supabase.from("supplier_reviews").select("supplier_id, rating"),
+        getSupabase().from("supplier_reviews").select("supplier_id, rating"),
       ]);
       setSuppliers((suppliersRes.data || []) as Supplier[]);
       const reviewMap: Record<string, { total: number; count: number }> = {};
