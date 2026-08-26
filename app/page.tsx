@@ -492,7 +492,7 @@ export default function HomePage() {
                 Source premium fabrics{" "}
                 <span className="text-[#f59e0b]">directly from China</span>
               </h1>
-              <p className="max-w-lg text-base leading-relaxed text-[#e8dcc8] md:text-lg">Describe what you need. Get verified supplier quotes. Unlock direct contact and negotiate the best deals — no middlemen.</p>
+              <p className="max-w-lg text-base leading-relaxed text-[#e8dcc8] md:text-lg">Describe what you need. Weinly finds verified Chinese suppliers, negotiates the price, inspects quality and coordinates shipping — end to end.</p>
               <div className="flex flex-wrap gap-6">
                 {[
                   { v: String(FABRIC_CATEGORIES.length), l: "Fabric categories" },
@@ -594,7 +594,7 @@ export default function HomePage() {
             {[
               { n: "01", title: "Submit your request", text: "Choose a fabric category, describe what you need. AI formats it into a professional sourcing spec.", color: "from-[#a75635] to-[#c9935b]", textColor: "text-[#f59e0b]" },
               { n: "02", title: "Review supplier quotes", text: "We match you to verified Chinese suppliers in your category. See price, MOQ and lead time first.", color: "from-[#24483f] to-[#2f7d57]", textColor: "text-[#24483f]" },
-              { n: "03", title: "Unlock & connect", text: `Pay ${prices.unlock} to unlock direct supplier contact — phone, WeChat, email.`, color: "from-[#a75635] to-[#c9935b]", textColor: "text-[#f59e0b]" },
+              { n: "03", title: "Weinly handles the rest", text: "We coordinate supplier via WeChat, inspect quality before shipment, and manage delivery. You pay 4% on order completion.", color: "from-[#a75635] to-[#c9935b]", textColor: "text-[#f59e0b]" },
             ].map((step) => (
               <div key={step.n} className="rounded-xl border border-stone-200 bg-stone-50 p-6">
                 <div className={`mb-3 text-xs font-black uppercase tracking-widest ${step.textColor}`}>{step.n}</div>
