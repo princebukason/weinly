@@ -968,9 +968,39 @@ export default function HomePage() {
                               </div>
                             ))}
                           </div>
+                          {/* Managed order option */}
+                          <div className="mb-3 rounded-lg border border-[#24483f]/20 bg-[#f0f8f4] p-4">
+                            <div className="mb-2 flex items-center gap-2">
+                              <span className="rounded-full bg-[#24483f] px-2 py-0.5 text-xs font-bold text-white">NEW</span>
+                              <span className="text-sm font-bold text-[#1f2933]">Let Weinly handle this order</span>
+                            </div>
+                            <p className="m-0 mb-3 text-xs leading-relaxed text-stone-500">
+                              We coordinate supplier, QC and shipping end-to-end. You pay a 4% service fee on the final order value — nothing upfront.
+                            </p>
+                            <div className="mb-3 flex flex-col gap-1.5">
+                              {["Weinly negotiates the best price", "We inspect before shipment", "You deal with Weinly, not the factory"].map((item) => (
+                                <div key={item} className="flex items-center gap-2 text-xs text-[#24483f]">
+                                  <span className="font-bold">✓</span> {item}
+                                </div>
+                              ))}
+                            </div>
+                            <a
+                              href={buildWhatsappLink(`Hello Weinly, I want you to manage my order for request ID: ${activeRequest.id}. My requirement: ${typeof activeRequest.user_input === "string" ? activeRequest.user_input.slice(0, 200) : ""}`)}
+                              target="_blank" rel="noreferrer"
+                              className="block w-full rounded-lg bg-[#24483f] py-3 text-center text-sm font-bold text-white no-underline transition-all hover:bg-[#1a3530]">
+                              Start managed order →
+                            </a>
+                          </div>
+
+                          <div className="relative flex items-center gap-3 py-1">
+                            <div className="h-px flex-1 bg-stone-200" />
+                            <span className="text-xs text-stone-400">or unlock contact yourself</span>
+                            <div className="h-px flex-1 bg-stone-200" />
+                          </div>
+
                           <button onClick={() => requestContact(activeRequest.id)}
-                            className="w-full cursor-pointer rounded-lg border-0 bg-[#f59e0b] py-3.5 text-sm font-bold text-[#1a2e1a] shadow-md shadow-amber-500/20 transition-all hover:bg-[#f0950a]">
-                            Pay {prices.unlock} — Unlock contacts instantly
+                            className="mt-2 w-full cursor-pointer rounded-lg border border-stone-200 bg-white py-3.5 text-sm font-semibold text-[#1f2933] transition-all hover:bg-stone-50">
+                            Pay {prices.unlock} — Get contacts only
                           </button>
                           <div className="mt-3 flex items-center justify-between">
                             <p className="m-0 text-xs text-stone-400">Contacts revealed immediately after payment</p>

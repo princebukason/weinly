@@ -58,7 +58,7 @@ export default function SiteHeader({ showSubmitButton = true }: SiteHeaderProps)
         {/* Desktop right CTAs */}
         <div className="hidden items-center gap-2 md:flex">
           <a
-            href="/dashboard"
+            href="/#main-tabs"
             className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm font-semibold text-gray-600 no-underline transition-all hover:bg-gray-100"
           >
             My Requests
@@ -100,7 +100,7 @@ export default function SiteHeader({ showSubmitButton = true }: SiteHeaderProps)
             { href: "/ready-stock", label: "⚡ Ready Stock" },
             { href: "/pricing", label: "Pricing" },
             { href: "/about", label: "About" },
-            { href: "/dashboard", label: "My Requests" },
+            { href: "/#main-tabs", label: "My Requests" },
             { href: "/history", label: "Request History" },
           ].map((link) => (
             <a

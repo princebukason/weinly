@@ -18,8 +18,8 @@ export const metadata: Metadata = {
 };
 
 const stats = [
-  { value: "9", label: "Fabric categories" },
-  { value: "70+", label: "Fabric types" },
+  { value: "18", label: "Fabric categories" },
+  { value: "500+", label: "Fabric types" },
   { value: "China", label: "Sourcing origin" },
   { value: "Global", label: "Buyers served" },
 ];
