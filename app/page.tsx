@@ -947,131 +947,36 @@ export default function HomePage() {
                           <p className="m-0 whitespace-pre-wrap text-sm leading-relaxed text-stone-600">{quote.note}</p>
                         </div>
                       )}
-                      {!isReleased && contactStatus === "none" && (
-                        <div className="rounded-xl border border-[#24483f]/20 bg-[#24483f]/5 p-5">
+                      {!isReleased && (contactStatus === "none" || contactStatus === "pending") && (
+                        <div className="rounded-xl border border-[#24483f]/20 bg-[#24483f] p-5">
                           <div className="mb-4">
-                            <div className="mb-1 flex items-center gap-2">
-                              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#24483f] text-xs font-black text-white">🔓</span>
-                              <h4 className="m-0 text-base font-bold text-[#1f2933]">Unlock supplier contact</h4>
-                            </div>
-                            <p className="m-0 mt-1 text-sm leading-relaxed text-stone-500">Pay to get the supplier's direct phone, WeChat ID and email — revealed instantly after payment.</p>
+                            <h4 className="m-0 text-base font-bold text-white">Weinly manages this order</h4>
+                            <p className="m-0 mt-1 text-sm leading-relaxed text-[#c9e0d0]">We coordinate supplier, QC and shipping end-to-end. You pay a 4% service fee on the final order value — nothing upfront.</p>
                           </div>
-                          <div className="mb-4 flex flex-col gap-2 rounded-lg border border-[#24483f]/15 bg-white p-4">
+                          <div className="mb-4 flex flex-col gap-2">
                             {[
-                              { label: "Access fee", value: prices.unlock },
-                              { label: "What you get", value: "Phone · WeChat · Email · Contact name" },
-                              { label: "Secured by", value: "Paystack" },
-                            ].map((row) => (
-                              <div key={row.label} className="flex flex-wrap justify-between gap-2 text-sm">
-                                <span className="text-stone-400">{row.label}</span>
-                                <strong className="text-[#1f2933]">{row.value}</strong>
+                              "Weinly negotiates the best factory price",
+                              "We inspect quality before shipment",
+                              "You deal with Weinly, not the factory",
+                              "WeChat-based supplier coordination handled for you",
+                            ].map((item) => (
+                              <div key={item} className="flex items-center gap-2 text-sm text-[#c9e0d0]">
+                                <span className="font-bold text-[#f59e0b]">✓</span> {item}
                               </div>
                             ))}
                           </div>
-                          {/* Managed order option */}
-                          <div className="mb-3 rounded-lg border border-[#24483f]/20 bg-[#f0f8f4] p-4">
-                            <div className="mb-2 flex items-center gap-2">
-                              <span className="rounded-full bg-[#24483f] px-2 py-0.5 text-xs font-bold text-white">NEW</span>
-                              <span className="text-sm font-bold text-[#1f2933]">Let Weinly handle this order</span>
-                            </div>
-                            <p className="m-0 mb-3 text-xs leading-relaxed text-stone-500">
-                              We coordinate supplier, QC and shipping end-to-end. You pay a 4% service fee on the final order value — nothing upfront.
-                            </p>
-                            <div className="mb-3 flex flex-col gap-1.5">
-                              {["Weinly negotiates the best price", "We inspect before shipment", "You deal with Weinly, not the factory"].map((item) => (
-                                <div key={item} className="flex items-center gap-2 text-xs text-[#24483f]">
-                                  <span className="font-bold">✓</span> {item}
-                                </div>
-                              ))}
-                            </div>
-                            <a
-                              href={buildWhatsappLink(`Hello Weinly, I want you to manage my order for request ID: ${activeRequest.id}. My requirement: ${typeof activeRequest.user_input === "string" ? activeRequest.user_input.slice(0, 200) : ""}`)}
-                              target="_blank" rel="noreferrer"
-                              className="block w-full rounded-lg bg-[#24483f] py-3 text-center text-sm font-bold text-white no-underline transition-all hover:bg-[#1a3530]">
-                              Start managed order →
-                            </a>
-                          </div>
-
-                          <div className="relative flex items-center gap-3 py-1">
-                            <div className="h-px flex-1 bg-stone-200" />
-                            <span className="text-xs text-stone-400">or unlock contact yourself</span>
-                            <div className="h-px flex-1 bg-stone-200" />
-                          </div>
-
-                          <button onClick={() => requestContact(activeRequest.id)}
-                            className="mt-2 w-full cursor-pointer rounded-lg border border-stone-200 bg-white py-3.5 text-sm font-semibold text-[#1f2933] transition-all hover:bg-stone-50">
-                            Pay {prices.unlock} — Get contacts only
-                          </button>
-                          <div className="mt-3 flex items-center justify-between">
-                            <p className="m-0 text-xs text-stone-400">Contacts revealed immediately after payment</p>
-                            <a href={supportLink} target="_blank" rel="noreferrer" className="text-xs font-semibold text-[#24483f] no-underline hover:underline">Need help?</a>
-                          </div>
-
-                          {/* Pro upsell — subtle, below the fold */}
-                          {!showProUnlock ? (
-                            <div className="mt-3 border-t border-stone-200 pt-3">
-                              <p className="m-0 text-xs text-stone-400">
-                                Sourcing regularly?{" "}
-                                <button onClick={() => { setProUnlockEmail(activeRequest.client_email || ""); setProUnlockName(activeRequest.client_name || ""); setShowProUnlock(true); }}
-                                  className="border-0 bg-transparent p-0 text-xs font-semibold text-[#24483f] underline cursor-pointer">
-                                  Weinly Pro — {prices.proMonthly}/mo
-                                </button>
-                                {" "}includes 3 unlocks/month and this request unlocks immediately.
-                              </p>
-                            </div>
-                          ) : (
-                            <div className="mt-3 rounded-lg border border-[#24483f]/20 bg-[#24483f] p-4">
-                              <div className="mb-2 flex items-center justify-between">
-                                <span className="text-sm font-bold text-white">Upgrade to Weinly Pro</span>
-                                <span className="font-black text-[#f59e0b]">{prices.proMonthly}<span className="text-xs font-normal text-[#c9e0d0]">/mo</span></span>
-                              </div>
-                              <p className="mb-3 text-xs text-[#c9e0d0]">3 contact unlocks per month. This request unlocks immediately after payment.</p>
-                              <div className="flex flex-col gap-2">
-                                <input type="text" placeholder="Your name" value={proUnlockName}
-                                  onChange={(e) => setProUnlockName(e.target.value)}
-                                  className="w-full rounded-md border-0 bg-white/10 px-3 py-2.5 text-sm text-white placeholder-white/40 outline-none focus:bg-white/15" />
-                                <input type="email" placeholder="Your email address" value={proUnlockEmail}
-                                  onChange={(e) => setProUnlockEmail(e.target.value)}
-                                  className="w-full rounded-md border-0 bg-white/10 px-3 py-2.5 text-sm text-white placeholder-white/40 outline-none focus:bg-white/15" />
-                                <button onClick={() => handleProUnlock(activeRequest)} disabled={proUnlockLoading}
-                                  className="w-full cursor-pointer rounded-lg border-0 bg-[#f59e0b] py-3 text-sm font-bold text-[#1a2e1a] disabled:opacity-60">
-                                  {proUnlockLoading ? "Processing..." : `Pay ${prices.proMonthly} & unlock contacts`}
-                                </button>
-                                <button onClick={() => setShowProUnlock(false)} className="border-0 bg-transparent text-xs text-[#c9e0d0] underline cursor-pointer">
-                                  Cancel
-                                </button>
-                              </div>
-                            </div>
-                          )}
+                          <a
+                            href={buildWhatsappLink(`Hello Weinly, I want you to manage my order for request ID: ${activeRequest.id}. My requirement: ${typeof activeRequest.user_input === "string" ? activeRequest.user_input.slice(0, 200) : ""}`)}
+                            target="_blank" rel="noreferrer"
+                            className="block w-full rounded-lg bg-[#f59e0b] py-3.5 text-center text-sm font-bold text-[#1a2e1a] no-underline transition-all hover:bg-[#f0950a]">
+                            Start managed order →
+                          </a>
+                          <p className="m-0 mt-3 text-center text-xs text-[#c9e0d0]">4% service fee · paid on order completion · no upfront cost</p>
                         </div>
                       )}
-                      {!isReleased && contactStatus === "pending" && paymentStatus === "unpaid" && (
-                        <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
-                          <div className="mb-4 flex items-center gap-3">
-                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500 text-sm font-black text-white">₦</span>
-                            <div>
-                              <h4 className="m-0 text-base font-bold text-[#1f2933]">Complete your payment</h4>
-                              <p className="m-0 text-xs text-stone-500">Contacts released instantly after payment</p>
-                            </div>
-                          </div>
-                          <div className="mb-4 flex flex-col gap-2 rounded-lg border border-amber-200 bg-white p-4">
-                            {[{ label: "Amount", value: prices.unlock }, { label: "What you unlock", value: "Phone · WeChat · Email" }, { label: "Secured by", value: "Paystack" }].map((row) => (
-                              <div key={row.label} className="flex flex-wrap justify-between gap-2 text-sm">
-                                <span className="text-stone-400">{row.label}</span>
-                                <strong className="text-[#1f2933]">{row.value}</strong>
-                              </div>
-                            ))}
-                          </div>
-                          <button onClick={() => startPayment(activeRequest)} disabled={paymentLoading}
-                            className="w-full cursor-pointer rounded-lg border-0 bg-[#f59e0b] py-3.5 text-sm font-bold text-[#1a2e1a] shadow-md shadow-amber-500/20 disabled:cursor-not-allowed disabled:opacity-60">
-                            {paymentLoading ? "Opening payment..." : `Pay ${prices.unlock} & unlock contacts`}
-                          </button>
-                          <p className="m-0 mt-2 text-center text-xs text-stone-400">Safe & secure — powered by Paystack</p>
-                        </div>
-                      )}
-                      {!isReleased && contactStatus === "approved" && paymentStatus === "paid" && (
+                      {!isReleased && contactStatus === "approved" && (
                         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm leading-relaxed text-[#2f7d57]">
-                          <strong>Payment confirmed!</strong> Your supplier contacts are now unlocked — scroll down to view them.
+                          <strong>Order confirmed!</strong> Your Weinly team is coordinating with the supplier — we'll update you on WhatsApp shortly.
                         </div>
                       )}
                       {!isReleased && contactStatus === "rejected" && (
