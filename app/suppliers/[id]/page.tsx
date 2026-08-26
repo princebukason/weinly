@@ -193,13 +193,15 @@ export default function SupplierProfilePage() {
 
             {/* CTA */}
             <div className="flex shrink-0 flex-col gap-2 md:items-end">
-              <a href="/#main-tabs"
-                className="inline-flex items-center rounded-lg bg-[#f59e0b] text-[#1a2e1a] px-6 py-3 text-sm font-bold text-white no-underline shadow-md">
-                Request a quote →
+              <a href={buildWhatsappLink(`Hello Weinly, I want you to manage a sourcing order from ${supplier.company_name}. Please help me coordinate supplier, QC and shipping.`)}
+                target="_blank" rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg bg-[#f59e0b] text-[#1a2e1a] px-6 py-3 text-sm font-bold no-underline shadow-md transition-all hover:bg-[#f0950a]">
+                <span>Let Weinly manage this order</span>
+                <span className="rounded-full bg-[#1a2e1a]/15 px-1.5 py-0.5 text-xs">4% fee</span>
               </a>
-              <a href={supportLink} target="_blank" rel="noreferrer"
-                className="inline-flex items-center rounded-lg border border-white/20 bg-white/10 px-6 py-3 text-sm font-bold text-[#f8efe2] no-underline transition-all hover:bg-white/15">
-                Chat on WhatsApp
+              <a href="/#main-tabs"
+                className="inline-flex items-center rounded-lg border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold text-[#f8efe2] no-underline transition-all hover:bg-white/15">
+                Request a quote →
               </a>
             </div>
           </div>

@@ -193,6 +193,9 @@ export default function ReadyStockPage() {
                   const enquiryLink = buildWhatsappLink(
                     `Hello Weinly, I'm interested in "${item.name}" from ${supplier?.company_name || "a supplier"} on the ready stock page. Can you help me proceed?`
                   );
+                  const managedOrderLink = buildWhatsappLink(
+                    `Hello Weinly, I want you to manage my order for "${item.name}" (${item.price_per_unit}/${item.unit}, MOQ: ${item.moq}) from ${supplier?.company_name || "a supplier"}. Please coordinate supplier, QC and shipping — I understand there is a 4% service fee.`
+                  );
 
                   return (
                     <div key={item.id}
@@ -265,10 +268,16 @@ export default function ReadyStockPage() {
                           ))}
                         </div>
                         {!item.is_sold_out ? (
-                          <a href={enquiryLink} target="_blank" rel="noreferrer"
-                            className="mt-auto block rounded-md bg-gradient-to-r from-[#2f7d57] to-[#24483f] py-2.5 text-center text-sm font-bold text-white no-underline transition-all hover:shadow-lg">
-                            Enquire on WhatsApp →
-                          </a>
+                          <div className="mt-auto flex flex-col gap-2">
+                            <a href={managedOrderLink} target="_blank" rel="noreferrer"
+                              className="block rounded-md bg-[#24483f] py-2.5 text-center text-sm font-bold text-white no-underline transition-all hover:bg-[#1a3530]">
+                              Weinly manages this order <span className="ml-1 rounded-full bg-white/15 px-1.5 py-0.5 text-xs font-normal">4% fee</span>
+                            </a>
+                            <a href={enquiryLink} target="_blank" rel="noreferrer"
+                              className="block rounded-md border border-stone-200 py-2 text-center text-xs font-semibold text-stone-500 no-underline transition-all hover:bg-stone-50">
+                              Just enquire →
+                            </a>
+                          </div>
                         ) : (
                           <a href="/#main-tabs"
                             className="mt-auto block rounded-md border border-stone-200 bg-stone-50 py-2.5 text-center text-sm font-semibold text-stone-500 no-underline transition-all hover:bg-stone-100">
