@@ -41,7 +41,7 @@ export default function SiteFooter() {
             <div className="flex flex-col gap-2">
               <a href="/#how-it-works" className="text-[#e8dcc8] hover:text-white text-sm font-medium transition-colors no-underline">How it works</a>
               <a href="/pricing" className="text-[#e8dcc8] hover:text-white text-sm font-medium transition-colors no-underline">Pricing</a>
-              <a href="/dashboard" className="text-[#e8dcc8] hover:text-white text-sm font-medium transition-colors no-underline">Dashboard</a>
+              <a href="/#main-tabs" className="text-[#e8dcc8] hover:text-white text-sm font-medium transition-colors no-underline">My Requests</a>
               <a href="/history" className="text-[#e8dcc8] hover:text-white text-sm font-medium transition-colors no-underline">History</a>
             </div>
           </div>

@@ -497,7 +497,7 @@ export default function HomePage() {
                 {[
                   { v: String(FABRIC_CATEGORIES.length), l: "Fabric categories" },
                   { v: "500+", l: "Fabric types" },
-                  { v: prices.unlock, l: "Contact unlock" },
+                  { v: "4%", l: "Service fee on orders" },
                   ...(avgRating ? [{ v: `${avgRating}★`, l: "Avg supplier rating" }] : []),
                 ].map((s) => (
                   <div key={s.l} className="flex flex-col gap-0.5">
@@ -574,7 +574,7 @@ export default function HomePage() {
                   <span className="text-xs font-bold text-[#92400e]">No waiting — available now</span>
                 </div>
                 <h2 className="mb-1 text-xl font-black tracking-tight text-[#1f2933] md:text-2xl">Ready Stock — browse fabrics in stock today</h2>
-                <p className="text-sm leading-relaxed text-stone-600">Suppliers have listed fabrics they have available right now. Browse, find what you need, unlock contact and buy — no quote request needed.</p>
+                <p className="text-sm leading-relaxed text-stone-600">Suppliers have listed fabrics they have available right now. Browse, find what you need, and let Weinly manage the order — no quote request needed.</p>
               </div>
             </div>
             <a href="/ready-stock" className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-[#f59e0b] px-6 py-3.5 text-sm font-bold text-[#1a2e1a] no-underline shadow-md shadow-amber-500/20 transition-all hover:bg-[#f0950a]">
@@ -1081,7 +1081,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
             {[
               { icon: "👁", title: "See quotes before paying", text: "Review price, MOQ and lead time before spending anything." },
-              { icon: "🔒", title: "Protected supplier details", text: "Contacts are only released after payment — keeping the process serious." },
+              { icon: "🔒", title: "We handle supplier coordination", text: "Weinly communicates with suppliers via WeChat on your behalf — no factory negotiation needed from you." },
               { icon: "🇨🇳", title: "China sourcing expertise", text: "Built for buyers sourcing fabrics from China for the African market." },
               { icon: "💬", title: "WhatsApp support", text: "Real human support throughout your entire sourcing journey." },
             ].map((t) => (
